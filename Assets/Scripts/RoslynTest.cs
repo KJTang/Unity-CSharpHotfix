@@ -19,11 +19,25 @@ public class RoslynTest : MonoBehaviour
         
     }
 
+    private string GetHotfixDirPath()
+    {
+        var dirPath = Application.dataPath;
+        var pos = dirPath.IndexOf("Assets");
+        if (pos >= 0)
+        {
+            dirPath = dirPath.Remove(pos);
+        }
+        dirPath = dirPath + "HotfixCSharp";
+        return dirPath;
+    }
+
     void LoadAllFiles()
     {
-        var dirPath = Application.dataPath + "/Resources/HotfixCSharp/";
+        var dirPath = GetHotfixDirPath();
+        Debug.Log("#ROSLYN# Hotfix Path: " + dirPath);
+
         var dirInfo = new DirectoryInfo(dirPath);
-        var files = dirInfo.GetFiles("*.cs.txt", SearchOption.AllDirectories);
+        var files = dirInfo.GetFiles("*.cs", SearchOption.AllDirectories);
         for (var i = 0; i != files.Length; ++i)
         {
             var fileInfo = files[i];
@@ -39,7 +53,7 @@ public class RoslynTest : MonoBehaviour
     void Func(string programText)
     {
         SyntaxTree tree = CSharpSyntaxTree.ParseText(programText);
-        Debug.Log("#ROSLYN# program: " + tree.ToString());
+        Debug.Log("#ROSLYN# program: \n" + tree.ToString());
 
 
         //Debug.Log($"The tree is a {root.Kind()} node.");
