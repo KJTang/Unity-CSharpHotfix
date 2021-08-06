@@ -14,11 +14,16 @@ public class HelloWorldHelper
 {
     public static void ShowHelloWorld()
     {
-        Debug.Log("Hello World");
+        ShowMessage("Hello World");
     }
 
     public static void ShowMessage(string str)
     {
         Debug.Log(str);
+    }
+
+    public static bool Check(int val)
+    {
+        return true;
     }
 }

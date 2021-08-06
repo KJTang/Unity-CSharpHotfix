@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 
-namespace CSharpHofix
+namespace CSharpHotfix
 {
 
     public class Evaluator
