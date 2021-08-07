@@ -6,6 +6,8 @@ using System.Reflection;
 using System.Text;
 using System.Linq;
 using UnityEngine;
+using Mono.Cecil;
+using Mono.Cecil.Cil;
 
 namespace CSharpHotfix
 {
@@ -23,6 +25,12 @@ namespace CSharpHotfix
 
 
         private static StringBuilder methodSignatureBuilder = new StringBuilder();
+
+        /// <summary>
+        /// get method signature for System.Reflection.MethodInfo
+        /// </summary>
+        /// <param name="method"></param>
+        /// <returns></returns>
         public static string GetMethodSignature(MethodInfo method)
         {
             methodSignatureBuilder.Length = 0;
@@ -60,7 +68,19 @@ namespace CSharpHotfix
             return methodSignatureBuilder.ToString();
         }
 
+        /// <summary>
+        /// get method signature for Mono.Cecil.MethodDefinition
+        /// </summary>
+        /// <param name="method"></param>
+        /// <returns></returns>
+        public static string GetMethodSignature(MethodDefinition method)
+        {
+            // TODO: 
+            return "";
+        }
 
+
+#region method id cache
         private static Dictionary<string, int> methodIdDict = new Dictionary<string, int>();
         private static Dictionary<int, string> methodIdReverseDict = new Dictionary<int, string>();
         private static int methodIdCounter = 0;
@@ -72,10 +92,10 @@ namespace CSharpHotfix
             methodIdReverseDict.Clear();
         }
 
-        public static int GetMethodId(string methodSignature)
+        public static int GetMethodId(string methodSignature, bool generate = false)
         {
             int methodId = -1;
-            if (!methodIdDict.TryGetValue(methodSignature, out methodId)) 
+            if (!methodIdDict.TryGetValue(methodSignature, out methodId) && generate) 
             {
                 methodId = methodIdCounter++;
                 methodIdDict.Add(methodSignature, methodId);
@@ -116,5 +136,7 @@ namespace CSharpHotfix
             //
         }
     }
+
+#endregion
 
 }

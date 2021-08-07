@@ -5,6 +5,8 @@ using System.Linq;
 using System;
 using UnityEngine;
 using UnityEditor;
+using Mono.Cecil;
+using Mono.Cecil.Cil;
 
 namespace CSharpHotfix.Editor
 {
@@ -18,7 +20,7 @@ namespace CSharpHotfix.Editor
 
             // when not playing, inject the dll
             if (!EditorApplication.isCompiling && !Application.isPlaying)
-                TryInject();
+                CSharpHotfixInjector.TryInject();
         }
         
         [MenuItem("CSharpHotfix/Enable", true, 1)]
@@ -39,76 +41,16 @@ namespace CSharpHotfix.Editor
             return CSharpHotfixManager.IsHotfixEnabled;
         }
 
-        
-        
-
-        
-        private static string[] injectAssemblys = new string[]
-        {
-            "Assembly-CSharp",
-            "Assembly-CSharp-firstpass"
-        };
-
-        private static HashSet<string> filterNamespace= new HashSet<string>()
-        {
-            "CSharpHotfix", 
-            "System", 
-            "UnityEngine", 
-            "UnityEditor", 
-        };
 
         [InitializeOnLoadMethod]
         private static void OnInitialized()
         {
-            Debug.Log("#CS_HOTFIX# OnInitialized: " + CSharpHotfixManager.IsHotfixEnabled);
+            Debug.Log("#CS_HOTFIX# CSharpHotfixEditor.OnInitialized: " + CSharpHotfixManager.IsHotfixEnabled);
             if (!CSharpHotfixManager.IsHotfixEnabled)
                 return;
-            TryInject();
+            CSharpHotfixInjector.TryInject();
         }
 
-        public static void TryInject()
-        {
-            if (!CSharpHotfixManager.IsHotfixEnabled)
-                return;
-
-            if (EditorApplication.isCompiling || Application.isPlaying)
-            {
-                UnityEngine.Debug.LogError("#CS_HOTFIX# TryInject: inject failed, compiling or playing, please re-enable it");
-                CSharpHotfixManager.IsHotfixEnabled = false;
-                return;
-            }
-
-            // inject
-            CSharpHotfixManager.PrepareMethodId();
-            foreach (var assembly in injectAssemblys)
-            {
-                InjectAssembly(assembly);
-            }
-            CSharpHotfixManager.PrintAllMethodId();
-        }
-
-        private static void InjectAssembly(string assemblyName)
-        {
-            var typeList = CSharpHotfixCfg.ToProcess.Where(type => type is Type)
-                .Select(type => type)
-                .Where(type => 
-                    type.Assembly.GetName().Name == assemblyName && !filterNamespace.Contains(type.Namespace))
-                .ToList();
-
-            foreach (var type in typeList)
-            {
-                Debug.LogFormat("#CS_HOTFIX# inject: assemblyName: {0} \ttype: {1}", assemblyName, type);
-
-                var methodList = type.GetMethods();
-                foreach (var method in methodList)
-                {
-                    var signature = CSharpHotfixManager.GetMethodSignature(method);
-                    var methodId = CSharpHotfixManager.GetMethodId(signature);
-                    // Debug.LogFormat("#CS_HOTFIX# method: {0}\tsignature: {1}\tmethodId: {2}", method, signature, methodId);
-                }
-            }
-
-        }
     }
 
 }
