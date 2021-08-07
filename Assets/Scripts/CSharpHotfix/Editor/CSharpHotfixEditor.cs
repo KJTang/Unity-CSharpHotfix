@@ -49,6 +49,14 @@ namespace CSharpHotfix.Editor
             "Assembly-CSharp-firstpass"
         };
 
+        private static HashSet<string> filterNamespace= new HashSet<string>()
+        {
+            "CSharpHotfix", 
+            "System", 
+            "UnityEngine", 
+            "UnityEditor", 
+        };
+
         [InitializeOnLoadMethod]
         private static void OnInitialized()
         {
@@ -71,27 +79,32 @@ namespace CSharpHotfix.Editor
             }
 
             // inject
+            CSharpHotfixManager.PrepareMethodId();
             foreach (var assembly in injectAssemblys)
             {
                 InjectAssembly(assembly);
             }
+            CSharpHotfixManager.PrintAllMethodId();
         }
 
-        private static void InjectAssembly(string assembly)
+        private static void InjectAssembly(string assemblyName)
         {
             var typeList = CSharpHotfixCfg.ToProcess.Where(type => type is Type)
                 .Select(type => type)
-                .Where(type => type.Assembly.GetName().Name == assembly && type.Namespace != "CSharpHotfix")
+                .Where(type => 
+                    type.Assembly.GetName().Name == assemblyName && !filterNamespace.Contains(type.Namespace))
                 .ToList();
 
             foreach (var type in typeList)
             {
-                Debug.LogFormat("#CS_HOTFIX# inject: assembly: {0} \ttype: {1}", assembly, type);
+                Debug.LogFormat("#CS_HOTFIX# inject: assemblyName: {0} \ttype: {1}", assemblyName, type);
 
                 var methodList = type.GetMethods();
                 foreach (var method in methodList)
                 {
-                    Debug.LogFormat("#CS_HOTFIX# method: {0}", method);
+                    var signature = CSharpHotfixManager.GetMethodSignature(method);
+                    var methodId = CSharpHotfixManager.GetMethodId(signature);
+                    // Debug.LogFormat("#CS_HOTFIX# method: {0}\tsignature: {1}\tmethodId: {2}", method, signature, methodId);
                 }
             }
 
