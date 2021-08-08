@@ -83,11 +83,12 @@ namespace CSharpHotfix
                 .ToList();
 
             // generate method id for method need inject
+            var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
             foreach (var type in typeList)
             {
                 CSharpHotfixManager.Log("#CS_HOTFIX# InjectAssembly: reflection type: {0}", type);
 
-                var methodList = type.GetMethods();
+                var methodList = type.GetMethods(bindingFlags);
                 foreach (var method in methodList)
                 {
                     var signature = CSharpHotfixManager.GetMethodSignature(method);
