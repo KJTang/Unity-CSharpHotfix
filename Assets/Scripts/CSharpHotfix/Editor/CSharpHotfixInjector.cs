@@ -66,7 +66,14 @@ namespace CSharpHotfix
         
         private static void InjectAssembly(string assemblyName)
         {
-            Debug.LogFormat("#CS_HOTFIX# InjectAssembly: assemblyName: {0}", assemblyName);
+            var assemblyPath = GetAssemblyPath(assemblyName);
+            Debug.LogFormat("#CS_HOTFIX# InjectAssembly: assemblyName: {0} \t{1}", assemblyName, assemblyPath);
+            if (!System.IO.File.Exists(assemblyPath))
+            {
+                Debug.LogWarningFormat("#CS_HOTFIX# InjectAssembly: assembly not exist: {0}", assemblyPath);
+                return;
+            }
+            
             // get method list need inject
             var typeList = CSharpHotfixCfg.ToProcess.Where(type => type is Type)
                 .Select(type => type)
@@ -91,7 +98,6 @@ namespace CSharpHotfix
 
 
             // read assembly
-            var assemblyPath = GetAssemblyPath(assemblyName);
             AssemblyDefinition assembly = null;
             var readSymbols = true;
             try
