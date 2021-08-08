@@ -41,6 +41,12 @@ namespace CSharpHotfix.Editor
             return CSharpHotfixManager.IsHotfixEnabled;
         }
 
+        [MenuItem("CSharpHotfix/Hotfix", false, 2)]
+        public static void TryHotfix()
+        {
+            CSharpHotfixInterpreter.ReloadHotfixFiles();
+        }
+
 
         [InitializeOnLoadMethod]
         private static void OnInitialized()

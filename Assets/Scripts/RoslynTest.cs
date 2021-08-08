@@ -188,6 +188,7 @@ public class RoslynTest : MonoBehaviour
             .AddSyntaxTrees(treeLst);
 
         // diagnostic
+        var diagnosticErrorCnt = 0;
         foreach (var tree in treeLst)
         {
             SemanticModel model = compilation.GetSemanticModel(tree);
@@ -209,8 +210,14 @@ public class RoslynTest : MonoBehaviour
             }
             if (hasError)
             {
-                Debug.LogError("#ROSLYN# error occured when load file: ");
+                Debug.LogErrorFormat("#ROSLYN# error occured when load file: {0}", tree.FilePath);
+                diagnosticErrorCnt += 1;
             }
+        }
+        if (diagnosticErrorCnt > 0)
+        {
+            Debug.LogErrorFormat("#ROSLYN# has {0} error in hotfix files, please fix first", diagnosticErrorCnt);
+            return;
         }
 
     }

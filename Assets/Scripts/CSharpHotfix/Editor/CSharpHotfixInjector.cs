@@ -22,8 +22,8 @@ namespace CSharpHotfix
         {
             "CSharpHotfix", 
             "System", 
-            "UnityEngine", 
-            "UnityEditor", 
+            // "UnityEngine", 
+            // "UnityEditor", 
         };
 
         public static void TryInject()
@@ -137,7 +137,7 @@ namespace CSharpHotfix
                     {
                         var signature = CSharpHotfixManager.GetMethodSignature(method);
                         var methodId = CSharpHotfixManager.GetMethodId(signature);
-                        if (methodId < 0)
+                        if (methodId <= 0)
                         {
                             CSharpHotfixManager.Log("#CS_HOTFIX# Cecil: cannot find method id: {0}", signature);
                             continue;
