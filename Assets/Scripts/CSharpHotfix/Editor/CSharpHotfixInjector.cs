@@ -33,7 +33,7 @@ namespace CSharpHotfix
 
             if (EditorApplication.isCompiling || Application.isPlaying)
             {
-                UnityEngine.Debug.LogError("#CS_HOTFIX# TryInject: inject failed, compiling or playing, please re-enable it");
+                CSharpHotfixManager.Error("#CS_HOTFIX# TryInject: inject failed, compiling or playing, please re-enable it");
                 CSharpHotfixManager.IsHotfixEnabled = false;
                 return;
             }
@@ -45,6 +45,7 @@ namespace CSharpHotfix
                 InjectAssembly(assembly);
             }
             CSharpHotfixManager.PrintAllMethodId();
+            CSharpHotfixManager.Message("#CS_HOTFIX# InjectAssembly: inject finished");
         }
 
         private static string assemblyDir;
@@ -67,10 +68,10 @@ namespace CSharpHotfix
         private static void InjectAssembly(string assemblyName)
         {
             var assemblyPath = GetAssemblyPath(assemblyName);
-            Debug.LogFormat("#CS_HOTFIX# InjectAssembly: assemblyName: {0} \t{1}", assemblyName, assemblyPath);
+            CSharpHotfixManager.Message("#CS_HOTFIX# InjectAssembly: assemblyName: {0} \t{1}", assemblyName, assemblyPath);
             if (!System.IO.File.Exists(assemblyPath))
             {
-                Debug.LogWarningFormat("#CS_HOTFIX# InjectAssembly: assembly not exist: {0}", assemblyPath);
+                CSharpHotfixManager.Warning("#CS_HOTFIX# InjectAssembly: assembly not exist: {0}", assemblyPath);
                 return;
             }
             
@@ -84,7 +85,7 @@ namespace CSharpHotfix
             // generate method id for method need inject
             foreach (var type in typeList)
             {
-                Debug.LogFormat("#CS_HOTFIX# InjectAssembly: reflection type: {0}", type);
+                CSharpHotfixManager.Log("#CS_HOTFIX# InjectAssembly: reflection type: {0}", type);
 
                 var methodList = type.GetMethods();
                 foreach (var method in methodList)
@@ -108,7 +109,7 @@ namespace CSharpHotfix
             catch
             {
                 // read with symbols failed, just don't read them
-                Debug.LogWarningFormat("#CS_HOTFIX# InjectAssembly: read assembly with symbol failed: {0}", assemblyPath);
+                CSharpHotfixManager.Warning("#CS_HOTFIX# InjectAssembly: read assembly with symbol failed: {0}", assemblyPath);
                 try
                 {
                     readSymbols = false;
@@ -116,7 +117,7 @@ namespace CSharpHotfix
                 }
                 catch (Exception e)
                 {
-                    Debug.LogFormat("#CS_HOTFIX# InjectAssembly: read assembly failed: {0}", e);
+                    CSharpHotfixManager.Error("#CS_HOTFIX# InjectAssembly: read assembly failed: {0}", e);
                 }
             }
             if (assembly == null)
@@ -130,7 +131,7 @@ namespace CSharpHotfix
                 ModuleDefinition module = assembly.MainModule;
                 foreach (TypeDefinition type in module.Types) 
                 {
-                    Debug.LogFormat("#CS_HOTFIX# InjectAssembly: cecil type: {0}", type);
+                    CSharpHotfixManager.Log("#CS_HOTFIX# InjectAssembly: cecil type: {0}", type);
 
                     foreach (MethodDefinition method in type.Methods)
                     {
@@ -138,7 +139,7 @@ namespace CSharpHotfix
                         var methodId = CSharpHotfixManager.GetMethodId(signature);
                         if (methodId < 0)
                         {
-                            Debug.LogFormat("#CS_HOTFIX# Cecil: cannot find method id: {0}", signature);
+                            CSharpHotfixManager.Log("#CS_HOTFIX# Cecil: cannot find method id: {0}", signature);
                             continue;
                         }
 
@@ -151,7 +152,7 @@ namespace CSharpHotfix
             }
             catch (Exception e)
             {
-                Debug.LogFormat("#CS_HOTFIX# InjectAssembly: inject method failed: {0}", e);
+                CSharpHotfixManager.Error("#CS_HOTFIX# InjectAssembly: inject method failed: {0}", e);
             }
             finally
             {

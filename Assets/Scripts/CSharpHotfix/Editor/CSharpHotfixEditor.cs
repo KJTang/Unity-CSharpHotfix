@@ -45,7 +45,7 @@ namespace CSharpHotfix.Editor
         [InitializeOnLoadMethod]
         private static void OnInitialized()
         {
-            Debug.Log("#CS_HOTFIX# CSharpHotfixEditor.OnInitialized: " + CSharpHotfixManager.IsHotfixEnabled);
+            CSharpHotfixManager.Message("#CS_HOTFIX# CSharpHotfixEditor.OnInitialized: " + CSharpHotfixManager.IsHotfixEnabled);
             if (!CSharpHotfixManager.IsHotfixEnabled)
                 return;
             CSharpHotfixInjector.TryInject();

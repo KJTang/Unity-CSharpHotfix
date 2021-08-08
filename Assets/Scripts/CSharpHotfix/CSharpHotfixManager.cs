@@ -1,10 +1,12 @@
 ﻿#define UNITY_EDITOR    // debug
+// #define CSHOTFIX_ENABLE_LOG
 
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using System.Linq;
+using System.Diagnostics;
 using UnityEngine;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -23,6 +25,29 @@ namespace CSharpHotfix
         }
         private static bool isHotfixEnabled = false;
 
+#region log
+        [Conditional("CSHOTFIX_ENABLE_LOG")]
+        public static void Log(string message, params object[] args)
+        {
+            UnityEngine.Debug.LogFormat(message, args);
+        }
+
+        public static void Warning(string message, params object[] args)
+        {
+            UnityEngine.Debug.LogWarningFormat(message, args);
+        }
+
+        public static void Error(string message, params object[] args)
+        {
+            UnityEngine.Debug.LogErrorFormat(message, args);
+        }
+
+        public static void Message(string message, params object[] args)
+        {
+            UnityEngine.Debug.LogFormat(message, args);
+        }
+
+#endregion log
 
         private static StringBuilder methodSignatureBuilder = new StringBuilder();
 
@@ -114,14 +139,15 @@ namespace CSharpHotfix
             return methodSignature;
         }
 
+        [Conditional("CSHOTFIX_ENABLE_LOG")]
         public static void PrintAllMethodId()
         {
             var list = methodIdDict.ToList();
             list.Sort((a, b) => a.Value.CompareTo(b.Value));
-            Debug.LogFormat("#CS_HOTFIX# PrintAllMethodId: {0}", list.Count);
+            CSharpHotfixManager.Log("#CS_HOTFIX# PrintAllMethodId: {0}", list.Count);
             foreach (var kv in list)
             {
-                Debug.LogFormat("MethodId: {0} \tSignature: {1}", kv.Value, kv.Key);
+                CSharpHotfixManager.Log("MethodId: {0} \tSignature: {1}", kv.Value, kv.Key);
             }
         }
 
