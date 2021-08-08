@@ -24,6 +24,7 @@ namespace CSharpHotfix
             "System", 
             // "UnityEngine", 
             // "UnityEditor", 
+            "FlyingWormConsole3",       // my console plugin
         };
 
         public static void TryInject()
@@ -44,7 +45,8 @@ namespace CSharpHotfix
             {
                 InjectAssembly(assembly);
             }
-            CSharpHotfixManager.PrintAllMethodId();
+            // CSharpHotfixManager.PrintAllMethodId();
+            CSharpHotfixManager.SaveMethodIdToFile();
             CSharpHotfixManager.Message("#CS_HOTFIX# InjectAssembly: inject finished");
         }
 
@@ -79,14 +81,15 @@ namespace CSharpHotfix
             var typeList = CSharpHotfixCfg.ToProcess.Where(type => type is Type)
                 .Select(type => type)
                 .Where(type => 
-                    type.Assembly.GetName().Name == assemblyName && !filterNamespace.Contains(type.Namespace))
+                    type.Assembly.GetName().Name == assemblyName && 
+                    (string.IsNullOrEmpty(type.Namespace) || !filterNamespace.Contains(type.Namespace.Split('.')[0])))
                 .ToList();
 
             // generate method id for method need inject
             var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
             foreach (var type in typeList)
             {
-                CSharpHotfixManager.Log("#CS_HOTFIX# InjectAssembly: reflection type: {0}", type);
+                CSharpHotfixManager.Log("#CS_HOTFIX# InjectAssembly: reflection type: {0} \tnamespace: {1}", type, type.Namespace);
 
                 var methodList = type.GetMethods(bindingFlags);
                 foreach (var method in methodList)

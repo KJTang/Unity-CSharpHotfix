@@ -93,6 +93,13 @@ namespace CSharpHotfix
 
         public static void ReloadHotfixFiles()
         {
+            if (!CSharpHotfixManager.IsMethodIdFileExist())
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# Interpreter: no method id file cache, please re-generate it");
+                return;
+            }
+            CSharpHotfixManager.LoadMethodIdFromFile();
+            
             // load hotfix files
             var dirPath = GetHotfixDirPath();
             var dirInfo = new DirectoryInfo(dirPath);
@@ -175,7 +182,7 @@ namespace CSharpHotfix
                     // get source
                     var methodRef = symbol.DeclaringSyntaxReferences.Single();
                     var methodSource =  methodRef.SyntaxTree.GetText().GetSubText(methodRef.Span).ToString();
-                    CSharpHotfixManager.Message("method: {0} \t{1} \n{2}", methodId, methodRef, methodSource);
+                    CSharpHotfixManager.Message("method: {0} \t{1} \n{2}", methodId, CSharpHotfixManager.GetMethodSignature(methodId), methodSource);
 
                     // TODO: compule and run
                 }

@@ -7,6 +7,8 @@ using System.Reflection;
 using System.Text;
 using System.Linq;
 using System.Diagnostics;
+using System.IO;
+using System;
 using UnityEngine;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -214,14 +216,59 @@ namespace CSharpHotfix
         }
 
         // TODO: 
+        
+        private static string methodIdFilePath;
+        private static string GetMethodIdFilePath()
+        {
+            if (methodIdFilePath == null)
+            {
+                methodIdFilePath = Application.dataPath;
+                var pos = methodIdFilePath.IndexOf("Assets");
+                if (pos >= 0)
+                {
+                    methodIdFilePath = methodIdFilePath.Remove(pos);
+                }
+                methodIdFilePath = methodIdFilePath + "HotfixCSharp/methodId.txt";
+            }
+            return methodIdFilePath;
+        }
+
+        public static bool IsMethodIdFileExist()
+        {
+            return File.Exists(GetMethodIdFilePath());
+        }
+
         public static void SaveMethodIdToFile()
         {
-            //
+            var fileInfo = new FileInfo(GetMethodIdFilePath());
+            using (StreamWriter sw = fileInfo.CreateText())
+            {
+                var list = methodIdDict.ToList();
+                list.Sort((a, b) => a.Value.CompareTo(b.Value));
+                foreach (var kv in list)
+                {
+                    sw.WriteLine(string.Format("{0} {1}", kv.Value, kv.Key));
+                }
+            }	
         }
 
         public static void LoadMethodIdFromFile()
         {
-            //
+            PrepareMethodId();
+
+            var fileInfo = new FileInfo(GetMethodIdFilePath());
+            using (StreamReader sr = fileInfo.OpenText())
+            {
+                var str = "";
+                while ((str = sr.ReadLine()) != null)
+                {
+                    var strLst = str.Split(' ');
+                    var methodId = Int32.Parse(strLst[0]);
+                    var signature = strLst[1];
+                    methodIdDict.Add(signature, methodId);
+                    methodIdReverseDict.Add(methodId, signature);
+                }
+            }	
         }
     }
 
