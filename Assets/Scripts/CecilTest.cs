@@ -72,16 +72,25 @@ public class CecilTest : MonoBehaviour
 
             // method
 	        TypeDefinition helloWorld = module.Types.Single(t => t.Name == "HelloWorldHelper");
-	        MethodDefinition method = helloWorld.Methods.Single(m => m.Name == "ShowHelloWorld");
-            Debug.Log("method: " + method);
-
+	        MethodDefinition method = helloWorld.Methods.Single(m => m.Name == "ToInject");
+	        MethodDefinition injectMethod = helloWorld.Methods.Single(m => m.Name == "InjectFunc");
 	        MethodDefinition checkMethod = helloWorld.Methods.Single(m => m.Name == "Check");
 
             // try insert
             var body = method.Body;
             var msIls = body.Instructions;
             var ilProcessor = body.GetILProcessor();
-            ilProcessor.InsertBefore(msIls[0], Instruction.Create(OpCodes.Ret));
+            var insertPoint = msIls[0];
+            var ilList = new List<Instruction>();
+            ilList.Add(Instruction.Create(OpCodes.Ldc_I4, 1));
+            ilList.Add(Instruction.Create(OpCodes.Call, checkMethod));
+            ilList.Add(Instruction.Create(OpCodes.Brfalse, insertPoint));
+            ilList.Add(Instruction.Create(OpCodes.Ldarg_0));
+            ilList.Add(Instruction.Create(OpCodes.Ldarg_1));
+            ilList.Add(Instruction.Create(OpCodes.Call, injectMethod));
+            ilList.Add(Instruction.Create(OpCodes.Ret));
+            for (var i = ilList.Count - 1; i >= 0; --i)
+                ilProcessor.InsertBefore(msIls[0], ilList[i]);
 
             // modify
             assembly.Write(dllPath + "_test.dll", new WriterParameters { WriteSymbols = readSymbols });
