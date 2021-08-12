@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.IO;
 using System;
 using UnityEngine;
+using UnityEngine.Assertions;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Microsoft.CodeAnalysis;
@@ -110,8 +111,40 @@ namespace CSharpHotfix
         /// <returns></returns>
         public static string GetMethodSignature(MethodDefinition method)
         {
-            // TODO: 
-            return "";
+            methodSignatureBuilder.Length = 0;
+
+            // fullname
+            var methodName = method.Name;
+            var namespaceName = method.DeclaringType.FullName;
+            methodName = namespaceName + "." + methodName;
+            methodSignatureBuilder.Append(methodName);
+            methodSignatureBuilder.Append(";");
+            
+            // static
+            var isStatic = method.IsStatic ? "Static" : "NonStatic";
+            methodSignatureBuilder.Append(isStatic);
+            methodSignatureBuilder.Append(";");
+            
+            // return type
+            var returnType = method.ReturnType.FullName;
+            methodSignatureBuilder.Append(returnType);
+            methodSignatureBuilder.Append(";");
+            
+            // generic
+            var genericArgs = method.GenericParameters;
+            methodSignatureBuilder.Append(genericArgs.Count.ToString());
+            methodSignatureBuilder.Append(";");
+
+            // parameters
+            var parameters = method.Parameters;
+            foreach (var param in parameters)
+            {
+                methodSignatureBuilder.Append(param.ParameterType.FullName);
+                methodSignatureBuilder.Append(",");
+            }
+            methodSignatureBuilder.Append(";");
+
+            return methodSignatureBuilder.ToString();
         }
 
         /// <summary>
@@ -215,8 +248,6 @@ namespace CSharpHotfix
             }
         }
 
-        // TODO: 
-        
         private static string methodIdFilePath;
         private static string GetMethodIdFilePath()
         {
@@ -270,8 +301,104 @@ namespace CSharpHotfix
                 }
             }	
         }
-    }
+        
+        public static bool IsStatic(int methodId)
+        {
+            var signature = GetMethodSignature(methodId);
+            if (string.IsNullOrEmpty(signature))
+                return false;
+            var strLst = signature.Split(';');
+            return strLst[1] == "Static";
+        }
+
+        public static bool IsReturnTypeVoid(int methodId)
+        {
+            var signature = GetMethodSignature(methodId);
+            if (string.IsNullOrEmpty(signature))
+                return false;
+            var strLst = signature.Split(';');
+            return strLst[2] == "System.Void";
+        }
 
 #endregion
+        
+
+#region method wrapper
+
+        private static Dictionary<int, MethodInfo> methodInfoDict = new Dictionary<int, MethodInfo>();
+
+        public static MethodInfo GetMethodInfo(int methodId)
+        {
+            MethodInfo methodInfo;
+            if (methodInfoDict.TryGetValue(methodId, out methodInfo))
+            {
+                return methodInfo;
+            }
+            return null;
+        }
+
+        public static void SetMethodInfo(int methodId, MethodInfo methodInfo)
+        {
+            methodInfoDict.Add(methodId, methodInfo);
+        }
+
+        public static void ClearMethodInfo()
+        {
+            methodInfoDict.Clear();
+        }
+
+        public static bool HasMethodInfo(int methodId)
+        {
+            return methodInfoDict.ContainsKey(methodId);
+        }
+
+        public static void MethodReturnVoidWrapper(params object[] objList)
+        {
+            // DEBUG: 
+            for (var i = 0; i != objList.Length; ++i)
+            {
+                Message("Void Param: " + i + " \t" + objList[i]);
+            }
+            return;
+
+            var methodId = (System.Int32) objList[0];
+            var methodInfo = GetMethodInfo(methodId);
+            Assert.IsNotNull(methodInfo);
+
+            var len = objList.Length;
+            var param = new object[len - 2];
+            for (var i = 0; i != len; ++i)
+                param[i] = objList[i + 2];
+
+            var instance = objList[1];
+            methodInfo.Invoke(instance, param);
+        }
+
+        public static object MethodReturnObjectWrapper(params object[] objList)
+        {
+            // DEBUG: 
+            for (var i = 0; i != objList.Length; ++i)
+            {
+                Message("Object Param: " + i + " \t" + objList[i]);
+            }
+            return "_inject";
+
+
+            var methodId = (System.Int32) objList[0];
+            var methodInfo = GetMethodInfo(methodId);
+            Assert.IsNotNull(methodInfo);
+
+            var len = objList.Length;
+            var param = new object[len - 2];
+            for (var i = 0; i != len; ++i)
+                param[i] = objList[i + 2];
+
+            var instance = objList[1];
+            return methodInfo.Invoke(instance, param);
+        }
+
+#endregion
+
+    }
 
 }

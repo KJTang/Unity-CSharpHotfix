@@ -27,7 +27,7 @@ public class CecilTest : MonoBehaviour
         
     }
 
-    private string GetDLLPath()
+    private static string GetDLLPath()
     {
         var dllPath = Application.dataPath;
         var pos = dllPath.IndexOf("Assets");
@@ -36,7 +36,7 @@ public class CecilTest : MonoBehaviour
             dllPath = dllPath.Remove(pos);
         }
         dllPath = dllPath + "Library/ScriptAssemblies/Assembly-CSharp.dll";
-        Debug.Log("dllPath: " + dllPath);
+        //Debug.Log("dllPath: " + dllPath);
         return dllPath;
     }
 
@@ -72,22 +72,47 @@ public class CecilTest : MonoBehaviour
 
             // method
 	        TypeDefinition helloWorld = module.Types.Single(t => t.Name == "HelloWorldHelper");
-	        MethodDefinition method = helloWorld.Methods.Single(m => m.Name == "ToInject");
-	        MethodDefinition injectMethod = helloWorld.Methods.Single(m => m.Name == "InjectFunc");
-	        MethodDefinition checkMethod = helloWorld.Methods.Single(m => m.Name == "Check");
+	        MethodDefinition voidMethodToInject = helloWorld.Methods.Single(m => m.Name == "VoidMethodToInject");
+	        MethodDefinition objectMethodToInject = helloWorld.Methods.Single(m => m.Name == "ObjectMethodToInject");
+            
+            var hasMethodInfo = assembly.MainModule.ImportReference(typeof(CSharpHotfix.CSharpHotfixManager).GetMethod("HasMethodInfo"));
+            var voidMethodInject = assembly.MainModule.ImportReference(typeof(CSharpHotfix.CSharpHotfixManager).GetMethod("MethodReturnVoidWrapper"));
+            var objMethodInject = assembly.MainModule.ImportReference(typeof(CSharpHotfix.CSharpHotfixManager).GetMethod("MethodReturnObjectWrapper"));
 
-            // try insert
-            var body = method.Body;
+
+            // try insert void method
+            var body = voidMethodToInject.Body;
             var msIls = body.Instructions;
             var ilProcessor = body.GetILProcessor();
             var insertPoint = msIls[0];
             var ilList = new List<Instruction>();
             ilList.Add(Instruction.Create(OpCodes.Ldc_I4, 1));
-            ilList.Add(Instruction.Create(OpCodes.Call, checkMethod));
+            ilList.Add(Instruction.Create(OpCodes.Call, hasMethodInfo));
+            ilList.Add(Instruction.Create(OpCodes.Brfalse, insertPoint));
+            ilList.Add(Instruction.Create(OpCodes.Ldarg_0));
+            if (voidMethodToInject.ReturnType.FullName == "System.Void")
+                ilList.Add(Instruction.Create(OpCodes.Call, voidMethodInject));
+            else
+                ilList.Add(Instruction.Create(OpCodes.Call, objMethodInject));
+            ilList.Add(Instruction.Create(OpCodes.Ret));
+            for (var i = ilList.Count - 1; i >= 0; --i)
+                ilProcessor.InsertBefore(msIls[0], ilList[i]);
+
+            // try insert object method
+            body = objectMethodToInject.Body;
+            msIls = body.Instructions;
+            ilProcessor = body.GetILProcessor();
+            insertPoint = msIls[0];
+            ilList = new List<Instruction>();
+            ilList.Add(Instruction.Create(OpCodes.Ldc_I4, 1));
+            ilList.Add(Instruction.Create(OpCodes.Call, hasMethodInfo));
             ilList.Add(Instruction.Create(OpCodes.Brfalse, insertPoint));
             ilList.Add(Instruction.Create(OpCodes.Ldarg_0));
             ilList.Add(Instruction.Create(OpCodes.Ldarg_1));
-            ilList.Add(Instruction.Create(OpCodes.Call, injectMethod));
+            if (objectMethodToInject.ReturnType.FullName == "System.Void")
+                ilList.Add(Instruction.Create(OpCodes.Call, voidMethodInject));
+            else
+                ilList.Add(Instruction.Create(OpCodes.Call, objMethodInject));
             ilList.Add(Instruction.Create(OpCodes.Ret));
             for (var i = ilList.Count - 1; i >= 0; --i)
                 ilProcessor.InsertBefore(msIls[0], ilList[i]);
@@ -98,7 +123,6 @@ public class CecilTest : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError("#CECIL# Unhandled Exception: " + e);
-            return;
         }
         finally
         {
@@ -110,5 +134,63 @@ public class CecilTest : MonoBehaviour
             }
         }
     }
+
+    private static MethodReference HotfixMethodIsHotfix
+    {
+        get
+        {
+            if (hotfixMethodIsHotfix == null)
+            {
+                var dllPath = GetDLLPath();  // "Assembly-CSharp"
+                var assembly = AssemblyDefinition.ReadAssembly(dllPath);
+                foreach (TypeDefinition t in assembly.MainModule.Types) {
+                    Debug.Log(t.FullName);
+                }
+                var method = assembly.MainModule.ImportReference(typeof(CSharpHotfix.CSharpHotfixManager).GetMethod("HasMethodInfo"));
+                //var type = assembly.MainModule.Types.Single(t => t.Name == "CSharpHotfixManager");
+                //var method = type.Methods.Single(m => m.Name == "HasMethodInfo");
+                hotfixMethodIsHotfix = method;
+            }
+            return hotfixMethodIsHotfix;
+        }
+    }
+    private static MethodReference hotfixMethodIsHotfix;
+        
+        
+    public static MethodReference HotfixMethodReturnVoid
+    {
+        get 
+        {
+            if (hotfixMethodReturnVoid == null)
+            {
+                var dllPath = GetDLLPath();  // "Assembly-CSharp"
+                var assembly = AssemblyDefinition.ReadAssembly(dllPath);
+	            TypeDefinition helloWorld = assembly.MainModule.Types.Single(t => t.Name == "HelloWorldHelper");
+	            MethodReference injectMethod = helloWorld.Methods.Single(m => m.Name == "VoidMethodInjectFunc");
+                hotfixMethodReturnVoid = injectMethod;
+                assembly.Dispose();
+            }
+            return hotfixMethodReturnVoid;
+        }
+    }
+    private static MethodReference hotfixMethodReturnVoid;
+        
+    public static MethodReference HotfixMethodReturnObject
+    {
+        get 
+        {
+            if (hotfixMethodReturnObject == null)
+            {
+                var dllPath = GetDLLPath();  // "Assembly-CSharp"
+                var assembly = AssemblyDefinition.ReadAssembly(dllPath);
+	            TypeDefinition helloWorld = assembly.MainModule.Types.Single(t => t.Name == "HelloWorldHelper");
+	            MethodReference injectMethod = helloWorld.Methods.Single(m => m.Name == "ObjectMethodInjectFunc");
+                hotfixMethodReturnObject = injectMethod;
+                assembly.Dispose();
+            }
+            return hotfixMethodReturnObject;
+        }
+    }
+    private static MethodReference hotfixMethodReturnObject;
 }
 
