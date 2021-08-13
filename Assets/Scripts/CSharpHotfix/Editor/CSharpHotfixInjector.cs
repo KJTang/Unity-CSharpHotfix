@@ -147,23 +147,8 @@ namespace CSharpHotfix
                             continue;
                         }
 
-                        //// TODO: insert il with method id
-                        //var msIls = method.Body.Instructions;
-                        //var ilProcessor = method.Body.GetILProcessor();
-                        //var insertPoint = msIls[0];
-                        //var ilList = new List<Instruction>();
-                        //ilList.Add(Instruction.Create(OpCodes.Ldc_I4, methodId));
-                        //ilList.Add(Instruction.Create(OpCodes.Call, HotfixMethodIsHotfix));
-                        //ilList.Add(Instruction.Create(OpCodes.Brfalse, insertPoint));
-                        //ilList.Add(Instruction.Create(OpCodes.Ldarg_0));
-                        //ilList.Add(Instruction.Create(OpCodes.Ldarg_1));
-                        //if (method.ReturnType.FullName == "System.Void")
-                        //    ilList.Add(Instruction.Create(OpCodes.Call, HotfixMethodReturnVoid));
-                        //else
-                        //    ilList.Add(Instruction.Create(OpCodes.Call, HotfixMethodReturnObject));
-                        //ilList.Add(Instruction.Create(OpCodes.Ret));
-                        //for (var i = ilList.Count - 1; i >= 0; --i)
-                        //    ilProcessor.InsertBefore(msIls[0], ilList[i]);
+                        // TODO: insert il with method id
+                        InjectMethod(methodId, method, assembly);
                     }
                 }
 
@@ -185,61 +170,89 @@ namespace CSharpHotfix
             }
         }
 
-#region inject methods
-        //private static MethodDefinition HotfixMethodIsHotfix
-        //{
-        //    get
-        //    {
-        //        if (hotfixMethodIsHotfix == null)
-        //        {
-        //            var dllPath = GetAssemblyPath(injectAssemblys[0]);  // "Assembly-CSharp"
-        //            var assembly = AssemblyDefinition.ReadAssembly(dllPath);
-        //            var type = assembly.MainModule.Types.Single(t => t.Name == "CSharpHotfixManager");
-        //            var method = type.Methods.Single(m => m.Name == "HasMethodInfo");
-        //            hotfixMethodIsHotfix = method;
-        //        }
-        //        return hotfixMethodIsHotfix;
-        //    }
-        //}
-        //private static MethodDefinition hotfixMethodIsHotfix;
         
-        //public static MethodDefinition HotfixMethodReturnVoid
-        //{
-        //    get 
-        //    {
-        //        if (hotfixMethodReturnVoid == null)
-        //        {
-        //            var dllPath = GetAssemblyPath(injectAssemblys[0]);  // "Assembly-CSharp"
-        //            var assembly = AssemblyDefinition.ReadAssembly(dllPath);
-	       //         var mgr = assembly.MainModule.Types.Single(t => t.Name == "CSharpHotfixManager");
-        //            var method = mgr.Methods.Single(m => m.Name == "MethodReturnVoidWrapper");
-        //            hotfixMethodReturnVoid = method;
-        //            assembly.Dispose();
-        //        }
-        //        return hotfixMethodReturnVoid;
-        //    }
-        //}
-        //private static MethodDefinition hotfixMethodReturnVoid;
-        
-        //public static MethodDefinition HotfixMethodReturnObject
-        //{
-        //    get 
-        //    {
-        //        if (hotfixMethodReturnObject == null)
-        //        {
-        //            var dllPath = GetAssemblyPath(injectAssemblys[0]);  // "Assembly-CSharp"
-        //            var assembly = AssemblyDefinition.ReadAssembly(dllPath);
-	       //         var mgr = assembly.MainModule.Types.Single(t => t.Name == "CSharpHotfixManager");
-        //            var method = mgr.Methods.Single(m => m.Name == "MethodReturnObjectWrapper");
-        //            hotfixMethodReturnObject = method;
-        //            assembly.Dispose();
-        //        }
-        //        return hotfixMethodReturnObject;
-        //    }
-        //}
-        //private static MethodDefinition hotfixMethodReturnObject;
+        private static void InjectMethod(int methodId, MethodDefinition method, AssemblyDefinition assembly)
+        {
+            var hasMethodInfo = assembly.MainModule.ImportReference(typeof(CSharpHotfix.CSharpHotfixManager).GetMethod("HasMethodInfo"));
+            var voidMethodInject = assembly.MainModule.ImportReference(typeof(CSharpHotfix.CSharpHotfixManager).GetMethod("MethodReturnVoidWrapper"));
+            var objMethodInject = assembly.MainModule.ImportReference(typeof(CSharpHotfix.CSharpHotfixManager).GetMethod("MethodReturnObjectWrapper"));
 
-#endregion
+            var body = method.Body;
+            var msIls = body.Instructions;
+            var ilProcessor = body.GetILProcessor();
+            var insertPoint = msIls[0];
+            var ilList = new List<Instruction>();
+            ilList.Add(Instruction.Create(OpCodes.Ldc_I4, 1));
+            ilList.Add(Instruction.Create(OpCodes.Call, hasMethodInfo));
+            ilList.Add(Instruction.Create(OpCodes.Brfalse, insertPoint));
+            InjectMethodArgument(methodId, method, ilList, assembly);
+            if (method.ReturnType.FullName == "System.Void")
+                ilList.Add(Instruction.Create(OpCodes.Call, voidMethodInject));
+            else
+                ilList.Add(Instruction.Create(OpCodes.Call, objMethodInject));
+            ilList.Add(Instruction.Create(OpCodes.Ret));
+
+            // inject il
+            for (var i = ilList.Count - 1; i >= 0; --i)
+                ilProcessor.InsertBefore(msIls[0], ilList[i]);
+
+            CSharpHotfix.CSharpHotfixManager.Message("InjectMethod: {0}", method.Name);
+        }
+
+        private static void InjectMethodArgument(int methodId, MethodDefinition method, List<Instruction> ilList, AssemblyDefinition assembly)
+        {
+            // methodId
+            ilList.Add(Instruction.Create(OpCodes.Ldc_I4, methodId));
+
+            // instance
+            if (method.IsStatic)
+                ilList.Add(Instruction.Create(OpCodes.Ldnull));
+            else
+                ilList.Add(Instruction.Create(OpCodes.Ldarg_0));
+
+            // arguments
+            var argumentCount = method.Parameters.Count;
+            if (argumentCount > 0)
+            {
+                //object[] arr = new object[argumentCount]
+                ilList.Add(Instruction.Create(OpCodes.Ldc_I4, argumentCount));
+                ilList.Add(Instruction.Create(OpCodes.Newarr, assembly.MainModule.ImportReference(typeof(object))));
+
+                for (int i = 0; i < argumentCount; ++i) 
+                {
+                    var parameter = method.Parameters[i];
+
+                    // value = argument[i]
+                    ilList.Add(Instruction.Create(OpCodes.Dup));
+                    ilList.Add(Instruction.Create(OpCodes.Ldc_I4, i));
+                    ilList.Add(Instruction.Create(OpCodes.Ldarg, parameter));
+
+                    // box
+                    TryBoxMethodArgument(parameter, ilList, assembly);
+
+                    // arr[i] = value;
+                    ilList.Add(Instruction.Create(OpCodes.Stelem_Ref));
+                }
+            }
+            else
+            {
+                ilList.Add(Instruction.Create(OpCodes.Ldnull));
+            }
+        }
+
+        private static void TryBoxMethodArgument(ParameterDefinition param, List<Instruction> ilList, AssemblyDefinition assembly)
+        {
+            var paramType = param.ParameterType;
+            if (paramType.IsValueType)
+            {
+                ilList.Add(Instruction.Create(OpCodes.Box, paramType));
+            }
+            else if (paramType.IsGenericParameter)
+            {
+                ilList.Add(Instruction.Create(OpCodes.Box, assembly.MainModule.ImportReference(paramType)));
+            }
+        }
+
     }
 
 }

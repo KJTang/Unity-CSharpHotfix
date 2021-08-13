@@ -8,11 +8,11 @@ public class HelloWorld : MonoBehaviour
 {
     void Start()
     {
-        //HelloWorldHelper.ShowHelloWorld();
-        Func();
+        HelloWorldHelper.ShowHelloWorld();
+        Func(this);
     }
 
-    void Func()
+    void Func(object o)
     {
         HelloWorldHelper.ShowHelloWorld();
     }
