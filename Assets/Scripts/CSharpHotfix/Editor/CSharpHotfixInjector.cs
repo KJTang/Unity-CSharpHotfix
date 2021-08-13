@@ -178,11 +178,12 @@ namespace CSharpHotfix
             var objMethodInject = assembly.MainModule.ImportReference(typeof(CSharpHotfix.CSharpHotfixManager).GetMethod("MethodReturnObjectWrapper"));
 
             var body = method.Body;
-            var msIls = body.Instructions;
+            var originIL = body.Instructions;
             var ilProcessor = body.GetILProcessor();
-            var insertPoint = msIls[0];
+            var insertPoint = originIL[0];
+            var endPoint = originIL[originIL.Count - 1];
             var ilList = new List<Instruction>();
-            ilList.Add(Instruction.Create(OpCodes.Ldc_I4, 1));
+            ilList.Add(Instruction.Create(OpCodes.Ldc_I4, methodId));
             ilList.Add(Instruction.Create(OpCodes.Call, hasMethodInfo));
             ilList.Add(Instruction.Create(OpCodes.Brfalse, insertPoint));
             InjectMethodArgument(methodId, method, ilList, assembly);
@@ -190,54 +191,59 @@ namespace CSharpHotfix
                 ilList.Add(Instruction.Create(OpCodes.Call, voidMethodInject));
             else
                 ilList.Add(Instruction.Create(OpCodes.Call, objMethodInject));
-            ilList.Add(Instruction.Create(OpCodes.Ret));
+            ilList.Add(Instruction.Create(OpCodes.Br, endPoint));
 
             // inject il
             for (var i = ilList.Count - 1; i >= 0; --i)
-                ilProcessor.InsertBefore(msIls[0], ilList[i]);
+                ilProcessor.InsertBefore(originIL[0], ilList[i]);
 
             CSharpHotfix.CSharpHotfixManager.Message("InjectMethod: {0}", method.Name);
         }
 
         private static void InjectMethodArgument(int methodId, MethodDefinition method, List<Instruction> ilList, AssemblyDefinition assembly)
         {
+            var shift = 2;  // extra: methodId, instance
+
+            //object[] arr = new object[argumentCount + shift]
+            var argumentCount = method.Parameters.Count;
+            ilList.Add(Instruction.Create(OpCodes.Ldc_I4, argumentCount + shift));  
+            ilList.Add(Instruction.Create(OpCodes.Newarr, assembly.MainModule.ImportReference(typeof(object))));
+
             // methodId
+            ilList.Add(Instruction.Create(OpCodes.Dup));
+            ilList.Add(Instruction.Create(OpCodes.Ldc_I4, 0));
             ilList.Add(Instruction.Create(OpCodes.Ldc_I4, methodId));
+            ilList.Add(Instruction.Create(OpCodes.Box, assembly.MainModule.ImportReference(typeof(System.Int32))));
+            ilList.Add(Instruction.Create(OpCodes.Stelem_Ref));
 
             // instance
+            ilList.Add(Instruction.Create(OpCodes.Dup));
+            ilList.Add(Instruction.Create(OpCodes.Ldc_I4, 1));
             if (method.IsStatic)
                 ilList.Add(Instruction.Create(OpCodes.Ldnull));
             else
                 ilList.Add(Instruction.Create(OpCodes.Ldarg_0));
+            ilList.Add(Instruction.Create(OpCodes.Stelem_Ref));
 
             // arguments
-            var argumentCount = method.Parameters.Count;
-            if (argumentCount > 0)
+            for (int i = 0; i < argumentCount; ++i) 
             {
-                //object[] arr = new object[argumentCount]
-                ilList.Add(Instruction.Create(OpCodes.Ldc_I4, argumentCount));
-                ilList.Add(Instruction.Create(OpCodes.Newarr, assembly.MainModule.ImportReference(typeof(object))));
+                var parameter = method.Parameters[i];
 
-                for (int i = 0; i < argumentCount; ++i) 
-                {
-                    var parameter = method.Parameters[i];
+                // value = argument[i]
+                ilList.Add(Instruction.Create(OpCodes.Dup));
+                ilList.Add(Instruction.Create(OpCodes.Ldc_I4, i + shift));
+                ilList.Add(Instruction.Create(OpCodes.Ldarg, parameter));
 
-                    // value = argument[i]
-                    ilList.Add(Instruction.Create(OpCodes.Dup));
-                    ilList.Add(Instruction.Create(OpCodes.Ldc_I4, i));
-                    ilList.Add(Instruction.Create(OpCodes.Ldarg, parameter));
+                // box
+                TryBoxMethodArgument(parameter, ilList, assembly);
 
-                    // box
-                    TryBoxMethodArgument(parameter, ilList, assembly);
-
-                    // arr[i] = value;
-                    ilList.Add(Instruction.Create(OpCodes.Stelem_Ref));
-                }
+                // arr[i] = value;
+                ilList.Add(Instruction.Create(OpCodes.Stelem_Ref));
             }
-            else
-            {
-                ilList.Add(Instruction.Create(OpCodes.Ldnull));
-            }
+
+            // don't pop it, we will need it when call method wrapper
+            // ilList.Add(Instruction.Create(OpCodes.Pop));
         }
 
         private static void TryBoxMethodArgument(ParameterDefinition param, List<Instruction> ilList, AssemblyDefinition assembly)
