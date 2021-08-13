@@ -17,6 +17,14 @@ public class HelloWorld : MonoBehaviour
         HelloWorldHelper.ShowHelloWorld();
     }
 
+    bool BoolFunc()
+    {
+        if (true)
+            return true;
+        else
+            return false;
+    }
+
     public int ParamsFunc(params object[] list)
     {
         var num1 = (System.Int32) list[0];

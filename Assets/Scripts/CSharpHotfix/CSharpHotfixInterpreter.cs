@@ -178,16 +178,71 @@ namespace CSharpHotfix
                 {
                     var methodId = methodData.methodId;
                     var symbol = methodData.symbol;
+                    
+                    foreach (var assembly in assemblies)
+                    {
+                        Debug.Log("assembly.Location: " + assembly.Location);
+                    }
+                    var methodInfo = CompileMethod(methodId, symbol, references, tree);
+                    if (methodInfo != null)
+                    {
+                        CSharpHotfixManager.SetMethodInfo(methodId, methodInfo);
+                    }
 
-                    // get source
-                    var methodRef = symbol.DeclaringSyntaxReferences.Single();
-                    var methodSource =  methodRef.SyntaxTree.GetText().GetSubText(methodRef.Span).ToString();
-                    CSharpHotfixManager.Message("method: {0} \t{1} \n{2}", methodId, CSharpHotfixManager.GetMethodSignature(methodId), methodSource);
-
-                    // TODO: compule and run
+                    var result = methodInfo != null ? "<color=green>succ</color>" : "<color=red>fail</color>";
+                    CSharpHotfixManager.Message("#CS_HOTFIX# method compile {0}: {1} \t {2} \t{3}", result, methodId, symbol.Name, CSharpHotfixManager.GetMethodSignature(methodId));
                 }
 
             }
+        }
+
+        private static MethodInfo CompileMethod(int methodId, IMethodSymbol symbol, IEnumerable<MetadataReference> references, SyntaxTree tree)
+        {
+            // get source
+            var methodRef = symbol.DeclaringSyntaxReferences.Single();
+            var methodSource =  methodRef.SyntaxTree.GetText().GetSubText(methodRef.Span).ToString();
+            var methodName = symbol.Name;
+            
+            // compile in-memory as script
+            var signature = CSharpHotfixManager.GetMethodSignature(methodId);
+            var methodCompilation = CSharpCompilation.CreateScriptCompilation(methodName)
+                .AddReferences(references)
+                .AddSyntaxTrees(SyntaxFactory.ParseSyntaxTree(methodSource, CSharpParseOptions.Default.WithKind(SourceCodeKind.Script)));
+
+            //foreach (var reference in references)
+            //{
+            //    UnityEngine.Debug.Log("Reference: " + reference);
+            //}
+
+            MethodInfo methodInfo = null;
+            using (var dll = new MemoryStream())
+            {
+                var eimtRet = methodCompilation.Emit(dll);
+                var hasError = false;
+                for (var i = 0; i != eimtRet.Diagnostics.Length; ++i)
+                {
+                    var diagnostic = eimtRet.Diagnostics[i];
+                    var log = tree.FilePath + diagnostic;
+                    if (diagnostic.WarningLevel == 0)
+                    {
+                        hasError = true;
+                        CSharpHotfixManager.Error(log);
+                    }
+                    else
+                    {
+                        CSharpHotfixManager.Warning(log);
+                    }
+                }
+                if (hasError)
+                {
+                    return null;
+                }
+
+                // load compiled assembly
+                var assembly = Assembly.Load(dll.ToArray(), null);
+                methodInfo = assembly.GetType("Script").GetMethod(methodName, new Type[0]);
+            }
+            return methodInfo;
         }
     }
 

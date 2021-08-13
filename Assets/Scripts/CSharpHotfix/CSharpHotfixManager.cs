@@ -40,7 +40,7 @@ namespace CSharpHotfix
 
         public static void Warning(string message, params object[] args)
         {
-            UnityEngine.Debug.LogWarningFormat(message, args);
+            //UnityEngine.Debug.LogWarningFormat(message, args);
         }
 
         public static void Error(string message, params object[] args)
@@ -349,24 +349,24 @@ namespace CSharpHotfix
 
         public static bool HasMethodInfo(int methodId)
         {
-            // DEBUG: 
-            return true;
+            //// DEBUG: 
+            //return true;
 
             return methodInfoDict.ContainsKey(methodId);
         }
 
         public static void MethodReturnVoidWrapper(object[] objList)
         {
-            // DEBUG: 
-            Message("MethodReturnVoidWrapper: " + objList);
-            if (objList != null)
-            { 
-                for (var i = 0; i != objList.Length; ++i)
-                {
-                    Message("Void Param: " + i + " \t" + objList[i]);
-                }
-            }
-            return;
+            //// DEBUG: 
+            //Message("MethodReturnVoidWrapper: " + objList);
+            //if (objList != null)
+            //{ 
+            //    for (var i = 0; i != objList.Length; ++i)
+            //    {
+            //        Message("Void Param: " + i + " \t" + objList[i]);
+            //    }
+            //}
+            //return;
 
             var methodId = (System.Int32) objList[0];
             var methodInfo = GetMethodInfo(methodId);
@@ -383,16 +383,16 @@ namespace CSharpHotfix
 
         public static object MethodReturnObjectWrapper(object[] objList)
         {
-            // DEBUG: 
-            Message("MethodReturnObjectWrapper: " + objList);
-            if (objList != null)
-            {
-                for (var i = 0; i != objList.Length; ++i)
-                {
-                    Message("Object Param: " + i + " \t" + objList[i]);
-                }
-            }
-            return "_inject";
+            //// DEBUG: 
+            //Message("MethodReturnObjectWrapper: " + objList);
+            //if (objList != null)
+            //{
+            //    for (var i = 0; i != objList.Length; ++i)
+            //    {
+            //        Message("Object Param: " + i + " \t" + objList[i]);
+            //    }
+            //}
+            //return "_inject";
 
 
             var methodId = (System.Int32) objList[0];
