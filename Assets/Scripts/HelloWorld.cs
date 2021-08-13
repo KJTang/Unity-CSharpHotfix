@@ -8,6 +8,12 @@ public class HelloWorld : MonoBehaviour
 {
     void Start()
     {
+        //HelloWorldHelper.ShowHelloWorld();
+        Func();
+    }
+
+    void Func()
+    {
         HelloWorldHelper.ShowHelloWorld();
     }
 
@@ -32,29 +38,14 @@ public class HelloWorldHelper
         Debug.Log(str);
     }
 
-    public static bool Check(int val)
-    {
-        return true;
-    }
-
     public static string ObjectMethodToInject(int val1, int val2)
     {
         return val1.ToString() + val2.ToString();
     }
 
-    public static string ObjectMethodInjectFunc(int val1, int val2)
-    {
-        return val1.ToString() + val2.ToString() + "_inject";
-    }
-
     public static void VoidMethodToInject(int val)
     {
         Debug.Log(val);
-    }
-        
-    public static void VoidMethodInjectFunc(int val)
-    {
-        Debug.Log(val.ToString() + "_inject");
     }
 }
 

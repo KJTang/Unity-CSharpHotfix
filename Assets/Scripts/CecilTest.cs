@@ -65,57 +65,29 @@ public class CecilTest : MonoBehaviour
             // module
             ModuleDefinition module = assembly.MainModule;
             foreach (TypeDefinition type in module.Types) {
-                if (!type.IsPublic)
-                    continue;
-                //Debug.Log(type.FullName);
+                Debug.Log(type.FullName);
             }
 
             // method
-	        TypeDefinition helloWorld = module.Types.Single(t => t.Name == "HelloWorldHelper");
-	        MethodDefinition voidMethodToInject = helloWorld.Methods.Single(m => m.Name == "VoidMethodToInject");
-	        MethodDefinition objectMethodToInject = helloWorld.Methods.Single(m => m.Name == "ObjectMethodToInject");
-            
-            var hasMethodInfo = assembly.MainModule.ImportReference(typeof(CSharpHotfix.CSharpHotfixManager).GetMethod("HasMethodInfo"));
-            var voidMethodInject = assembly.MainModule.ImportReference(typeof(CSharpHotfix.CSharpHotfixManager).GetMethod("MethodReturnVoidWrapper"));
-            var objMethodInject = assembly.MainModule.ImportReference(typeof(CSharpHotfix.CSharpHotfixManager).GetMethod("MethodReturnObjectWrapper"));
+	        TypeDefinition helloWorldHelper = module.Types.Single(t => t.Name == "HelloWorldHelper");
 
+            // try inject void method
+	        MethodDefinition voidMethodToInject = helloWorldHelper.Methods.Single(m => m.Name == "VoidMethodToInject");
+            InjectMethod(voidMethodToInject, assembly);
 
-            // try insert void method
-            var body = voidMethodToInject.Body;
-            var msIls = body.Instructions;
-            var ilProcessor = body.GetILProcessor();
-            var insertPoint = msIls[0];
-            var ilList = new List<Instruction>();
-            ilList.Add(Instruction.Create(OpCodes.Ldc_I4, 1));
-            ilList.Add(Instruction.Create(OpCodes.Call, hasMethodInfo));
-            ilList.Add(Instruction.Create(OpCodes.Brfalse, insertPoint));
-            ilList.Add(Instruction.Create(OpCodes.Ldarg_0));
-            if (voidMethodToInject.ReturnType.FullName == "System.Void")
-                ilList.Add(Instruction.Create(OpCodes.Call, voidMethodInject));
-            else
-                ilList.Add(Instruction.Create(OpCodes.Call, objMethodInject));
-            ilList.Add(Instruction.Create(OpCodes.Ret));
-            for (var i = ilList.Count - 1; i >= 0; --i)
-                ilProcessor.InsertBefore(msIls[0], ilList[i]);
+            // try inject object method
+	        MethodDefinition objectMethodToInject = helloWorldHelper.Methods.Single(m => m.Name == "ObjectMethodToInject");
+            InjectMethod(objectMethodToInject, assembly);
 
-            // try insert object method
-            body = objectMethodToInject.Body;
-            msIls = body.Instructions;
-            ilProcessor = body.GetILProcessor();
-            insertPoint = msIls[0];
-            ilList = new List<Instruction>();
-            ilList.Add(Instruction.Create(OpCodes.Ldc_I4, 1));
-            ilList.Add(Instruction.Create(OpCodes.Call, hasMethodInfo));
-            ilList.Add(Instruction.Create(OpCodes.Brfalse, insertPoint));
-            ilList.Add(Instruction.Create(OpCodes.Ldarg_0));
-            ilList.Add(Instruction.Create(OpCodes.Ldarg_1));
-            if (objectMethodToInject.ReturnType.FullName == "System.Void")
-                ilList.Add(Instruction.Create(OpCodes.Call, voidMethodInject));
-            else
-                ilList.Add(Instruction.Create(OpCodes.Call, objMethodInject));
-            ilList.Add(Instruction.Create(OpCodes.Ret));
-            for (var i = ilList.Count - 1; i >= 0; --i)
-                ilProcessor.InsertBefore(msIls[0], ilList[i]);
+            // method
+	        TypeDefinition helloWorld = module.Types.Single(t => t.Name == "HelloWorld");
+            foreach (MethodDefinition method in helloWorld.Methods)
+            {
+                CSharpHotfix.CSharpHotfixManager.Message("#CS_HOTFIX# helloworld method: {0}", method.Name);
+            }
+	        MethodDefinition startMethod = helloWorld.Methods.Single(m => m.Name == "Start");
+            InjectMethod(startMethod, assembly);
+
 
             // modify
             assembly.Write(dllPath + "_test.dll", new WriterParameters { WriteSymbols = readSymbols });
@@ -134,6 +106,112 @@ public class CecilTest : MonoBehaviour
             }
         }
     }
+
+    private static void InjectMethod(MethodDefinition method, AssemblyDefinition assembly)
+    {
+        var hasMethodInfo = assembly.MainModule.ImportReference(typeof(CSharpHotfix.CSharpHotfixManager).GetMethod("HasMethodInfo"));
+        var voidMethodInject = assembly.MainModule.ImportReference(typeof(CSharpHotfix.CSharpHotfixManager).GetMethod("MethodReturnVoidWrapper"));
+        var objMethodInject = assembly.MainModule.ImportReference(typeof(CSharpHotfix.CSharpHotfixManager).GetMethod("MethodReturnObjectWrapper"));
+
+        var body = method.Body;
+        var msIls = body.Instructions;
+        var ilProcessor = body.GetILProcessor();
+        var insertPoint = msIls[0];
+        var ilList = new List<Instruction>();
+        ilList.Add(Instruction.Create(OpCodes.Ldc_I4, 1));
+        ilList.Add(Instruction.Create(OpCodes.Call, hasMethodInfo));
+        ilList.Add(Instruction.Create(OpCodes.Brfalse, insertPoint));
+        MakeArrayOfArguments(method, ilList, assembly);
+        if (method.ReturnType.FullName == "System.Void")
+            ilList.Add(Instruction.Create(OpCodes.Call, voidMethodInject));
+        else
+            ilList.Add(Instruction.Create(OpCodes.Call, objMethodInject));
+        ilList.Add(Instruction.Create(OpCodes.Ret));
+
+        // inject il
+        for (var i = ilList.Count - 1; i >= 0; --i)
+            ilProcessor.InsertBefore(msIls[0], ilList[i]);
+
+        CSharpHotfix.CSharpHotfixManager.Message("InjectMethod: {0}", method.Name);
+    }
+
+    private static void MakeArrayOfArguments(MethodDefinition method, List<Instruction> ilList, AssemblyDefinition assembly)
+    {
+        //实例函数第一个参数值为this(当前实例对象),所以要从1开始。
+        var thisShift = method.IsStatic ? 0 : 1;
+
+        var argumentCount = method.Parameters.Count;
+        if (argumentCount > 0)
+        {
+            //object[] arr = new object[argumentCount]
+            ilList.Add(Instruction.Create(OpCodes.Ldc_I4, argumentCount));
+            ilList.Add(Instruction.Create(OpCodes.Newarr, assembly.MainModule.ImportReference(typeof(object))));
+
+            for (int i = 0; i < argumentCount; ++i) 
+            {
+                var parameter = method.Parameters[i];
+
+                // value = argument[i]
+                ilList.Add(Instruction.Create(OpCodes.Dup));
+                ilList.Add(Instruction.Create(OpCodes.Ldc_I4, i));
+                TryLoadArgument(i + thisShift, ilList);
+
+                // box
+                TryBox(parameter, ilList, assembly);
+
+                // arr[i] = value;
+                ilList.Add(Instruction.Create(OpCodes.Stelem_Ref));
+            }
+        }
+        else
+        {
+            ilList.Add(Instruction.Create(OpCodes.Ldnull));
+        }
+    }
+
+    private static void TryLoadArgument(int argIdx, List<Instruction> ilList)
+    {
+        if (argIdx < 4)
+        {
+            switch (argIdx)
+            {
+                case 0: 
+                    ilList.Add(Instruction.Create(OpCodes.Ldarg_0));
+                    break;
+                case 1: 
+                    ilList.Add(Instruction.Create(OpCodes.Ldarg_1));
+                    break;
+                case 2: 
+                    ilList.Add(Instruction.Create(OpCodes.Ldarg_2));
+                    break;
+                case 3: 
+                    ilList.Add(Instruction.Create(OpCodes.Ldarg_3));
+                    break;
+            }
+        }
+        else if (argIdx < 256)
+        {
+            ilList.Add(Instruction.Create(OpCodes.Ldarg_S, argIdx));
+        }
+        else
+        {
+            ilList.Add(Instruction.Create(OpCodes.Ldarg, argIdx));
+        }
+    }
+
+    private static void TryBox(ParameterDefinition param, List<Instruction> ilList, AssemblyDefinition assembly)
+    {
+        var paramType = param.ParameterType;
+        if (paramType.IsValueType)
+        {
+            ilList.Add(Instruction.Create(OpCodes.Box, paramType));
+        }
+        else if (paramType.IsGenericParameter)
+        {
+            ilList.Add(Instruction.Create(OpCodes.Box, assembly.MainModule.ImportReference(paramType)));
+        }
+    }
+
 
     private static MethodReference HotfixMethodIsHotfix
     {

@@ -349,15 +349,22 @@ namespace CSharpHotfix
 
         public static bool HasMethodInfo(int methodId)
         {
+            // DEBUG: 
+            return true;
+
             return methodInfoDict.ContainsKey(methodId);
         }
 
-        public static void MethodReturnVoidWrapper(params object[] objList)
+        public static void MethodReturnVoidWrapper(object[] objList)
         {
             // DEBUG: 
-            for (var i = 0; i != objList.Length; ++i)
-            {
-                Message("Void Param: " + i + " \t" + objList[i]);
+            Message("MethodReturnVoidWrapper: " + objList);
+            if (objList != null)
+            { 
+                for (var i = 0; i != objList.Length; ++i)
+                {
+                    Message("Void Param: " + i + " \t" + objList[i]);
+                }
             }
             return;
 
@@ -374,12 +381,16 @@ namespace CSharpHotfix
             methodInfo.Invoke(instance, param);
         }
 
-        public static object MethodReturnObjectWrapper(params object[] objList)
+        public static object MethodReturnObjectWrapper(object[] objList)
         {
             // DEBUG: 
-            for (var i = 0; i != objList.Length; ++i)
+            Message("MethodReturnObjectWrapper: " + objList);
+            if (objList != null)
             {
-                Message("Object Param: " + i + " \t" + objList[i]);
+                for (var i = 0; i != objList.Length; ++i)
+                {
+                    Message("Object Param: " + i + " \t" + objList[i]);
+                }
             }
             return "_inject";
 
