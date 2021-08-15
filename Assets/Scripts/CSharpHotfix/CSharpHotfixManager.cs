@@ -329,6 +329,7 @@ namespace CSharpHotfix
 
         public static MethodInfo GetMethodInfo(int methodId)
         {
+            // UnityEngine.Debug.LogErrorFormat("GetMethodInfo: {0} \t{1}", methodId, methodInfoDict.ContainsKey(methodId));
             MethodInfo methodInfo;
             if (methodInfoDict.TryGetValue(methodId, out methodInfo))
             {
@@ -347,11 +348,21 @@ namespace CSharpHotfix
             methodInfoDict.Clear();
         }
 
+        public static void PrintAllMethodInfo()
+        {
+            CSharpHotfixManager.Message("#CS_HOTFIX# PrintAllMethodInfo: {0}", methodInfoDict.Count);
+            foreach (var kv in methodInfoDict)
+            {
+                CSharpHotfixManager.Message("#CS_HOTFIX# methodInfo: {0} \t{1}", kv.Key, kv.Value);
+            }
+        }
+
         public static bool HasMethodInfo(int methodId)
         {
             //// DEBUG: 
             //return true;
 
+            // UnityEngine.Debug.LogErrorFormat("HasMethodInfo: {0} \t{1}", methodId, methodInfoDict.ContainsKey(methodId));
             return methodInfoDict.ContainsKey(methodId);
         }
 
@@ -371,6 +382,7 @@ namespace CSharpHotfix
             var methodId = (System.Int32) objList[0];
             var methodInfo = GetMethodInfo(methodId);
             Assert.IsNotNull(methodInfo);
+            // UnityEngine.Debug.LogErrorFormat("MethodReturnVoidWrapper: {0} \t{1}", methodId, methodInfo.Name);
 
             var len = objList.Length;
             var param = new object[len - 2];
@@ -398,6 +410,7 @@ namespace CSharpHotfix
             var methodId = (System.Int32) objList[0];
             var methodInfo = GetMethodInfo(methodId);
             Assert.IsNotNull(methodInfo);
+            // UnityEngine.Debug.LogErrorFormat("MethodReturnObjectWrapper: {0} \t{1}", methodId, methodInfo.Name);
 
             var len = objList.Length;
             var param = new object[len - 2];

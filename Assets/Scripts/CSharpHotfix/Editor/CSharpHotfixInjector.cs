@@ -197,7 +197,7 @@ namespace CSharpHotfix
             for (var i = ilList.Count - 1; i >= 0; --i)
                 ilProcessor.InsertBefore(originIL[0], ilList[i]);
 
-            CSharpHotfix.CSharpHotfixManager.Message("InjectMethod: {0}", method.Name);
+            CSharpHotfix.CSharpHotfixManager.Message("#CS_HOTFIX# InjectMethod: {0}", method.FullName);
         }
 
         private static void InjectMethodArgument(int methodId, MethodDefinition method, List<Instruction> ilList, AssemblyDefinition assembly)
