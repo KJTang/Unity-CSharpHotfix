@@ -76,7 +76,10 @@ namespace CSharpHotfix
                 CSharpHotfixManager.Warning("#CS_HOTFIX# InjectAssembly: assembly not exist: {0}", assemblyPath);
                 return;
             }
-            
+            var assemblyPDBPath = assemblyPath.Replace(".dll", ".pdb");
+            var hotfixAssemblyPath = assemblyPath.Replace(".dll", ".hotfix.dll");
+            var hotfixAssemblyPDBPath = assemblyPath.Replace(".pdb", ".hotfix.pdb");
+
             // get method list need inject
             var typeList = CSharpHotfixCfg.ToProcess.Where(type => type is Type)
                 .Select(type => type)
@@ -153,7 +156,7 @@ namespace CSharpHotfix
                 }
 
                 // modify assembly
-                assembly.Write(assemblyPath + "_test.dll", new WriterParameters { WriteSymbols = readSymbols });
+                assembly.Write(hotfixAssemblyPath, new WriterParameters { WriteSymbols = readSymbols });
             }
             catch (Exception e)
             {
@@ -167,6 +170,18 @@ namespace CSharpHotfix
                     assembly.MainModule.SymbolReader.Dispose();
                 }
                 assembly.Dispose();
+            }
+
+
+            // overwrite assembly
+            try
+            {
+                System.IO.File.Copy(hotfixAssemblyPath, assemblyPath, true);
+                System.IO.File.Copy(hotfixAssemblyPDBPath, assemblyPDBPath, true);
+            }
+            catch (Exception e)
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# InjectAssembly: override assembly failed: {0}", e);
             }
         }
 

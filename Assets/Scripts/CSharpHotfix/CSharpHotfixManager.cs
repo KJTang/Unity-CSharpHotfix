@@ -1,5 +1,4 @@
-﻿#define UNITY_EDITOR    // debug
-// #define CSHOTFIX_ENABLE_LOG
+﻿// #define CSHOTFIX_ENABLE_LOG
 
 using System.Collections;
 using System.Collections.Generic;
@@ -119,17 +118,17 @@ namespace CSharpHotfix
             methodName = namespaceName + "." + methodName;
             methodSignatureBuilder.Append(methodName);
             methodSignatureBuilder.Append(";");
-            
+
             // static
             var isStatic = method.IsStatic ? "Static" : "NonStatic";
             methodSignatureBuilder.Append(isStatic);
             methodSignatureBuilder.Append(";");
-            
+
             // return type
             var returnType = method.ReturnType.FullName;
             methodSignatureBuilder.Append(returnType);
             methodSignatureBuilder.Append(";");
-            
+
             // generic
             var genericArgs = method.GenericParameters;
             methodSignatureBuilder.Append(genericArgs.Count.ToString());
