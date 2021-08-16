@@ -358,35 +358,20 @@ namespace CSharpHotfix
 
         public static bool HasMethodInfo(int methodId)
         {
-            //// DEBUG: 
-            //return true;
-
-            // UnityEngine.Debug.LogErrorFormat("HasMethodInfo: {0} \t{1}", methodId, methodInfoDict.ContainsKey(methodId));
             return methodInfoDict.ContainsKey(methodId);
         }
 
         public static void MethodReturnVoidWrapper(object[] objList)
         {
-            //// DEBUG: 
-            //Message("MethodReturnVoidWrapper: " + objList);
-            //if (objList != null)
-            //{ 
-            //    for (var i = 0; i != objList.Length; ++i)
-            //    {
-            //        Message("Void Param: " + i + " \t" + objList[i]);
-            //    }
-            //}
-            //return;
-
             var methodId = (System.Int32) objList[0];
             var methodInfo = GetMethodInfo(methodId);
             Assert.IsNotNull(methodInfo);
-            // UnityEngine.Debug.LogErrorFormat("MethodReturnVoidWrapper: {0} \t{1}", methodId, methodInfo.Name);
 
-            var len = objList.Length;
-            var param = new object[len - 2];
+            var offset = 2;     // methodId, instance
+            var len = objList.Length - offset;
+            var param = new object[len];
             for (var i = 0; i != len; ++i)
-                param[i] = objList[i + 2];
+                param[i] = objList[i + offset];
 
             var instance = objList[1];
             methodInfo.Invoke(instance, param);
@@ -394,27 +379,15 @@ namespace CSharpHotfix
 
         public static object MethodReturnObjectWrapper(object[] objList)
         {
-            //// DEBUG: 
-            //Message("MethodReturnObjectWrapper: " + objList);
-            //if (objList != null)
-            //{
-            //    for (var i = 0; i != objList.Length; ++i)
-            //    {
-            //        Message("Object Param: " + i + " \t" + objList[i]);
-            //    }
-            //}
-            //return "_inject";
-
-
             var methodId = (System.Int32) objList[0];
             var methodInfo = GetMethodInfo(methodId);
             Assert.IsNotNull(methodInfo);
-            // UnityEngine.Debug.LogErrorFormat("MethodReturnObjectWrapper: {0} \t{1}", methodId, methodInfo.Name);
-
-            var len = objList.Length;
-            var param = new object[len - 2];
+            
+            var offset = 2;     // methodId, instance
+            var len = objList.Length - offset;
+            var param = new object[len];
             for (var i = 0; i != len; ++i)
-                param[i] = objList[i + 2];
+                param[i] = objList[i + offset];
 
             var instance = objList[1];
             return methodInfo.Invoke(instance, param);

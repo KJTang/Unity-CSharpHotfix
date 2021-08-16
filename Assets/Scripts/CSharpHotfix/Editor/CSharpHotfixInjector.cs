@@ -149,8 +149,6 @@ namespace CSharpHotfix
                             CSharpHotfixManager.Log("#CS_HOTFIX# Cecil: cannot find method id: {0}", signature);
                             continue;
                         }
-
-                        // TODO: insert il with method id
                         InjectMethod(methodId, method, assembly);
                     }
                 }
