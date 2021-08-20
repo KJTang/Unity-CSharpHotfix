@@ -8,21 +8,14 @@ public class HelloWorld : MonoBehaviour
 {
     void Start()
     {
-        HelloWorldHelper.ShowHelloWorld();
-        Func(this);
+        //HelloWorldHelper.ShowHelloWorld();
+        //Func(this);
+        StaticFunc();
     }
 
-    void Func(object o)
+    public void Func(object o)
     {
         HelloWorldHelper.ShowHelloWorld();
-    }
-
-    bool BoolFunc()
-    {
-        if (true)
-            return true;
-        else
-            return false;
     }
 
     public int ParamsFunc(params object[] list)
@@ -30,6 +23,11 @@ public class HelloWorld : MonoBehaviour
         var num1 = (System.Int32) list[0];
         var num2 = (System.Int32) list[1];
         return num1 + num2;
+    }
+
+    public static void StaticFunc()
+    {
+        HelloWorldHelper.ShowMessage("StaticFunc: normal");
     }
 }
 

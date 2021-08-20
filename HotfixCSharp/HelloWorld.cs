@@ -1,29 +1,38 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 
 namespace HelloTest.Test {
 
-public class HelloWorld : MonoBehaviour
-{
-    void Start()
+    public class HelloWorld_Hotfix : MonoBehaviour
     {
-        HelloWorldHelper.ShowMessage("Start: hotfixed");
-        Func(this);
-    }
+        void Start()
+        {
+            HelloWorldHelper.ShowMessage("Start: hotfixed");
+            //HelloTest.Test.HelloWorld.Func(this);
 
-    void Func(object o)
-    {
-        HelloWorldHelper.ShowMessage("Func: hotfixed");
-    }
+            var method = typeof(HelloWorld).GetMethod("Func");
+            method.Invoke(this, new object[] {this});
+        }
 
-    public int ParamsFunc(params object[] list)
-    {
-        var num1 = (System.Int32) list[0];
-        var num2 = (System.Int32) list[1];
-        return num1 + num2;
+            //void Func(object o)
+            //{
+            //    HelloWorldHelper.ShowMessage("Func: hotfixed");
+            //}
+
+            //public int ParamsFunc(params object[] list)
+            //{
+            //    var num1 = (System.Int32)list[0];
+            //    var num2 = (System.Int32)list[1];
+            //    return num1 + num2;
+            //}
+
+        public static void StaticFunc()
+        {
+            HelloWorldHelper.ShowMessage("StaticFunc: hotfixed");
+        }
     }
-}
 
 //public class HelloWorldHelper
 //{

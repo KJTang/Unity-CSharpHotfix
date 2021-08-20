@@ -202,6 +202,34 @@ namespace CSharpHotfix
         }
 
 
+        //public static string GetMethodSignature(MethodDeclarationSyntax method)
+        //{
+        //    methodSignatureBuilder.Length = 0;
+
+        //    // fullname
+        //    var methodName = method.Identifier.Text;
+        //    var node = method.Parent;
+        //    while (node != null)
+        //    {
+        //        var classNode = node as ClassDeclarationSyntax;
+        //        var namespaceNode = node as NamespaceDeclarationSyntax;
+        //        if (classNode != null)
+        //        {
+        //            methodName = classNode.Identifier.Text + "." + methodName;
+        //        }
+        //        else if (namespaceNode != null)
+        //        {
+        //            methodName = namespaceNode.Name.ToString() + "." + methodName;
+        //        }
+        //    }
+        //    methodSignatureBuilder.Append(methodName);
+        //    methodSignatureBuilder.Append(";");
+
+        //    // TODO: 
+        //    return methodSignatureBuilder.ToString();
+        //}
+
+
 #region method id cache
         private static Dictionary<string, int> methodIdDict = new Dictionary<string, int>();
         private static Dictionary<int, string> methodIdReverseDict = new Dictionary<int, string>();

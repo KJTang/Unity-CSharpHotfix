@@ -31,8 +31,8 @@
 31 RoslynTest.RoslynTestFunc;NonStatic;System.Void;0;;
 32 HelloTest.Test.HelloWorld.Start;NonStatic;System.Void;0;;
 33 HelloTest.Test.HelloWorld.Func;NonStatic;System.Void;0;System.Object,;
-34 HelloTest.Test.HelloWorld.BoolFunc;NonStatic;System.Boolean;0;;
-35 HelloTest.Test.HelloWorld.ParamsFunc;NonStatic;System.Int32;0;System.Object[],;
+34 HelloTest.Test.HelloWorld.ParamsFunc;NonStatic;System.Int32;0;System.Object[],;
+35 HelloTest.Test.HelloWorld.StaticFunc;Static;System.Void;0;;
 36 HelloTest.Test.HelloWorldHelper.ShowHelloWorld;Static;System.Void;0;;
 37 HelloTest.Test.HelloWorldHelper.ShowMessage;Static;System.Void;0;System.String,;
 38 HelloTest.Test.HelloWorldHelper.ObjectMethodToInject;Static;System.String;0;System.Int32,System.Int32,;
