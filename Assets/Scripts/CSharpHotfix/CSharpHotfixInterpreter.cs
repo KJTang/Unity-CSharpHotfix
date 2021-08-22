@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Linq;
 using System.IO;
 using System;
+using System.Text;
 using UnityEngine;
 using UnityEditor;
 using Microsoft.CodeAnalysis;
@@ -123,28 +124,21 @@ namespace CSharpHotfix
             }
             CSharpHotfixManager.LoadMethodIdFromFile();
             CSharpHotfixManager.ClearMethodInfo();
-            
-            // load hotfix files
-            var dirPath = GetHotfixDirPath();
-            var dirInfo = new DirectoryInfo(dirPath);
-            var files = dirInfo.GetFiles("*.cs", SearchOption.AllDirectories);
 
-            // parse & compile
             var treeLst = new List<SyntaxTree>();
             var fileLst = new List<string>();
-            for (var i = 0; i != files.Length; ++i)
-            {
-                var fileInfo = files[i];
-                CSharpHotfixManager.Message("#CS_HOTFIX# Load Hotfix File: " + fileInfo.FullName);
 
-                using (var streamReader = fileInfo.OpenText())
-                {
-                    var programText = streamReader.ReadToEnd();
-                    SyntaxTree tree = CSharpSyntaxTree.ParseText(programText);
-                    treeLst.Add(tree);
-                    fileLst.Add(fileInfo.FullName);
-                }
-            }
+            // parse 
+            var parseResult = ParseHotfix(treeLst, fileLst);
+            if (!parseResult)
+                return;
+
+            // rewrite
+            var rewriteResult = RewriteHotfix(treeLst, fileLst);
+            if (!rewriteResult)
+                return;
+
+            // compile
             var hotfixStream = CompileHotfix(treeLst, fileLst);
             if (hotfixStream == null)
                 return;
@@ -156,11 +150,11 @@ namespace CSharpHotfix
             //var assembly = Assembly.Load(hotfixStream.ToArray(), null);
 
             // save assembly to file (used to debug it)
-            using (FileStream file = new FileStream(GetHotfixAssemblyPath(), FileMode.Create, System.IO.FileAccess.Write)) 
+            using (var fileStream = new FileStream(GetHotfixAssemblyPath(), FileMode.Create, System.IO.FileAccess.Write)) 
             {
                 byte[] bytes = new byte[hotfixStream.Length];
                 hotfixStream.Read(bytes, 0, (int)hotfixStream.Length);
-                file.Write(bytes, 0, bytes.Length);
+                fileStream.Write(bytes, 0, bytes.Length);
             }
 
             // save methodinfo
@@ -188,7 +182,93 @@ namespace CSharpHotfix
             // debug: 
             //CSharpHotfixManager.PrintAllMethodInfo();
             CSharpHotfixManager.Message("#CS_HOTFIX# Hotfix Finished");
-       }
+        }
+       
+        private static bool ParseHotfix(List<SyntaxTree> treeLst, List<string> fileLst)
+        {
+            // load hotfix files
+            var dirPath = GetHotfixDirPath();
+            var dirInfo = new DirectoryInfo(dirPath);
+            var files = dirInfo.GetFiles("*.cs", SearchOption.AllDirectories);
+            
+            // parse code
+            for (var i = 0; i != files.Length; ++i)
+            {
+                var fileInfo = files[i];
+                CSharpHotfixManager.Message("#CS_HOTFIX# Load Hotfix File: " + fileInfo.FullName);
+
+                using (var streamReader = fileInfo.OpenText())
+                {
+                    var programText = streamReader.ReadToEnd();
+                    SyntaxTree tree = CSharpSyntaxTree.ParseText(programText);
+                    treeLst.Add(tree);
+                    fileLst.Add(fileInfo.FullName);
+                }
+            }
+
+            return true;
+        }
+
+        private static bool RewriteHotfix(List<SyntaxTree> treeLst, List<string> fileLst)
+        {
+            // rewrite method declaration
+            var classCollector = new HotfixClassCollector();
+            for (var i = 0; i != treeLst.Count; ++i)
+            {
+                var tree = treeLst[i];
+                classCollector.Visit(tree.GetRoot());
+            }
+
+            var methodCollector = new HotfixMethodCollector();
+            foreach (var classData in classCollector.HotfixClasses)
+            {
+                if (classData.isNew)
+                    continue;
+                methodCollector.Visit(classData.syntaxNode);
+            }
+
+            var methodDeclarationRewriter = new MethodDeclarationRewriter(methodCollector.HotfixMethods);
+            for (var i = 0; i != treeLst.Count; ++i)
+            {
+                var tree = treeLst[i];
+                var oldNode = tree.GetRoot();
+                var newNode = methodDeclarationRewriter.Visit(oldNode);
+                if (oldNode != newNode)
+                {
+                    tree = tree.WithRootAndOptions(newNode, tree.Options);
+                    treeLst[i] = tree;
+                }
+            }
+
+            // TODO: rewrite class declaration
+
+            // TODO: rewrite method invocation
+
+            // debug: output processed syntax tree, used to examine them
+            for (var i = 0; i != treeLst.Count; ++i)
+            {
+                var tree = treeLst[i];
+                var file = fileLst[i];
+                using (var fileStream = new FileStream(file + ".hotfix", FileMode.Create, System.IO.FileAccess.Write)) 
+                {
+                    var bytes = new UTF8Encoding(true).GetBytes(tree.ToString());
+                    fileStream.Write(bytes, 0, bytes.Length);
+                }
+            }
+            return true;
+        }
+
+        private static SyntaxNode RewriteSyntaxTree(SyntaxNode treeRoot)
+        {
+            SyntaxNode node = treeRoot;
+
+            // replace class name
+            node = (new ClassDeclarationRewriter()).Visit(node);
+
+
+            return node;
+        }
+        
 
         private static MemoryStream CompileHotfix(List<SyntaxTree> treeLst, List<string> fileLst)
         {
@@ -241,52 +321,6 @@ namespace CSharpHotfix
                 return null;
             }
             
-            // test
-            //for (var idx = 0; idx != treeLst.Count; ++idx)
-            //{
-            //    var tree = treeLst[idx];
-            //    var filePath = fileLst[idx];
-
-            //    SemanticModel model = compilation.GetSemanticModel(tree);
-            //    var methodCollector = new CSharpHotfixMethodCollector(model);
-            //    methodCollector.Visit(tree.GetRoot());
-            //    foreach (var methodData in methodCollector.Methods)
-            //    {
-            //        var methodId = methodData.methodId;
-            //        if (methodId <= 0)
-            //            continue;
-
-            //        var methodSource = tree.GetText().GetSubText(methodData.syntaxNode.Span).ToString();
-            //        Debug.LogErrorFormat("test {0} \n{1}", methodId, CSharpHotfixManager.GetMethodSignature(methodId), methodSource);
-                    
-            //        var methodCompilation = CSharpCompilation.CreateScriptCompilation("HotfixMethod_" + methodId)
-            //            .AddReferences(compilation.References)
-            //            .AddSyntaxTrees(SyntaxFactory.ParseSyntaxTree(methodSource, CSharpParseOptions.Default.WithKind(SourceCodeKind.Script)));
-                    
-            //        using (var dll = new MemoryStream())
-            //        {
-            //            var eimtRet = methodCompilation.Emit(dll);
-            //            Debug.Log("emit: " + eimtRet.Success + " \t" + dll.Length);
-
-            //            for (var i = 0; i != eimtRet.Diagnostics.Length; ++i)
-            //            {
-            //                var diagnostic = eimtRet.Diagnostics[i];
-            //                var log = "emit diagnostics: level: " + diagnostic.WarningLevel + " \t" + diagnostic;
-            //                if (diagnostic.WarningLevel == 0)
-            //                {
-            //                    Debug.LogError(log);
-            //                }
-            //                else
-            //                {
-            //                    Debug.LogWarning(log);
-            //                }
-            //            }
-
-            //            var assembly = Assembly.Load(dll.ToArray(), null);
-            //        }
-            //    }
-            //}
-
             // create assembly
             MemoryStream hotfixDllStream = null;
             try
