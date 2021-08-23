@@ -14,57 +14,6 @@ using Mono.Cecil;
 
 namespace CSharpHotfix
 {
-
-    class CSharpHotfixMethodCollector : CSharpSyntaxWalker
-    {
-        public struct MethodData
-        {
-            public int methodId;
-            public IMethodSymbol symbol;
-            public MethodDeclarationSyntax syntaxNode;
-
-            public MethodData(int methodId, IMethodSymbol symbol, MethodDeclarationSyntax syntaxNode)
-            {
-                this.methodId = methodId;
-                this.symbol = symbol;
-                this.syntaxNode = syntaxNode;
-            }
-        }
-        
-        public ICollection<MethodData> Methods 
-        { 
-            get { return methods; } 
-        }
-        private List<MethodData> methods = new List<MethodData>();
-
-        private SemanticModel semanticModel;
-
-        public CSharpHotfixMethodCollector(SemanticModel model)
-        {
-            semanticModel = model;
-        }
-
-        public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
-        {
-            if (semanticModel == null)
-                return;
-
-            var symbol = semanticModel.GetDeclaredSymbol(node) as IMethodSymbol;
-            if (symbol == null)
-                return;
-                
-            var signature = CSharpHotfixManager.GetMethodSignature(symbol);
-            var methodId = CSharpHotfixManager.GetMethodId(signature);
-            CSharpHotfixManager.Log("#CS_HOTFIX VisitMethodDeclaration: methodId: {0} \tsignature {1}", methodId, signature);
-            if (methodId <= 0)
-                return;
-            methods.Add(new MethodData(methodId, symbol, node));
-        }
-
-
-
-    }
-
     public class CSharpHotfixInterpreter 
     {
         private static string hotfixDirPath; 
@@ -119,7 +68,7 @@ namespace CSharpHotfix
         {
             if (!CSharpHotfixManager.IsMethodIdFileExist())
             {
-                CSharpHotfixManager.Error("#CS_HOTFIX# Interpreter: no method id file cache, please re-generate it");
+                CSharpHotfixManager.Error("#CS_HOTFIX# HotfixMethod: no method id file cache, please re-generate it");
                 return;
             }
             CSharpHotfixManager.LoadMethodIdFromFile();
@@ -167,12 +116,14 @@ namespace CSharpHotfix
                 foreach (var methodInfo in methodLst)
                 {
                     var signature = CSharpHotfixManager.GetMethodSignature(methodInfo);
-                    var methodId = CSharpHotfixManager.GetMethodId(signature);
+                    var fixedSignature = CSharpHotfixManager.FixHotfixMethodSignature(signature);
+                    var methodId = CSharpHotfixManager.GetMethodId(fixedSignature);
                     if (methodId <= 0) 
                         continue;
 
-                    CSharpHotfixManager.SetMethodInfo(methodId, methodInfo);
-                    CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: {0} \t{1}", methodId, signature);
+                    var state = CSharpHotfixManager.GetHotfixMethodStaticState(signature);
+                    CSharpHotfixManager.SetMethodInfo(methodId, methodInfo, state == 2);
+                    CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: {0} \t{1}", methodId, fixedSignature);
                 }
             }
 
@@ -181,7 +132,7 @@ namespace CSharpHotfix
 
             // debug: 
             //CSharpHotfixManager.PrintAllMethodInfo();
-            CSharpHotfixManager.Message("#CS_HOTFIX# Hotfix Finished");
+            CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: hotfix finished");
         }
        
         private static bool ParseHotfix(List<SyntaxTree> treeLst, List<string> fileLst)
@@ -195,7 +146,7 @@ namespace CSharpHotfix
             for (var i = 0; i != files.Length; ++i)
             {
                 var fileInfo = files[i];
-                CSharpHotfixManager.Message("#CS_HOTFIX# Load Hotfix File: " + fileInfo.FullName);
+                CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: load hotfix file: " + fileInfo.FullName);
 
                 using (var streamReader = fileInfo.OpenText())
                 {

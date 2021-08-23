@@ -42,12 +42,12 @@ namespace CSharpHotfix
 
         public override void VisitClassDeclaration(ClassDeclarationSyntax node)
         {
-            //
-            Debug.LogErrorFormat("ClassDeclarationSyntax: {0} \t{1} \tisNew: {2}", 
-                node.Identifier.Text, 
-                CSharpHotfixRewriter.GetSyntaxNodeFullName(node), 
-                CSharpHotfixRewriter.IsHotfixClassNew(CSharpHotfixRewriter.GetSyntaxNodeFullName(node))
-            );
+            ////
+            //Debug.LogErrorFormat("ClassDeclarationSyntax: {0} \t{1} \tisNew: {2}", 
+            //    node.Identifier.Text, 
+            //    CSharpHotfixRewriter.GetSyntaxNodeFullName(node), 
+            //    CSharpHotfixRewriter.IsHotfixClassNew(CSharpHotfixRewriter.GetSyntaxNodeFullName(node))
+            //);
 
             var classData = new HotfixClassData();
             classData.className = node.Identifier.Text;
@@ -70,13 +70,13 @@ namespace CSharpHotfix
 
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
-            //
-            Debug.LogErrorFormat("MethodDeclarationSyntax: {0} \t{1} \tisNew: {2} \tisStatic: {3}", 
-                node.Identifier.Text, 
-                CSharpHotfixRewriter.GetSyntaxNodeFullName(node), 
-                CSharpHotfixRewriter.IsHotfixMethodNew(node), 
-                node.Modifiers.Any(SyntaxKind.StaticKeyword)
-            );
+            ////
+            //Debug.LogErrorFormat("MethodDeclarationSyntax: {0} \t{1} \tisNew: {2} \tisStatic: {3}", 
+            //    node.Identifier.Text, 
+            //    CSharpHotfixRewriter.GetSyntaxNodeFullName(node), 
+            //    CSharpHotfixRewriter.IsHotfixMethodNew(node), 
+            //    node.Modifiers.Any(SyntaxKind.StaticKeyword)
+            //);
 
             var methodData = new HotfixMethodData();
             methodData.methodName = CSharpHotfixRewriter.GetSyntaxNodeFullName(node);
@@ -137,7 +137,13 @@ namespace CSharpHotfix
 
             var methodData = methodNeedRewrite[node];
             if (methodData.isStatic)
-                return node;
+            {
+                var oldStaticName = node.Identifier.Text;
+                var newStaticName = oldStaticName + CSharpHotfixRewriter.StaticMethodNamePostfix;
+                var oldStaticNameToken = node.Identifier;
+                var newStaticNameToken = SyntaxFactory.Identifier(oldStaticNameToken.LeadingTrivia, oldStaticNameToken.Kind(), newStaticName, newStaticName, oldStaticNameToken.TrailingTrivia);
+                return node.WithIdentifier(newStaticNameToken);
+            }
             
             // first child node
             SyntaxNode firstNode = null;
@@ -203,8 +209,15 @@ namespace CSharpHotfix
             var thisRewriter = new ThisExpressionRewriter();
             node = thisRewriter.Visit(node) as MethodDeclarationSyntax;
 
+            // rewrite method name
+            var oldName = node.Identifier.Text;
+            var newName = oldName + CSharpHotfixRewriter.MethodNamePostfix;
+            var oldNameToken = node.Identifier;
+            var newNameToken = SyntaxFactory.Identifier(oldNameToken.LeadingTrivia, oldNameToken.Kind(), newName, newName, oldNameToken.TrailingTrivia);
+
             // record node need replace
             var newNode = node
+                .WithIdentifier(newNameToken)
                 .WithModifiers(modifiers)
                 .WithParameterList(parameterList);
 
@@ -248,7 +261,9 @@ namespace CSharpHotfix
         public static readonly SyntaxTriviaList ZeroWhitespaceTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, ""));
         public static readonly SyntaxTriviaList OneWhitespaceTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "));
         public static readonly string InstanceParamName = "__INST__";
-        public static readonly string ClassNamePostfix = "__HOTFIX";
+        public static readonly string ClassNamePostfix = "__HOTFIX_CLS";
+        public static readonly string MethodNamePostfix = "__HOTFIX_MTD";
+        public static readonly string StaticMethodNamePostfix = "__HOTFIX_MTD_S";
 
 
         public static string GetSyntaxNodeFullName(SyntaxNode node)

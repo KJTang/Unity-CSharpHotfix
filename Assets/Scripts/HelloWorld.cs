@@ -10,7 +10,10 @@ namespace HelloTest.Test {
         {
             //HelloWorldHelper.ShowHelloWorld();
             //Func(this);
-            StaticFunc();
+            //StaticFunc();
+            
+            var test = new RewriteClass1();
+            test.RewriteFunc2();
         }
 
         public void Func(object o)
@@ -66,7 +69,10 @@ namespace HelloTest.Test {
             this.RewriteFunc2();
         }
 
-        public void RewriteFunc2() {}
+        public void RewriteFunc2() 
+        {
+            HelloWorldHelper.ShowMessage("RewriteClass1.RewriteFunc2: normal");
+        }
 
         public void RewriteFunc3(int i) {}
 

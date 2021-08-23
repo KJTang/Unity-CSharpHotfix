@@ -6,15 +6,16 @@ namespace HelloTest.Test {
 
     public class RewriteClass1
     {
-        public int m_i;
-
         void RewriteFunc1() {
             this.m_i = 0;
             this.m_i = this.m_i + 1;
             this.RewriteFunc2();
         }
 
-        public void RewriteFunc2() {}
+        public void RewriteFunc2() 
+        {
+            HelloWorldHelper.ShowMessage("RewriteClass1.RewriteFunc2: hotfixed");
+        }
 
         public void RewriteFunc3(int i) {}
 

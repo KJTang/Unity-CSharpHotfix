@@ -4,31 +4,32 @@ using UnityEngine;
 
 namespace HelloTest.Test {
 
-    public class RewriteClass1__HOTFIX
+    public class RewriteClass1__HOTFIX_CLS
     {
-        public int m_i;
-
-        static void RewriteFunc1(RewriteClass1 __INST__) {
+        static void RewriteFunc1__HOTFIX_MTD(RewriteClass1 __INST__) {
             __INST__.m_i = 0;
             __INST__.m_i = __INST__.m_i + 1;
             __INST__.RewriteFunc2();
         }
 
-        static public void RewriteFunc2(RewriteClass1 __INST__) {}
+        static public void RewriteFunc2__HOTFIX_MTD(RewriteClass1 __INST__) 
+        {
+            HelloWorldHelper.ShowMessage("hotfixed hotfixed hotfixed");
+        }
 
-        static public void RewriteFunc3(RewriteClass1 __INST__,int i) {}
+        static public void RewriteFunc3__HOTFIX_MTD(RewriteClass1 __INST__,int i) {}
 
-        public static void RewriteFunc4(HelloWorld instance) {}
+        public static void RewriteFunc4__HOTFIX_MTD_S(HelloWorld instance) {}
     }
 
 
 
-    public class RewriteClass2__HOTFIX
+    public class RewriteClass2__HOTFIX_CLS
     {
-        public static void RewriteFunc4(HelloWorld instance) {}
+        public static void RewriteFunc4__HOTFIX_MTD_S(HelloWorld instance) {}
 
-        static public void RewriteFunc5(RewriteClass2 __INST__,int i) {}
+        static public void RewriteFunc5__HOTFIX_MTD(RewriteClass2 __INST__,int i) {}
 
-        public static void RewriteFunc6(System.Int32 i) {}
+        public static void RewriteFunc6__HOTFIX_MTD_S(System.Int32 i) {}
     }
 }

@@ -66,11 +66,13 @@ namespace CSharpHotfix
             methodSignatureBuilder.Length = 0;
 
             // fullname
+            var methodName = method.Name;
             var declaringType = method.DeclaringType;
-            var methodName = declaringType.FullName + "." + method.Name;
+            methodSignatureBuilder.Append(declaringType.FullName);
+            methodSignatureBuilder.Append(".");
             methodSignatureBuilder.Append(methodName);
             methodSignatureBuilder.Append(";");
-            
+                
             // static
             var isStatic = method.IsStatic ? "Static" : "NonStatic";
             methodSignatureBuilder.Append(isStatic);
@@ -99,7 +101,7 @@ namespace CSharpHotfix
                 methodSignatureBuilder.Append(",");
             }
             methodSignatureBuilder.Append(";");
-            
+
             return methodSignatureBuilder.ToString();
         }
 
@@ -228,7 +230,64 @@ namespace CSharpHotfix
         //    // TODO: 
         //    return methodSignatureBuilder.ToString();
         //}
+        
 
+        public static string FixHotfixMethodSignature(string signature)
+        {
+            // fix class name
+            if (IsHotfixClass(signature))
+                signature = signature.Replace(CSharpHotfixRewriter.ClassNamePostfix, "");
+
+            // fix static
+            var oldStaticStr = "NonStatic";
+            if (!signature.Contains(oldStaticStr))
+                oldStaticStr = "Static";
+
+            var staticState = GetHotfixMethodStaticState(signature);
+            var newStaticStr = oldStaticStr;
+            if (staticState > 0)
+                newStaticStr = staticState == 1 ? "Static" : "NonStatic";
+            if (oldStaticStr != newStaticStr)
+                signature = signature.Replace(oldStaticStr, newStaticStr);
+
+            // fix method name
+            if (staticState == 1)
+                signature = signature.Replace(CSharpHotfixRewriter.StaticMethodNamePostfix, "");
+            else if (staticState == 2)
+                signature = signature.Replace(CSharpHotfixRewriter.MethodNamePostfix, "");
+
+            // fix parameter list
+            if (staticState == 2)
+            {
+                var strLst = signature.Split(';');
+                var oldParamStr = strLst[4];
+                var newParamStr = oldParamStr;
+                var pos = oldParamStr.IndexOf(',');
+                if (pos > 0)
+                {
+                    newParamStr = oldParamStr.Substring(pos + 1);
+                    signature = signature.Replace(oldParamStr, newParamStr);
+                }
+            }
+
+
+            return signature;
+        }
+
+        public static bool IsHotfixClass(string signature)
+        {
+            return signature.Contains(CSharpHotfixRewriter.ClassNamePostfix);
+        }
+
+        public static int GetHotfixMethodStaticState(string signature)
+        {
+            var state = 0;  // non hotfix
+            if (signature.Contains(CSharpHotfixRewriter.StaticMethodNamePostfix))
+                state = 1;  // static
+            else if (signature.Contains(CSharpHotfixRewriter.MethodNamePostfix))
+                state = 2;  // non static
+            return state;
+        }
 
 #region method id cache
         private static Dictionary<string, int> methodIdDict = new Dictionary<string, int>();
@@ -352,12 +411,18 @@ namespace CSharpHotfix
 
 #region method wrapper
 
-        private static Dictionary<int, MethodInfo> methodInfoDict = new Dictionary<int, MethodInfo>();
+        public class WrapMethodInfo
+        {
+            public MethodInfo methodInfo;
+            public int paramOffset;
+        }
 
-        public static MethodInfo GetMethodInfo(int methodId)
+        private static Dictionary<int, WrapMethodInfo> methodInfoDict = new Dictionary<int, WrapMethodInfo>();
+
+        public static WrapMethodInfo GetMethodInfo(int methodId)
         {
             // UnityEngine.Debug.LogErrorFormat("GetMethodInfo: {0} \t{1}", methodId, methodInfoDict.ContainsKey(methodId));
-            MethodInfo methodInfo;
+            WrapMethodInfo methodInfo;
             if (methodInfoDict.TryGetValue(methodId, out methodInfo))
             {
                 return methodInfo;
@@ -365,9 +430,16 @@ namespace CSharpHotfix
             return null;
         }
 
-        public static void SetMethodInfo(int methodId, MethodInfo methodInfo)
+        public static void SetMethodInfo(int methodId, MethodInfo methodInfo, bool isNonStaticMethod = false)
         {
-            methodInfoDict.Add(methodId, methodInfo);
+            var methodData = new WrapMethodInfo();
+            methodData.methodInfo = methodInfo;
+            if (!isNonStaticMethod)
+                methodData.paramOffset = 2; // methodId, instance
+            else
+                methodData.paramOffset = 1; // methodId
+
+            methodInfoDict.Add(methodId, methodData);
         }
 
         public static void ClearMethodInfo()
@@ -395,14 +467,14 @@ namespace CSharpHotfix
             var methodInfo = GetMethodInfo(methodId);
             Assert.IsNotNull(methodInfo);
 
-            var offset = 2;     // methodId, instance
+            var offset = methodInfo.paramOffset;
             var len = objList.Length - offset;
             var param = new object[len];
             for (var i = 0; i != len; ++i)
                 param[i] = objList[i + offset];
 
             var instance = objList[1];
-            methodInfo.Invoke(instance, param);
+            methodInfo.methodInfo.Invoke(instance, param);
         }
 
         public static object MethodReturnObjectWrapper(object[] objList)
@@ -411,14 +483,14 @@ namespace CSharpHotfix
             var methodInfo = GetMethodInfo(methodId);
             Assert.IsNotNull(methodInfo);
             
-            var offset = 2;     // methodId, instance
+            var offset = methodInfo.paramOffset;
             var len = objList.Length - offset;
             var param = new object[len];
             for (var i = 0; i != len; ++i)
                 param[i] = objList[i + offset];
 
             var instance = objList[1];
-            return methodInfo.Invoke(instance, param);
+            return methodInfo.methodInfo.Invoke(instance, param);
         }
 
 #endregion
