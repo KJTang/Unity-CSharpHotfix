@@ -8,7 +8,7 @@ namespace CSharpHotfixTest {
     {
         void Start()
         {
-            Debug.Log("HelloWorld");
+            CSharpHotfix.CSharpHotfixTestManager.RunTests();
         }
     }
 }

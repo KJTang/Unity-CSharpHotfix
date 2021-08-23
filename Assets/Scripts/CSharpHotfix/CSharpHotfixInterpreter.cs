@@ -168,7 +168,7 @@ namespace CSharpHotfix
                     if (fileInfo.Directory.Name != "Tests")
                         continue;
 
-                    if (!CSharpHotfixTestManager.IsTestFileEnabled(fileInfo.Name))
+                    if (!CSharpHotfixTestManager.IsTestFileEnabled(fileInfo.Name.Split('.')[0]))
                         continue;
 
                     CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: load test hotfix file: " + fileInfo.FullName);

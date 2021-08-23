@@ -1,14 +1,14 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿//using System.Collections;
+//using System.Collections.Generic;
+//using UnityEngine;
 
-namespace CSharpHotfixTest {
+//namespace CSharpHotfixTest {
 
-    public class HelloWorld : MonoBehaviour
-    {
-        void Start()
-        {
-            Debug.Log("HelloWorld: hotfixed");
-        }
-    }
-}
+//    public class HelloWorld : MonoBehaviour
+//    {
+//        void Start()
+//        {
+//            Debug.Log("HelloWorld: hotfixed");
+//        }
+//    }
+//}
