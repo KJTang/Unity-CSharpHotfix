@@ -6,7 +6,11 @@ namespace HelloTest.Test {
 
     public class RewriteClass1
     {
+        private int m_i;
+
         void RewriteFunc1() {
+            this.m_i = 0;
+            this.m_i = this.m_i + 1;
             this.RewriteFunc2();
         }
 

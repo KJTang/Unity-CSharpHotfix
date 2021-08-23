@@ -124,16 +124,53 @@ namespace CSharpHotfix
             var methodData = methodNeedRewrite[node];
             if (methodData.isStatic)
                 return node;
+            
+            // first child node
+            SyntaxNode firstNode = null;
+            foreach (var child in node.ChildNodes())
+            {
+                firstNode = child;
+                break;
+            }
+
+            // rewrite return type
+            TypeSyntax oldReturnType = null;
+            if (firstNode != null && firstNode is TypeSyntax)
+                oldReturnType = firstNode as TypeSyntax;
+            TypeSyntax newReturnType = oldReturnType;
 
             // rewrite modifiers
             var modifiers = node.Modifiers;
-            modifiers = modifiers.Insert(0, SyntaxFactory.Token(SyntaxKind.StaticKeyword));
+            if (modifiers.Count > 0)
+            {
+                // already has modifier, use trivia in it
+                var oldFirstToken = modifiers[0];
+                var newFirstToken = SyntaxFactory.Token(CSharpHotfixRewriter.ZeroWhitespaceTrivia, oldFirstToken.Kind(), oldFirstToken.Text, oldFirstToken.ValueText, oldFirstToken.TrailingTrivia);
+                var staticToken = SyntaxFactory.Token(oldFirstToken.LeadingTrivia, SyntaxKind.StaticKeyword, CSharpHotfixRewriter.OneWhitespaceTrivia);
+                modifiers = modifiers.Replace(oldFirstToken, newFirstToken);
+                modifiers = modifiers.Insert(0, staticToken);
+            }
+            else if (firstNode != null && firstNode is TypeSyntax)
+            {
+                // no modifier before, use trivia from first node
+                var oldTypeNode = firstNode as TypeSyntax;
+                var newTypeNode = oldTypeNode.WithLeadingTrivia(CSharpHotfixRewriter.ZeroWhitespaceTrivia);
+                newReturnType = newTypeNode;
+
+                var staticToken = SyntaxFactory.Token(oldTypeNode.GetLeadingTrivia(), SyntaxKind.StaticKeyword, CSharpHotfixRewriter.OneWhitespaceTrivia);
+                modifiers = modifiers.Insert(0, staticToken);
+            }
+            else
+            {
+                var staticToken = SyntaxFactory.Token(SyntaxKind.StaticKeyword);
+                modifiers = modifiers.Insert(0, staticToken);
+            }
 
             // rewrite parameters
             var parameterList = node.ParameterList;
             var paramType = SyntaxFactory.IdentifierName((node.Parent as ClassDeclarationSyntax).Identifier.Text);
             var paramName = SyntaxFactory.Identifier(
-                SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " ")), 
+                CSharpHotfixRewriter.OneWhitespaceTrivia, 
                 SyntaxKind.Parameter, 
                 "__INST__", 
                 "__INST__", 
@@ -146,9 +183,12 @@ namespace CSharpHotfix
             // TODO: rewrite 'this'
 
             // record node need replace
+            if (oldReturnType != null && oldReturnType != newReturnType)
+                node = node.ReplaceNode(oldReturnType, newReturnType);
             var newNode = node
                 .WithModifiers(modifiers)
                 .WithParameterList(parameterList);
+
             return newNode;
         }
     }
@@ -164,6 +204,11 @@ namespace CSharpHotfix
             }
             return assemblies;
         }
+
+
+        public static SyntaxTriviaList ZeroWhitespaceTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, ""));
+        public static SyntaxTriviaList OneWhitespaceTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "));
+
 
         public static string GetSyntaxNodeFullName(SyntaxNode node)
         {
