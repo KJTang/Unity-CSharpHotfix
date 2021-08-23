@@ -4,14 +4,14 @@ using UnityEngine;
 
 namespace HelloTest.Test {
 
-    public class RewriteClass1
+    public class RewriteClass1__HOTFIX
     {
-        private int m_i;
+        public int m_i;
 
         static void RewriteFunc1(RewriteClass1 __INST__) {
-            this.m_i = 0;
-            this.m_i = this.m_i + 1;
-            this.RewriteFunc2();
+            __INST__.m_i = 0;
+            __INST__.m_i = __INST__.m_i + 1;
+            __INST__.RewriteFunc2();
         }
 
         static public void RewriteFunc2(RewriteClass1 __INST__) {}
@@ -23,7 +23,7 @@ namespace HelloTest.Test {
 
 
 
-    public class RewriteClass2
+    public class RewriteClass2__HOTFIX
     {
         public static void RewriteFunc4(HelloWorld instance) {}
 

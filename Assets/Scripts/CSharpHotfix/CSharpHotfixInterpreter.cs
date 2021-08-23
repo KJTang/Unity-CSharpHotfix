@@ -240,7 +240,27 @@ namespace CSharpHotfix
                 }
             }
 
-            // TODO: rewrite class declaration
+            // rewrite class declaration
+            classCollector.HotfixClasses.Clear();
+            for (var i = 0; i != treeLst.Count; ++i)
+            {
+                var tree = treeLst[i];
+                classCollector.Visit(tree.GetRoot());
+            }
+
+            var classDeclarationRewriter = new ClassDeclarationRewriter(classCollector.HotfixClasses);
+            for (var i = 0; i != treeLst.Count; ++i)
+            {
+                var tree = treeLst[i];
+                var oldNode = tree.GetRoot();
+                var newNode = classDeclarationRewriter.Visit(oldNode);
+                if (oldNode != newNode)
+                {
+                    tree = tree.WithRootAndOptions(newNode, tree.Options);
+                    treeLst[i] = tree;
+                }
+            }
+
 
             // TODO: rewrite method invocation
 
@@ -257,18 +277,6 @@ namespace CSharpHotfix
             }
             return true;
         }
-
-        private static SyntaxNode RewriteSyntaxTree(SyntaxNode treeRoot)
-        {
-            SyntaxNode node = treeRoot;
-
-            // replace class name
-            node = (new ClassDeclarationRewriter()).Visit(node);
-
-
-            return node;
-        }
-        
 
         private static MemoryStream CompileHotfix(List<SyntaxTree> treeLst, List<string> fileLst)
         {

@@ -43,7 +43,7 @@ namespace CSharpHotfix
         public override void VisitClassDeclaration(ClassDeclarationSyntax node)
         {
             //
-            Debug.LogErrorFormat("ClassDeclarationSyntax: {0} \t{1} \t{2}", 
+            Debug.LogErrorFormat("ClassDeclarationSyntax: {0} \t{1} \tisNew: {2}", 
                 node.Identifier.Text, 
                 CSharpHotfixRewriter.GetSyntaxNodeFullName(node), 
                 CSharpHotfixRewriter.IsHotfixClassNew(CSharpHotfixRewriter.GetSyntaxNodeFullName(node))
@@ -71,7 +71,7 @@ namespace CSharpHotfix
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
             //
-            Debug.LogErrorFormat("MethodDeclarationSyntax: {0} \t{1} \t{2} \t{3}", 
+            Debug.LogErrorFormat("MethodDeclarationSyntax: {0} \t{1} \tisNew: {2} \tisStatic: {3}", 
                 node.Identifier.Text, 
                 CSharpHotfixRewriter.GetSyntaxNodeFullName(node), 
                 CSharpHotfixRewriter.IsHotfixMethodNew(node), 
@@ -90,12 +90,26 @@ namespace CSharpHotfix
 
     public class ClassDeclarationRewriter : CSharpSyntaxRewriter
     {
-        public ClassDeclarationRewriter() {}
+        private Dictionary<SyntaxNode, HotfixClassData> classNeedRewrite = new Dictionary<SyntaxNode, HotfixClassData>();
+        public ClassDeclarationRewriter(ICollection<HotfixClassData> classDataLst) 
+        {
+            foreach (var classData in classDataLst)
+            {
+                classNeedRewrite.Add(classData.syntaxNode, classData);
+            }
+        }
 
         public override SyntaxNode VisitClassDeclaration(ClassDeclarationSyntax node)
         {
+            if (!classNeedRewrite.ContainsKey(node))
+                return node;
+
+            var methodData = classNeedRewrite[node];
+            if (methodData.isNew)
+                return node;
+
             var oldName = node.Identifier.Text;
-            var newName = oldName + "_Hotfix";
+            var newName = oldName + CSharpHotfixRewriter.ClassNamePostfix;
 
             var oldNameToken = node.Identifier;
             var newNameToken = SyntaxFactory.Identifier(oldNameToken.LeadingTrivia, oldNameToken.Kind(), newName, newName, oldNameToken.TrailingTrivia);
@@ -133,13 +147,8 @@ namespace CSharpHotfix
                 break;
             }
 
-            // rewrite return type
-            TypeSyntax oldReturnType = null;
-            if (firstNode != null && firstNode is TypeSyntax)
-                oldReturnType = firstNode as TypeSyntax;
-            TypeSyntax newReturnType = oldReturnType;
-
             // rewrite modifiers
+            TypeSyntax newReturnType = null;
             var modifiers = node.Modifiers;
             if (modifiers.Count > 0)
             {
@@ -172,23 +181,53 @@ namespace CSharpHotfix
             var paramName = SyntaxFactory.Identifier(
                 CSharpHotfixRewriter.OneWhitespaceTrivia, 
                 SyntaxKind.Parameter, 
-                "__INST__", 
-                "__INST__", 
+                CSharpHotfixRewriter.InstanceParamName, 
+                CSharpHotfixRewriter.InstanceParamName, 
                 SyntaxFactory.TriviaList()
             );
             var paramSyntax = SyntaxFactory.Parameter(new SyntaxList<AttributeListSyntax>(), new SyntaxTokenList(), paramType, paramName, null);
             var parameters = parameterList.Parameters.Insert(0, paramSyntax);
             parameterList = parameterList.WithParameters(parameters);
 
-            // TODO: rewrite 'this'
+            // rewrite return type
+            if (newReturnType != null)
+            {
+                TypeSyntax oldReturnType = null;
+                if (firstNode != null && firstNode is TypeSyntax)
+                    oldReturnType = firstNode as TypeSyntax;
+                if (oldReturnType != null && oldReturnType != newReturnType)
+                    node = node.ReplaceNode(oldReturnType, newReturnType);
+            }
+
+            // rewrite 'this'
+            var thisRewriter = new ThisExpressionRewriter();
+            node = thisRewriter.Visit(node) as MethodDeclarationSyntax;
 
             // record node need replace
-            if (oldReturnType != null && oldReturnType != newReturnType)
-                node = node.ReplaceNode(oldReturnType, newReturnType);
             var newNode = node
                 .WithModifiers(modifiers)
                 .WithParameterList(parameterList);
 
+            return newNode;
+        }
+    }
+    
+    public class ThisExpressionRewriter : CSharpSyntaxRewriter
+    {
+        public ThisExpressionRewriter() {}
+
+        public override SyntaxNode VisitThisExpression(ThisExpressionSyntax node)
+        {
+            var oldThisToken = node.Token;
+            var newThisToken = SyntaxFactory.Identifier(
+                oldThisToken.LeadingTrivia, 
+                SyntaxKind.Parameter, 
+                CSharpHotfixRewriter.InstanceParamName, 
+                CSharpHotfixRewriter.InstanceParamName, 
+                oldThisToken.TrailingTrivia
+            );
+
+            var newNode = SyntaxFactory.IdentifierName(newThisToken);
             return newNode;
         }
     }
@@ -206,8 +245,10 @@ namespace CSharpHotfix
         }
 
 
-        public static SyntaxTriviaList ZeroWhitespaceTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, ""));
-        public static SyntaxTriviaList OneWhitespaceTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "));
+        public static readonly SyntaxTriviaList ZeroWhitespaceTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, ""));
+        public static readonly SyntaxTriviaList OneWhitespaceTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "));
+        public static readonly string InstanceParamName = "__INST__";
+        public static readonly string ClassNamePostfix = "__HOTFIX";
 
 
         public static string GetSyntaxNodeFullName(SyntaxNode node)
