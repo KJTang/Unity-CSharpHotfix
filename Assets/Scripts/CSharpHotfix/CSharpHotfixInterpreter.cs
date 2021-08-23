@@ -146,14 +146,39 @@ namespace CSharpHotfix
             for (var i = 0; i != files.Length; ++i)
             {
                 var fileInfo = files[i];
-                CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: load hotfix file: " + fileInfo.FullName);
+                if (fileInfo.Directory.Name == "Tests")
+                    continue;
 
+                CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: load hotfix file: " + fileInfo.FullName);
                 using (var streamReader = fileInfo.OpenText())
                 {
                     var programText = streamReader.ReadToEnd();
                     SyntaxTree tree = CSharpSyntaxTree.ParseText(programText);
                     treeLst.Add(tree);
                     fileLst.Add(fileInfo.FullName);
+                }
+            }
+
+            // parse test code
+            if (CSharpHotfixTestManager.EnableTest)
+            {
+                for (var i = 0; i != files.Length; ++i)
+                {
+                    var fileInfo = files[i];
+                    if (fileInfo.Directory.Name != "Tests")
+                        continue;
+
+                    if (!CSharpHotfixTestManager.IsTestFileEnabled(fileInfo.Name))
+                        continue;
+
+                    CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: load test hotfix file: " + fileInfo.FullName);
+                    using (var streamReader = fileInfo.OpenText())
+                    {
+                        var programText = streamReader.ReadToEnd();
+                        SyntaxTree tree = CSharpSyntaxTree.ParseText(programText);
+                        treeLst.Add(tree);
+                        fileLst.Add(fileInfo.FullName);
+                    }
                 }
             }
 
@@ -257,7 +282,7 @@ namespace CSharpHotfix
                 for (var i = 0; i != diagnostics.Length; ++i)
                 {
                     var diagnostic = diagnostics[i];
-                    var log = "#CS_HOTFIX# " + filePath + diagnostic;
+                    var log = "#CS_HOTFIX# " + filePath + ".hotfix" + diagnostic;
                     if (diagnostic.WarningLevel == 0)
                     {
                         hasError = true;
@@ -270,13 +295,13 @@ namespace CSharpHotfix
                 }
                 if (hasError)
                 {
-                    CSharpHotfixManager.Error("#CS_HOTFIX# error occured when load file: {0}", filePath);
+                    CSharpHotfixManager.Error("#CS_HOTFIX# Hotfix Method: error occured when load file: {0}", filePath);
                     diagnosticErrorCnt += 1;
                 }
             }
             if (diagnosticErrorCnt > 0)
             {
-                CSharpHotfixManager.Error("#CS_HOTFIX# has {0} error in hotfix files, please fix first", diagnosticErrorCnt);
+                CSharpHotfixManager.Error("#CS_HOTFIX# Hotfix Method: has {0} error in hotfix files, please fix first", diagnosticErrorCnt);
                 return null;
             }
             

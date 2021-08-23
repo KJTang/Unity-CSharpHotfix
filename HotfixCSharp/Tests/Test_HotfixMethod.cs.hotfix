@@ -1,0 +1,14 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace CSharpHotfix.Test {
+
+    public class Test_HotfixMethod__HOTFIX_CLS
+    {
+        static public void Func__HOTFIX_MTD(Test_HotfixMethod __INST__)
+        {
+            Debug.Log("Test_HotfixMethod: hotfixed");
+        }
+    }
+}
