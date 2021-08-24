@@ -493,8 +493,115 @@ namespace CSharpHotfix
             return methodInfo.methodInfo.Invoke(instance, param);
         }
 
-#endregion
+        #endregion
 
+
+#region reflection helper
+        public static object ReflectionGet(object instance, string memberName)
+        {
+            var reflectionData = GetReflectionData(instance);
+            Assert.IsNotNull(reflectionData, "cannot get reflection data for instance: " + instance);
+
+            // try field
+            var field = reflectionData.fields[memberName];
+            if (field != null)
+            {
+                return field.GetValue(instance);
+            }
+
+            // try property
+            var prop = reflectionData.props[memberName];
+            if (prop != null)
+            {
+                return prop.GetValue(instance);
+            }
+
+            // try delegate
+            var method = reflectionData.methods[memberName];
+            if (method != null)
+            {
+                return Delegate.CreateDelegate(reflectionData.type, instance, method);
+            }
+
+            Assert.IsTrue(false, "not found member in instance: " + instance + " \t" + memberName);
+            return null;
+        }
+
+        public static void ReflectionSet(object instance, string memberName, object value)
+        {
+            var reflectionData = GetReflectionData(instance);
+            Assert.IsNotNull(reflectionData, "cannot get reflection data for instance: " + instance);
+
+            // try field
+            var field = reflectionData.fields[memberName];
+            if (field != null)
+            {
+                field.SetValue(instance, value);
+            }
+
+            // try property
+            var prop = reflectionData.props[memberName];
+            if (prop != null)
+            {
+                prop.SetValue(instance, value);
+            }
+
+            Assert.IsTrue(false, "not found member in instance: " + instance + " \t" + memberName);
+        }
+
+
+        public class ReflectionData
+        {
+            public Type type;
+            public Dictionary<string, FieldInfo> fields = new Dictionary<string, FieldInfo>();
+            public Dictionary<string, PropertyInfo> props = new Dictionary<string, PropertyInfo>();
+            public Dictionary<string, MethodInfo> methods = new Dictionary<string, MethodInfo>();
+        }
+        private static Dictionary<Type, ReflectionData> reflectionDatas = new Dictionary<Type, ReflectionData>();
+
+        public static ReflectionData GetReflectionData(object instance)
+        {
+            var type = instance.GetType();
+            return GetReflectionData(type);
+        }
+
+        public static ReflectionData GetReflectionData(Type type)
+        {
+            ReflectionData data;
+            if (reflectionDatas.TryGetValue(type, out data) && data != null)
+                return data;
+
+            data = new ReflectionData();
+            reflectionDatas[type] = data;
+            
+            var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            var methods = type.GetMethods(bindingFlags);
+            foreach (var method in methods)
+            {
+                data.methods.Add(method.Name, method);
+            }
+
+            var fields = type.GetFields(bindingFlags);
+            foreach (var field in fields)
+            {
+                data.fields.Add(field.Name, field);
+            }
+            
+            var properties = type.GetProperties(bindingFlags);
+            foreach (var property in properties)
+            {
+                data.props.Add(property.Name, property);
+            }
+
+            return data;
+        }
+
+        public static void ClearReflectionData()
+        {
+            reflectionDatas.Clear();
+        }
+
+#endregion
     }
 
 }

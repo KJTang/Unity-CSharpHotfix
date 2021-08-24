@@ -73,6 +73,7 @@ namespace CSharpHotfix
             }
             CSharpHotfixManager.LoadMethodIdFromFile();
             CSharpHotfixManager.ClearMethodInfo();
+            CSharpHotfixManager.ClearReflectionData();
 
             var treeLst = new List<SyntaxTree>();
             var fileLst = new List<string>();

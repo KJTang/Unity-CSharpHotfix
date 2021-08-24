@@ -16,7 +16,7 @@ namespace CSharpHotfix {
             //"Test_ThisExpression",
             //"Test_ThisExpressionImplicit", 
             "Test_AccessMember", 
-            //"Test_AccessPriviateMember", 
+            "Test_AccessPriviateMember",
         };
 
         public static bool EnableTest = true;

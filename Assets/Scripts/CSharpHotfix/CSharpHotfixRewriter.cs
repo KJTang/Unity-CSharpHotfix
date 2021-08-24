@@ -334,6 +334,17 @@ namespace CSharpHotfix
         }
     }
 
+
+    public class MemberAccessRewriter : CSharpSyntaxRewriter
+    {
+        public MemberAccessRewriter() {}
+
+        public override SyntaxNode VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
+        {
+            return node;
+        }
+    }
+
 #region remover
     public class CSharpSyntaxRemover : CSharpSyntaxRewriter
     {
