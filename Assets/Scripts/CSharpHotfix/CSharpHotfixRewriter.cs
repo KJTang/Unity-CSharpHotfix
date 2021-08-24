@@ -337,10 +337,22 @@ namespace CSharpHotfix
 
     public class MemberAccessRewriter : CSharpSyntaxRewriter
     {
-        public MemberAccessRewriter() {}
+        private SemanticModel semanticModel;
+
+        public MemberAccessRewriter(SemanticModel semanticModel) 
+        {
+            this.semanticModel = semanticModel;
+        }
 
         public override SyntaxNode VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
         {
+            if (semanticModel == null)
+                return node;
+            
+            var nameNode = node.Name;
+            var symbolInfo = semanticModel.GetSymbolInfo(nameNode);
+            var typeInfo = semanticModel.GetTypeInfo(nameNode);
+            Debug.LogError("Member: " + nameNode + " \t" + symbolInfo.Symbol + " \t" + symbolInfo.CandidateReason + " \t" + symbolInfo.CandidateSymbols.Length + " \t" + typeInfo.Type);
             return node;
         }
     }

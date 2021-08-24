@@ -43,6 +43,17 @@ namespace CSharpHotfix
         {
             return GetAllAssemblies().Where(assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location));
         }
+
+        private static IEnumerable<MetadataReference> GetMetadataReferences()
+        {
+            var references = new List<MetadataReference>();
+            var assemblies = GetReferencableAssemblies();
+            foreach (var assembly in assemblies)
+            {
+                references.Add(MetadataReference.CreateFromFile(assembly.Location));
+            }
+            return references;
+        }
         
 
         private static string hotfixAssemblyDir;
@@ -240,6 +251,40 @@ namespace CSharpHotfix
 
 
             // TODO: rewrite method invocation
+            classCollector.HotfixClasses.Clear();
+            for (var i = 0; i != treeLst.Count; ++i)
+            {
+                var tree = treeLst[i];
+                classCollector.Visit(tree.GetRoot());
+            }
+            var classMap = new Dictionary<string, Type>();
+            foreach (var classData in classCollector.HotfixClasses)
+            {
+                //
+            }
+            
+            var compilation = CSharpCompilation.Create(hotfixDllName)
+                .AddReferences(GetMetadataReferences())
+                .AddSyntaxTrees(treeLst)
+                .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+            ;
+            for (var i = 0; i != treeLst.Count; ++i)
+            {
+                var tree = treeLst[i];
+                var file = fileLst[i];
+                var semanticModel = compilation.GetSemanticModel(tree, true);
+                Debug.LogError("file: " + file + " \t" + semanticModel.IgnoresAccessibility);
+
+                var oldNode = tree.GetRoot();
+                var memberAccessRewriter = new MemberAccessRewriter(semanticModel);
+                var newNode = memberAccessRewriter.Visit(oldNode);
+                if (oldNode != newNode)
+                {
+                    tree = tree.WithRootAndOptions(newNode, tree.Options);
+                    treeLst[i] = tree;
+                }
+            }
+
 
             // debug: output processed syntax tree, used to examine them
             for (var i = 0; i != treeLst.Count; ++i)
@@ -258,14 +303,8 @@ namespace CSharpHotfix
         private static MemoryStream CompileHotfix(List<SyntaxTree> treeLst, List<string> fileLst)
         {
             // create CSharpCompilation
-            var references = new List<MetadataReference>();
-            var assemblies = GetReferencableAssemblies();
-            foreach (var assembly in assemblies)
-            {
-                references.Add(MetadataReference.CreateFromFile(assembly.Location));
-            }
             var compilation = CSharpCompilation.Create(hotfixDllName)
-                .AddReferences(references)
+                .AddReferences(GetMetadataReferences())
                 .AddSyntaxTrees(treeLst)
                 .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
             ;
