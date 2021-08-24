@@ -10,11 +10,13 @@ namespace CSharpHotfix {
     {
         private static readonly HashSet<string> EnabledHotfixTests = new HashSet<string>()
         {
-            "Test_HotfixMethod", 
-            "Test_HotfixStaticMethod", 
-            "Test_InvokeMethod",
-            "Test_ThisExpression",
-            "Test_ThisExpressionImplicit", 
+            //"Test_HotfixMethod", 
+            //"Test_HotfixStaticMethod", 
+            //"Test_InvokeMethod",
+            //"Test_ThisExpression",
+            //"Test_ThisExpressionImplicit", 
+            "Test_AccessMember", 
+            //"Test_AccessPriviateMember", 
         };
 
         public static bool EnableTest = true;

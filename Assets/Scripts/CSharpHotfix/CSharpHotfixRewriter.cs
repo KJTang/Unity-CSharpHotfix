@@ -334,6 +334,77 @@ namespace CSharpHotfix
         }
     }
 
+#region remover
+    public class CSharpSyntaxRemover : CSharpSyntaxRewriter
+    {
+        private List<SyntaxNode> nodeToRemove = new List<SyntaxNode>();
+
+        public CSharpSyntaxRemover() {}
+
+        public override SyntaxNode Visit(SyntaxNode node)
+        {
+            node = base.Visit(node);
+            var isRoot = node != null && node.SyntaxTree.GetRoot() == node;
+            if (isRoot)
+                node = node.RemoveNodes(nodeToRemove, SyntaxRemoveOptions.KeepEndOfLine);
+            return node;
+        }
+
+        public void MarkRemove(SyntaxNode node)
+        {
+            if (node != null)
+                nodeToRemove.Add(node);
+        }
+    }
+    
+    /// <summary>
+    /// currently don't support hotfix field, we'll remove it
+    /// </summary>
+    public class NotSupportFieldRewriter : CSharpSyntaxRemover
+    {
+        public NotSupportFieldRewriter() {}
+
+        public override SyntaxNode VisitFieldDeclaration(FieldDeclarationSyntax node)
+        {
+            MarkRemove(node);
+            return node;
+        }
+    }
+    
+    /// <summary>
+    /// currently don't support hotfix property, we'll remove it
+    /// </summary>
+    public class NotSupportPropertyRewriter : CSharpSyntaxRemover
+    {
+        public NotSupportPropertyRewriter() {}
+
+        public override SyntaxNode VisitPropertyDeclaration(PropertyDeclarationSyntax node)
+        {
+            MarkRemove(node);
+            return node;
+        }
+    }
+    
+    
+    /// <summary>
+    /// currently don't support hotfix new class, we'll remove it
+    /// </summary>
+    public class NotSupportNewClassRewriter : CSharpSyntaxRemover
+    {
+        public NotSupportNewClassRewriter() {}
+
+        public override SyntaxNode VisitClassDeclaration(ClassDeclarationSyntax node)
+        {
+            var fullName = CSharpHotfixRewriter.GetSyntaxNodeFullName(node);
+            var isNew = CSharpHotfixRewriter.IsHotfixClassNew(fullName);
+            if (isNew)
+                MarkRemove(node);
+            return node;
+        }
+    }
+#endregion
+
+
     public class CSharpHotfixRewriter
     {
         private static Assembly[] assemblies;

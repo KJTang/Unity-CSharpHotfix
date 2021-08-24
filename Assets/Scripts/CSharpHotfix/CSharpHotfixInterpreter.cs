@@ -185,8 +185,28 @@ namespace CSharpHotfix
             return true;
         }
 
+        private static void RewriteSyntaxTree(List<SyntaxTree> treeLst, CSharpSyntaxRewriter rewriter)
+        {
+            for (var i = 0; i != treeLst.Count; ++i)
+            {
+                var tree = treeLst[i];
+                var oldNode = tree.GetRoot();
+                var newNode = rewriter.Visit(oldNode);
+                if (oldNode != newNode)
+                {
+                    tree = tree.WithRootAndOptions(newNode, tree.Options);
+                    treeLst[i] = tree;
+                }
+            }
+        }
+
         private static bool RewriteHotfix(List<SyntaxTree> treeLst, List<string> fileLst)
         {
+            // first remove code not supported yet
+            RewriteSyntaxTree(treeLst, new NotSupportNewClassRewriter());
+            RewriteSyntaxTree(treeLst, new NotSupportPropertyRewriter());
+            RewriteSyntaxTree(treeLst, new NotSupportFieldRewriter());
+
             // rewrite method declaration
             var classCollector = new HotfixClassCollector();
             for (var i = 0; i != treeLst.Count; ++i)
@@ -204,17 +224,7 @@ namespace CSharpHotfix
             }
 
             var methodDeclarationRewriter = new MethodDeclarationRewriter(methodCollector.HotfixMethods);
-            for (var i = 0; i != treeLst.Count; ++i)
-            {
-                var tree = treeLst[i];
-                var oldNode = tree.GetRoot();
-                var newNode = methodDeclarationRewriter.Visit(oldNode);
-                if (oldNode != newNode)
-                {
-                    tree = tree.WithRootAndOptions(newNode, tree.Options);
-                    treeLst[i] = tree;
-                }
-            }
+            RewriteSyntaxTree(treeLst, methodDeclarationRewriter);
 
             // rewrite class declaration
             classCollector.HotfixClasses.Clear();
@@ -225,17 +235,7 @@ namespace CSharpHotfix
             }
 
             var classDeclarationRewriter = new ClassDeclarationRewriter(classCollector.HotfixClasses);
-            for (var i = 0; i != treeLst.Count; ++i)
-            {
-                var tree = treeLst[i];
-                var oldNode = tree.GetRoot();
-                var newNode = classDeclarationRewriter.Visit(oldNode);
-                if (oldNode != newNode)
-                {
-                    tree = tree.WithRootAndOptions(newNode, tree.Options);
-                    treeLst[i] = tree;
-                }
-            }
+            RewriteSyntaxTree(treeLst, classDeclarationRewriter);
 
 
             // TODO: rewrite method invocation
