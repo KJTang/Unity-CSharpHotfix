@@ -1,0 +1,21 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace CSharpHotfixTest {
+
+    public class Test_ThisExpression__HOTFIX_CLS
+    {
+        public int i;
+
+        static public void Func__HOTFIX_MTD(Test_ThisExpression __INST__)
+        {
+            __INST__.InvokeFunc(__INST__.i);
+        }
+
+        static public void InvokeFunc__HOTFIX_MTD(Test_ThisExpression __INST__,int i)
+        {
+            Debug.Log("Test_ThisExpression: hotfixed");
+        }
+    }
+}

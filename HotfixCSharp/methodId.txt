@@ -33,4 +33,8 @@
 33 CSharpHotfixTest.Test_HotfixStaticMethod.Func;Static;System.Void;0;;
 34 CSharpHotfixTest.Test_InvokeMethod.Func;NonStatic;System.Void;0;;
 35 CSharpHotfixTest.Test_InvokeMethod.InvokeFunc;NonStatic;System.Void;0;;
-36 CSharpHotfixTest.HelloWorld.Start;NonStatic;System.Void;0;;
+36 CSharpHotfixTest.Test_ThisExpression.Func;NonStatic;System.Void;0;;
+37 CSharpHotfixTest.Test_ThisExpression.InvokeFunc;NonStatic;System.Void;0;System.Int32,;
+38 CSharpHotfixTest.Test_ThisExpressionImplicit.Func;NonStatic;System.Void;0;;
+39 CSharpHotfixTest.Test_ThisExpressionImplicit.InvokeFunc;NonStatic;System.Void;0;System.Int32,;
+40 CSharpHotfixTest.HelloWorld.Start;NonStatic;System.Void;0;;

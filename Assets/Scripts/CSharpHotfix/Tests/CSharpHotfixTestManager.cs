@@ -12,7 +12,9 @@ namespace CSharpHotfix {
         {
             "Test_HotfixMethod", 
             "Test_HotfixStaticMethod", 
-            //"Test_InvokeMethod", 
+            "Test_InvokeMethod",
+            "Test_ThisExpression",
+            "Test_ThisExpressionImplicit", 
         };
 
         public static bool EnableTest = true;

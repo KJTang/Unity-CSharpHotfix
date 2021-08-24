@@ -87,7 +87,9 @@ namespace CSharpHotfix
         }
     }
 
-
+    /// <summary>
+    /// 'className' -> 'className__HOTFIX'
+    /// </summary>
     public class ClassDeclarationRewriter : CSharpSyntaxRewriter
     {
         private Dictionary<SyntaxNode, HotfixClassData> classNeedRewrite = new Dictionary<SyntaxNode, HotfixClassData>();
@@ -119,6 +121,11 @@ namespace CSharpHotfix
         }
     }
 
+    
+    /// <summary>
+    /// 'methodName' -> 'methodName__HOTFIX'
+    /// non-static method -> static method
+    /// </summary>
     public class MethodDeclarationRewriter : CSharpSyntaxRewriter
     {
         private Dictionary<SyntaxNode, HotfixMethodData> methodNeedRewrite = new Dictionary<SyntaxNode, HotfixMethodData>();
@@ -205,6 +212,10 @@ namespace CSharpHotfix
                     node = node.ReplaceNode(oldReturnType, newReturnType);
             }
 
+            // rewrite implicit 'this'
+            var implicitThisRewriter = new ImplicitThisRewriter(methodData.methodName);
+            node = implicitThisRewriter.Visit(node) as MethodDeclarationSyntax;
+
             // rewrite 'this'
             var thisRewriter = new ThisExpressionRewriter();
             node = thisRewriter.Visit(node) as MethodDeclarationSyntax;
@@ -225,6 +236,84 @@ namespace CSharpHotfix
         }
     }
     
+
+    /// <summary>
+    /// find all implicit 'this', make it explicit
+    /// </summary>
+    public class ImplicitThisRewriter : CSharpSyntaxRewriter
+    {
+        private HashSet<string> methodSet = new HashSet<string>();
+        private HashSet<string> fieldSet = new HashSet<string>();
+        private HashSet<string> propertySet = new HashSet<string>();
+        private string methodName;
+
+        public ImplicitThisRewriter(string methodName) 
+        {
+            var pos = methodName.LastIndexOf('.');
+            if (pos < 0)
+                return;
+
+            var className = methodName.Substring(0, pos);
+            Type classType = null;
+            foreach (var assembly in CSharpHotfixRewriter.GetAssemblies())
+            {
+                var type = assembly.GetType(className);
+                if (type != null)
+                {
+                    classType = type;
+                    break;
+                }
+            }
+            Assert.IsNotNull(classType, "invalid class name: " + className);
+
+            var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            var methods = classType.GetMethods(bindingFlags);
+            foreach (var method in methods)
+            {
+                methodSet.Add(method.Name);
+            }
+
+            var fields = classType.GetFields(bindingFlags);
+            foreach (var field in fields)
+            {
+                fieldSet.Add(field.Name);
+            }
+            
+            var properties = classType.GetProperties(bindingFlags);
+            foreach (var property in properties)
+            {
+                propertySet.Add(property.Name);
+            }
+
+            this.methodName = methodName;
+        }
+
+        public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
+        {
+            var brothers = node.Parent.ChildNodes();
+            var enumerator = brothers.GetEnumerator();
+            enumerator.MoveNext();
+            if (node != enumerator.Current)     // must be the first node
+                return node;
+
+            var identifierName = node.Identifier.Text;
+            if (!methodSet.Contains(identifierName) && !fieldSet.Contains(identifierName) && !propertySet.Contains(identifierName))
+                return node;
+
+            var memberAccessNode = SyntaxFactory.MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                SyntaxFactory.ThisExpression(),
+                SyntaxFactory.Token(SyntaxKind.DotToken),
+                SyntaxFactory.IdentifierName(node.Identifier.Text)
+            ).WithTriviaFrom(node);
+
+            return memberAccessNode;
+        }
+    }
+
+    /// <summary>
+    /// 'this' -> '__INST__'
+    /// </summary>
     public class ThisExpressionRewriter : CSharpSyntaxRewriter
     {
         public ThisExpressionRewriter() {}

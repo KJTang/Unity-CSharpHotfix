@@ -8,7 +8,7 @@ namespace CSharpHotfixTest {
     {
         static public void Func__HOTFIX_MTD(Test_InvokeMethod __INST__)
         {
-            InvokeFunc();
+            __INST__.InvokeFunc();
         }
 
         static public void InvokeFunc__HOTFIX_MTD(Test_InvokeMethod __INST__)
