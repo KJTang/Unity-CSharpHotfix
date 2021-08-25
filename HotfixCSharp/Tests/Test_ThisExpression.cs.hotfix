@@ -6,7 +6,7 @@ namespace CSharpHotfixTest {
 
     public class Test_ThisExpression__HOTFIX_CLS
     {
-        public int i;
+
 
         static public void Func__HOTFIX_MTD(Test_ThisExpression __INST__)
         {

@@ -80,7 +80,7 @@ namespace CSharpHotfix
 
             var methodData = new HotfixMethodData();
             methodData.methodName = CSharpHotfixRewriter.GetSyntaxNodeFullName(node);
-            methodData.isNew = CSharpHotfixRewriter.IsHotfixMethodNew(node);
+            //methodData.isNew = CSharpHotfixRewriter.IsHotfixMethodNew(node);
             methodData.isStatic = node.Modifiers.Any(SyntaxKind.StaticKeyword);
             methodData.syntaxNode = node;
             hotfixMethods.Add(methodData);
@@ -255,7 +255,7 @@ namespace CSharpHotfix
 
             var className = methodName.Substring(0, pos);
             Type classType = null;
-            foreach (var assembly in CSharpHotfixRewriter.GetAssemblies())
+            foreach (var assembly in CSharpHotfixManager.GetAssemblies())
             {
                 var type = assembly.GetType(className);
                 if (type != null)
@@ -335,11 +335,14 @@ namespace CSharpHotfix
     }
 
 
-    public class MemberAccessRewriter : CSharpSyntaxRewriter
+    /// <summary>
+    /// use reflection to rewrite hotfix class getter
+    /// </summary>
+    public class GetMemberRewriter : CSharpSyntaxRewriter
     {
         private SemanticModel semanticModel;
 
-        public MemberAccessRewriter(SemanticModel semanticModel) 
+        public GetMemberRewriter(SemanticModel semanticModel) 
         {
             this.semanticModel = semanticModel;
         }
@@ -350,10 +353,130 @@ namespace CSharpHotfix
                 return node;
             
             var nameNode = node.Name;
-            var symbolInfo = semanticModel.GetSymbolInfo(nameNode);
-            var typeInfo = semanticModel.GetTypeInfo(nameNode);
-            Debug.LogError("Member: " + nameNode + " \t" + symbolInfo.Symbol + " \t" + symbolInfo.CandidateReason + " \t" + symbolInfo.CandidateSymbols.Length + " \t" + typeInfo.Type);
-            return node;
+            var expressionNode = node.Expression;
+
+            var expressionSymbol = semanticModel.GetSymbolInfo(expressionNode);
+            var nameSymbol = semanticModel.GetSymbolInfo(nameNode);
+
+            // maybe need throw error, expression node should have symbol always
+            if (expressionSymbol.Symbol == null) 
+                return node;
+
+            // name symbol is accessable, no need rewrite it
+            if (nameSymbol.Symbol != null)
+                return node;
+
+            // ignore method invocation
+            if (node.Parent is InvocationExpressionSyntax)
+                return node;
+            
+            // getter can only be right value
+            var isLeftValue = node.Parent is AssignmentExpressionSyntax;
+            if (isLeftValue)
+                return node;
+
+            //Debug.LogError("Member: " + nameNode + 
+            //    " \texpr: " + expressionSymbol.Symbol + " " + expressionSymbol.Symbol?.GetType() + " isNamedType: " + isNamedType + " " + expressionSymbol.Symbol?.Name +  
+            //    " \tname: " + nameSymbol.Symbol + 
+            //    " \treason: " + nameSymbol.CandidateReason + 
+            //    " \tisLeft: " + isLeftValue
+            //);
+
+            // CSharpHotfix.CSharpHotfixManager.ReflectionGet
+            var getExpr = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
+                SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
+                    SyntaxFactory.IdentifierName("CSharpHotfix"), 
+                    SyntaxFactory.IdentifierName("CSharpHotfixManager")
+                ), 
+                SyntaxFactory.IdentifierName("ReflectionGet")
+            );
+
+            var getArgs = SyntaxFactory.ArgumentList(new SeparatedSyntaxList<ArgumentSyntax>()
+                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(expressionSymbol.Symbol.ToString()))))
+                .Add(expressionSymbol.Symbol.Kind == SymbolKind.NamedType ? 
+                    SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)) : 
+                    SyntaxFactory.Argument(SyntaxFactory.IdentifierName(expressionSymbol.Symbol.Name)
+                ))
+                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(nameNode.Identifier.Text))))
+            );
+
+            ExpressionSyntax castExpr;
+            var memberType = CSharpHotfixManager.ReflectionGetMemberType(expressionSymbol.Symbol.ToString(), nameNode.Identifier.Text);
+            var typeStrLst = memberType.FullName.Split('.');
+            if (typeStrLst.Length <= 1)
+            {
+                castExpr = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(memberType.Name), SyntaxFactory.InvocationExpression(getExpr, getArgs));
+            }
+            else
+            {
+                var qualifiedName = SyntaxFactory.QualifiedName(SyntaxFactory.IdentifierName(typeStrLst[0]), SyntaxFactory.IdentifierName(typeStrLst[1]));
+                for (var i = 2; i < typeStrLst.Length; ++i)
+                    qualifiedName = SyntaxFactory.QualifiedName(qualifiedName, SyntaxFactory.IdentifierName(typeStrLst[i]));
+                castExpr = SyntaxFactory.CastExpression(qualifiedName, SyntaxFactory.InvocationExpression(getExpr, getArgs));
+            }
+
+            castExpr = castExpr.WithTriviaFrom(node);
+            return castExpr;
+        }
+    }
+
+    
+    /// <summary>
+    /// use reflection to rewrite hotfix class setter
+    /// </summary>
+    public class SetMemberRewriter : CSharpSyntaxRewriter
+    {
+        private SemanticModel semanticModel;
+
+        public SetMemberRewriter(SemanticModel semanticModel) 
+        {
+            this.semanticModel = semanticModel;
+        }
+
+        public override SyntaxNode VisitAssignmentExpression(AssignmentExpressionSyntax node)
+        {
+            if (semanticModel == null)
+                return node;
+            
+            var leftNode = node.Left as MemberAccessExpressionSyntax;
+            if (leftNode == null)
+                return node;
+
+            var nameNode = leftNode.Name;
+            var expressionNode = leftNode.Expression;
+
+            var expressionSymbol = semanticModel.GetSymbolInfo(expressionNode);
+            var nameSymbol = semanticModel.GetSymbolInfo(nameNode);
+
+            // maybe need throw error, expression node should have symbol always
+            if (expressionSymbol.Symbol == null) 
+                return node;
+
+            // name symbol is accessable, no need rewrite it
+            if (nameSymbol.Symbol != null)
+                return node;
+
+            // CSharpHotfix.CSharpHotfixManager.ReflectionSet
+            var setExpr = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
+                SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
+                    SyntaxFactory.IdentifierName("CSharpHotfix"), 
+                    SyntaxFactory.IdentifierName("CSharpHotfixManager")
+                ), 
+                SyntaxFactory.IdentifierName("ReflectionSet")
+            );
+
+            var setArgs = SyntaxFactory.ArgumentList(new SeparatedSyntaxList<ArgumentSyntax>()
+                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(expressionSymbol.Symbol.ToString()))))
+                .Add(expressionSymbol.Symbol.Kind == SymbolKind.NamedType ? 
+                    SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)) : 
+                    SyntaxFactory.Argument(SyntaxFactory.IdentifierName(expressionSymbol.Symbol.Name)
+                ))
+                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(nameNode.Identifier.Text))))
+                .Add(SyntaxFactory.Argument(node.Right))
+            );
+
+            var newNode = SyntaxFactory.InvocationExpression(setExpr, setArgs).WithTriviaFrom(node);
+            return newNode;
         }
     }
 
@@ -430,17 +553,6 @@ namespace CSharpHotfix
 
     public class CSharpHotfixRewriter
     {
-        private static Assembly[] assemblies;
-        public static Assembly[] GetAssemblies()
-        {
-            if (assemblies == null)
-            {
-                assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
-            }
-            return assemblies;
-        }
-
-
         public static readonly SyntaxTriviaList ZeroWhitespaceTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, ""));
         public static readonly SyntaxTriviaList OneWhitespaceTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "));
         public static readonly string InstanceParamName = "__INST__";
@@ -491,7 +603,7 @@ namespace CSharpHotfix
         /// <returns></returns>
         public static bool IsHotfixClassNew(string className)
         {
-            foreach (var assembly in GetAssemblies())
+            foreach (var assembly in CSharpHotfixManager.GetAssemblies())
             {
                 var type = assembly.GetType(className);
                 if (type != null)
@@ -509,7 +621,7 @@ namespace CSharpHotfix
         {
             Type classType = null;
             var className = CSharpHotfixRewriter.GetSyntaxNodeFullName(node.Parent);
-            foreach (var assembly in GetAssemblies())
+            foreach (var assembly in CSharpHotfixManager.GetAssemblies())
             {
                 var type = assembly.GetType(className);
                 if (type != null)
@@ -572,7 +684,7 @@ namespace CSharpHotfix
         public static bool IsTypeMatched(Type reflectionType, TypeSyntax node)
         {
             // var typeNodeName = node.ToString();
-            // foreach (var assembly in GetAssemblies())
+            // foreach (var assembly in CSharpHotfixManager.GetAssemblies())
             // {
             //     var syntaxType = assembly.GetType(typeNodeName);
             //     Debug.LogFormat("Check Type: {0} \tresult: {1} \t{2}", assembly.FullName, reflectionType, syntaxType != null ? syntaxType.ToString() : "null");

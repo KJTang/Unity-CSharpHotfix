@@ -30,6 +30,17 @@ namespace CSharpHotfix
         }
         private static bool isHotfixEnabled = false;
 
+        
+        private static Assembly[] assemblies;
+        public static Assembly[] GetAssemblies()
+        {
+            if (assemblies == null)
+            {
+                assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
+            }
+            return assemblies;
+        }
+
 #region log
         [Conditional("CSHOTFIX_ENABLE_LOG")]
         public static void Log(string message, params object[] args)
@@ -54,6 +65,9 @@ namespace CSharpHotfix
 
 #endregion log
 
+
+
+#region method signature
         private static StringBuilder methodSignatureBuilder = new StringBuilder();
 
         /// <summary>
@@ -289,6 +303,8 @@ namespace CSharpHotfix
             return state;
         }
 
+#endregion
+
 #region method id cache
         private static Dictionary<string, int> methodIdDict = new Dictionary<string, int>();
         private static Dictionary<int, string> methodIdReverseDict = new Dictionary<int, string>();
@@ -497,58 +513,89 @@ namespace CSharpHotfix
 
 
 #region reflection helper
-        public static object ReflectionGet(object instance, string memberName)
+        public static object ReflectionGet(string typeName, object instance, string memberName)
         {
-            var reflectionData = GetReflectionData(instance);
-            Assert.IsNotNull(reflectionData, "cannot get reflection data for instance: " + instance);
+            var reflectionData = GetReflectionData(typeName);
+            Assert.IsNotNull(reflectionData, "cannot get reflection data for typeName: " + typeName);
 
             // try field
-            var field = reflectionData.fields[memberName];
-            if (field != null)
+            FieldInfo field;
+            if (reflectionData.fields.TryGetValue(memberName, out field))
             {
                 return field.GetValue(instance);
             }
 
             // try property
-            var prop = reflectionData.props[memberName];
-            if (prop != null)
+            PropertyInfo prop;
+            if (reflectionData.props.TryGetValue(memberName, out prop))
             {
                 return prop.GetValue(instance);
             }
 
             // try delegate
-            var method = reflectionData.methods[memberName];
-            if (method != null)
+            MethodInfo method;
+            if (reflectionData.methods.TryGetValue(memberName, out method))
             {
                 return Delegate.CreateDelegate(reflectionData.type, instance, method);
             }
 
-            Assert.IsTrue(false, "not found member in instance: " + instance + " \t" + memberName);
+            Assert.IsTrue(false, "not found member in typeName: " + typeName + " \t" + memberName);
             return null;
         }
 
-        public static void ReflectionSet(object instance, string memberName, object value)
+        public static void ReflectionSet(string typeName, object instance, string memberName, object value)
         {
-            var reflectionData = GetReflectionData(instance);
-            Assert.IsNotNull(reflectionData, "cannot get reflection data for instance: " + instance);
+            var reflectionData = GetReflectionData(typeName);
+            Assert.IsNotNull(reflectionData, "cannot get reflection data for typeName: " + typeName);
 
             // try field
-            var field = reflectionData.fields[memberName];
-            if (field != null)
+            FieldInfo field;
+            if (reflectionData.fields.TryGetValue(memberName, out field))
             {
                 field.SetValue(instance, value);
+                return;
             }
 
             // try property
-            var prop = reflectionData.props[memberName];
-            if (prop != null)
+            PropertyInfo prop;
+            if (reflectionData.props.TryGetValue(memberName, out prop))
             {
                 prop.SetValue(instance, value);
+                return;
             }
 
-            Assert.IsTrue(false, "not found member in instance: " + instance + " \t" + memberName);
+            Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
         }
 
+        public static Type ReflectionGetMemberType(string typeName, string memberName)
+        {
+            var reflectionData = GetReflectionData(typeName);
+            Assert.IsNotNull(reflectionData, "cannot get reflection data for typeName: " + typeName);
+
+            // try field
+            FieldInfo field;
+            if (reflectionData.fields.TryGetValue(memberName, out field))
+            {
+                return field.FieldType;
+            }
+
+            // try property
+            PropertyInfo prop;
+            if (reflectionData.props.TryGetValue(memberName, out prop))
+            {
+                return prop.PropertyType;
+            }
+
+            // try delegate
+            MethodInfo method;
+            if (reflectionData.methods.TryGetValue(memberName, out method))
+            {
+                return method.ReturnType;
+            }
+
+            Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
+            return null;
+        }
 
         public class ReflectionData
         {
@@ -556,6 +603,30 @@ namespace CSharpHotfix
             public Dictionary<string, FieldInfo> fields = new Dictionary<string, FieldInfo>();
             public Dictionary<string, PropertyInfo> props = new Dictionary<string, PropertyInfo>();
             public Dictionary<string, MethodInfo> methods = new Dictionary<string, MethodInfo>();
+
+            public void Print()
+            {
+                UnityEngine.Debug.Log("ReflectionData: " + type);
+
+                foreach (var kv in methods)
+                {
+                    var method = kv.Value;
+                    UnityEngine.Debug.Log("method: " + method.Name);
+                }
+
+                foreach (var kv in fields)
+                {
+                    var field = kv.Value;
+                    UnityEngine.Debug.Log("field: " + field.Name);
+                }
+            
+                foreach (var kv in props)
+                {
+                    var property = kv.Value;
+                    UnityEngine.Debug.Log("property: " + property.Name);
+                }
+            }
+
         }
         private static Dictionary<Type, ReflectionData> reflectionDatas = new Dictionary<Type, ReflectionData>();
 
@@ -565,8 +636,26 @@ namespace CSharpHotfix
             return GetReflectionData(type);
         }
 
+        public static ReflectionData GetReflectionData(string typeName)
+        {
+            Type targetType = null;
+            foreach (var assembly in CSharpHotfixManager.GetAssemblies())
+            {
+                var type = assembly.GetType(typeName);
+                if (type != null)
+                {
+                    targetType = type;
+                    break;
+                }
+            }
+            return GetReflectionData(targetType);
+        }
+
         public static ReflectionData GetReflectionData(Type type)
         {
+            if (type == null)
+                return null;
+
             ReflectionData data;
             if (reflectionDatas.TryGetValue(type, out data) && data != null)
                 return data;

@@ -250,20 +250,9 @@ namespace CSharpHotfix
             RewriteSyntaxTree(treeLst, classDeclarationRewriter);
 
 
-            // TODO: rewrite method invocation
-            classCollector.HotfixClasses.Clear();
-            for (var i = 0; i != treeLst.Count; ++i)
-            {
-                var tree = treeLst[i];
-                classCollector.Visit(tree.GetRoot());
-            }
-            var classMap = new Dictionary<string, Type>();
-            foreach (var classData in classCollector.HotfixClasses)
-            {
-                //
-            }
-            
-            var compilation = CSharpCompilation.Create(hotfixDllName)
+            // rewrite hotfix class member getter
+            CSharpCompilation compilation = null;
+            compilation = CSharpCompilation.Create(hotfixDllName)
                 .AddReferences(GetMetadataReferences())
                 .AddSyntaxTrees(treeLst)
                 .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
@@ -271,12 +260,10 @@ namespace CSharpHotfix
             for (var i = 0; i != treeLst.Count; ++i)
             {
                 var tree = treeLst[i];
-                var file = fileLst[i];
                 var semanticModel = compilation.GetSemanticModel(tree, true);
-                Debug.LogError("file: " + file + " \t" + semanticModel.IgnoresAccessibility);
 
                 var oldNode = tree.GetRoot();
-                var memberAccessRewriter = new MemberAccessRewriter(semanticModel);
+                var memberAccessRewriter = new GetMemberRewriter(semanticModel);
                 var newNode = memberAccessRewriter.Visit(oldNode);
                 if (oldNode != newNode)
                 {
@@ -285,6 +272,28 @@ namespace CSharpHotfix
                 }
             }
 
+            // rewrite hotfix class member setter
+            compilation = CSharpCompilation.Create(hotfixDllName)
+                .AddReferences(GetMetadataReferences())
+                .AddSyntaxTrees(treeLst)
+                .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+            ;
+            for (var i = 0; i != treeLst.Count; ++i)
+            {
+                var tree = treeLst[i];
+                var semanticModel = compilation.GetSemanticModel(tree, true);
+
+                var oldNode = tree.GetRoot();
+                var memberAccessRewriter = new SetMemberRewriter(semanticModel);
+                var newNode = memberAccessRewriter.Visit(oldNode);
+                if (oldNode != newNode)
+                {
+                    tree = tree.WithRootAndOptions(newNode, tree.Options);
+                    treeLst[i] = tree;
+                }
+            }
+
+            // TODO: rewrite hotfix class method invocation
 
             // debug: output processed syntax tree, used to examine them
             for (var i = 0; i != treeLst.Count; ++i)

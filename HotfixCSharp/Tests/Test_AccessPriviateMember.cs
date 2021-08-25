@@ -10,16 +10,13 @@ namespace CSharpHotfixTest {
 
         private bool PropTest { get; set; }
 
-        private void MethodTest()
-        {
-            if (fieldTest >= 0)
-                PropTest = true;
-            Debug.Log("Test_AccessPriviateMember: hotfixed");
-        }
+        private static int fieldStaticTest = 1;
 
         public void Func()
         {
-            MethodTest();
+            if (fieldTest >= 0 && CSharpHotfixTest.Test_AccessPriviateMember.fieldStaticTest >= 0)
+                PropTest = true;
+            Debug.Log("Test_AccessPriviateMember: hotfixed");
         }
     }
 }

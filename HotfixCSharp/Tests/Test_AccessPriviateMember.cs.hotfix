@@ -8,17 +8,11 @@ namespace CSharpHotfixTest {
     {
 
 
-
-        static private void MethodTest__HOTFIX_MTD(Test_AccessPriviateMember __INST__)
-        {
-            if (__INST__.fieldTest >= 0)
-                __INST__.PropTest = true;
-            Debug.Log("Test_AccessPriviateMember: hotfixed");
-        }
-
         static public void Func__HOTFIX_MTD(Test_AccessPriviateMember __INST__)
         {
-            __INST__.MethodTest();
+            if ((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"fieldTest") >= 0 && (System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",null,"fieldStaticTest") >= 0)
+                CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest",true);
+            Debug.Log("Test_AccessPriviateMember: hotfixed");
         }
     }
 }
