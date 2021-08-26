@@ -8,17 +8,17 @@ namespace CSharpHotfixTest {
     {
         public int i;
 
-        public void Func()
+        public string Func()
         {
             var j = i;          // assignment
             if (i == 1) { }     // if statement
 
             InvokeFunc(i);      // invocation
+            return "hotfixed";
         }
 
         public void InvokeFunc(int i)
         {
-            Debug.Log("Test_ThisExpressionImplicit: hotfixed");
         }
     }
 }

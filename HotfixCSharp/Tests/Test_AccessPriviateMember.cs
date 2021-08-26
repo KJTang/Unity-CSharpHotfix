@@ -12,11 +12,11 @@ namespace CSharpHotfixTest {
 
         private static int fieldStaticTest = 1;
 
-        public void Func()
+        public string Func()
         {
             if (fieldTest >= 0 && CSharpHotfixTest.Test_AccessPriviateMember.fieldStaticTest >= 0)
                 PropTest = true;
-            Debug.Log("Test_AccessPriviateMember: hotfixed");
+            return "hotfixed";
         }
     }
 }

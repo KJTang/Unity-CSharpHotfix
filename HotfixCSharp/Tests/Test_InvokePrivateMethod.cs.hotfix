@@ -6,17 +6,17 @@ namespace CSharpHotfixTest {
 
     public class Test_InvokePrivateMethod__HOTFIX_CLS
     {
-        static public void Func__HOTFIX_MTD(Test_InvokePrivateMethod __INST__)
+        static public string Func__HOTFIX_MTD(Test_InvokePrivateMethod __INST__)
         {
             CSharpHotfix.CSharpHotfixManager.ReflectionReturnVoidInvoke("CSharpHotfixTest.Test_InvokePrivateMethod",__INST__,"InvokeFunc");
             CSharpHotfix.CSharpHotfixManager.ReflectionReturnObjectInvoke("CSharpHotfixTest.Test_InvokePrivateMethod",__INST__,"InvokeParamFunc",0);
             if ((System.Boolean)CSharpHotfix.CSharpHotfixManager.ReflectionReturnObjectInvoke("CSharpHotfixTest.Test_InvokePrivateMethod",__INST__,"InvokeReturnValueFunc"))
-                return;
+                return "hotfixed";
+            return "";
         }
 
         static private void InvokeFunc__HOTFIX_MTD(Test_InvokePrivateMethod __INST__)
         {
-            Debug.Log("Test_InvokePrivateMethod: hotfixed");
         }
 
         static private int InvokeParamFunc__HOTFIX_MTD(Test_InvokePrivateMethod __INST__,int i)

@@ -18,6 +18,7 @@ namespace CSharpHotfix {
             "Test_ThisExpressionImplicit",
             "Test_AccessMember",
             "Test_AccessPriviateMember",
+            "Test_UnityMacro",
         };
 
         public static bool EnableTest = true;
@@ -46,28 +47,38 @@ namespace CSharpHotfix {
                 }
             }
 
-            CSharpHotfixManager.Message("#CS_HOTFIX# Run Test: total: {0}", allTestTypes.Count);
+            var succCnt = 0;
             foreach (var type in allTestTypes)
             {
                 CSharpHotfixManager.Message("#CS_HOTFIX# Run Test: {0}", type.Name);
+                string ret;
                 try
                 {
+                    ret = "";
+
                     var method = type.GetMethod("Func");
                     if (method.IsStatic)
                     {
-                        method.Invoke(null, null);
+                        ret = (string) method.Invoke(null, null);
                     }
                     else
                     {
                         var instance = Activator.CreateInstance(type);
-                        method.Invoke(instance, null);
+                        ret = (string) method.Invoke(instance, null);
                     }
+
+                    if (ret != "hotfixed")
+                        throw new Exception("method is not hotfix correctly, return value: " + ret);
+
+                    succCnt = succCnt + 1;
+                    CSharpHotfixManager.Error("#CS_HOTFIX# <color=green>succ</color>: {0}", type.Name);
                 }
                 catch (Exception e)
                 {
-                    CSharpHotfixManager.Error("#CS_HOTFIX# Run Test failed: {0} \t{1}", type.Name, e);
+                    CSharpHotfixManager.Error("#CS_HOTFIX# <color=red>failed</color>: {0} \t{1}", type.Name, e);
                 }
             }
+            CSharpHotfixManager.Message("#CS_HOTFIX# Run Test: total: {0} \t<color=green>succ: {1}</color> \t<color=red>failed: {2}</color>", allTestTypes.Count, succCnt, allTestTypes.Count - succCnt);
         }
     }
 }

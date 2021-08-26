@@ -4,16 +4,15 @@ using UnityEngine;
 
 namespace CSharpHotfixTest {
 
-    public class Test_InvokeMethod
+    public class Test_UnityMacro
     {
         public string Func()
         {
-            return InvokeFunc();
-        }
+            #if UNITY_EDITOR
+                return "hello";
+            #endif
 
-        public string InvokeFunc()
-        {
-            return "hello";
+            return "";
         }
     }
 }

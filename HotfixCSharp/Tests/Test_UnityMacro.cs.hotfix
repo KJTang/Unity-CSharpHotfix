@@ -1,0 +1,18 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace CSharpHotfixTest {
+
+    public class Test_UnityMacro__HOTFIX_CLS
+    {
+        static public string Func__HOTFIX_MTD(Test_UnityMacro __INST__)
+        {
+            #if UNITY_EDITOR
+                return "hotfixed";
+            #endif
+
+            return "";
+        }
+    }
+}

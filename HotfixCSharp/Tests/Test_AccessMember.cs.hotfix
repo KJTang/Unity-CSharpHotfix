@@ -13,12 +13,12 @@ namespace CSharpHotfixTest {
         {
             if (__INST__.fieldTest >= 0)
                 __INST__.PropTest = true;
-            Debug.Log("Test_AccessMember: hotfixed");
         }
 
-        static public void Func__HOTFIX_MTD(Test_AccessMember __INST__)
+        static public string Func__HOTFIX_MTD(Test_AccessMember __INST__)
         {
             __INST__.MethodTest();
+            return "hotfixed";
         }
     }
 }

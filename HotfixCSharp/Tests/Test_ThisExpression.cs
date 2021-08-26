@@ -8,14 +8,14 @@ namespace CSharpHotfixTest {
     {
         public int i;
 
-        public void Func()
+        public string Func()
         {
             this.InvokeFunc(this.i);
+            return "hotfixed";
         }
 
         public void InvokeFunc(int i)
         {
-            Debug.Log("Test_ThisExpression: hotfixed");
         }
     }
 }

@@ -6,9 +6,9 @@ namespace CSharpHotfixTest {
 
     public class Test_HotfixStaticMethod__HOTFIX_CLS
     {
-        public static void Func__HOTFIX_MTD_S()
+        public static string Func__HOTFIX_MTD_S()
         {
-            Debug.Log("Test_HotfixStaticMethod: hotfixed");
+            return "hotfixed";
         }
     }
 }

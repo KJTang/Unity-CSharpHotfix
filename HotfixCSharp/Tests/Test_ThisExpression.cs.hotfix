@@ -8,14 +8,14 @@ namespace CSharpHotfixTest {
     {
 
 
-        static public void Func__HOTFIX_MTD(Test_ThisExpression __INST__)
+        static public string Func__HOTFIX_MTD(Test_ThisExpression __INST__)
         {
             __INST__.InvokeFunc(__INST__.i);
+            return "hotfixed";
         }
 
         static public void InvokeFunc__HOTFIX_MTD(Test_ThisExpression __INST__,int i)
         {
-            Debug.Log("Test_ThisExpression: hotfixed");
         }
     }
 }

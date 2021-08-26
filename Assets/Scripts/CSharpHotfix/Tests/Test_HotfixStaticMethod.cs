@@ -6,9 +6,9 @@ namespace CSharpHotfixTest {
 
     public class Test_HotfixStaticMethod
     {
-        public static void Func()
+        public static string Func()
         {
-            Debug.Log("Test_HotfixStaticMethod: hello");
+            return "hello";
         }
     }
 }

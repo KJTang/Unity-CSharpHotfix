@@ -14,12 +14,12 @@ namespace CSharpHotfixTest {
         {
             if (fieldTest >= 0)
                 PropTest = true;
-            Debug.Log("Test_AccessMember: hotfixed");
         }
 
-        public void Func()
+        public string Func()
         {
             MethodTest();
+            return "hotfixed";
         }
     }
 }

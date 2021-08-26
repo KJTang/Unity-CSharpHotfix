@@ -6,17 +6,17 @@ namespace CSharpHotfixTest {
 
     public class Test_InvokePrivateMethod
     {
-        public void Func()
+        public string Func()
         {
             InvokeFunc();
             InvokeParamFunc(0);
             if (InvokeReturnValueFunc())
-                return;
+                return "hotfixed";
+            return "";
         }
 
         private void InvokeFunc()
         {
-            Debug.Log("Test_InvokePrivateMethod: hotfixed");
         }
 
         private int InvokeParamFunc(int i)

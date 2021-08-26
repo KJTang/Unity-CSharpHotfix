@@ -6,14 +6,14 @@ namespace CSharpHotfixTest {
 
     public class Test_InvokeMethod
     {
-        public void Func()
+        public string Func()
         {
-            InvokeFunc();
+            return InvokeFunc();
         }
 
-        public void InvokeFunc()
+        public string InvokeFunc()
         {
-            Debug.Log("Test_InvokeMethod: hotfixed");
+            return "hotfixed";
         }
     }
 }
