@@ -204,6 +204,11 @@ namespace CSharpHotfix
                 ilList.Add(Instruction.Create(OpCodes.Call, voidMethodInject));
             else
                 ilList.Add(Instruction.Create(OpCodes.Call, objMethodInject));
+            if (method.ReturnType.IsValueType)  // unbox return value
+            {
+                var returnType = assembly.MainModule.ImportReference(method.ReturnType);
+                ilList.Add(Instruction.Create(OpCodes.Unbox, returnType));
+            }
             ilList.Add(Instruction.Create(OpCodes.Br, endPoint));
 
             // inject il
