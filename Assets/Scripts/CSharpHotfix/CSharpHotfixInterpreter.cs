@@ -83,7 +83,6 @@ namespace CSharpHotfix
                 return;
             }
             CSharpHotfixManager.LoadMethodIdFromFile();
-            CSharpHotfixManager.ClearMethodInfo();
             CSharpHotfixManager.ClearReflectionData();
 
             var treeLst = new List<SyntaxTree>();
@@ -119,6 +118,7 @@ namespace CSharpHotfix
             }
 
             // save methodinfo
+            CSharpHotfixManager.ClearMethodInfo();
             var hotfixAssembly = Assembly.Load(hotfixStream.GetBuffer(), null);
             var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
             var typeLst = hotfixAssembly.GetTypes();
@@ -331,7 +331,12 @@ namespace CSharpHotfix
         private static MemoryStream CompileHotfix(List<SyntaxTree> treeLst, List<string> fileLst)
         {
             // create CSharpCompilation
-            var compilation = CSharpCompilation.Create(hotfixDllName)
+            // cause when assembly cannot be unload after loaded to AppDomain, 
+            // we temporily create different assembly everytime here, 
+            // incase new assembly will never load cause we have one same name assembly already loaded
+            var unixTimestamp = (int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
+            var assemblyName = string.Format("{0}_{1}.dll", hotfixDllName, unixTimestamp);
+            var compilation = CSharpCompilation.Create(assemblyName)
                 .AddReferences(GetMetadataReferences())
                 .AddSyntaxTrees(treeLst)
                 .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
@@ -344,7 +349,7 @@ namespace CSharpHotfix
                 var tree = treeLst[idx];
                 var filePath = fileLst[idx];
 
-                SemanticModel model = compilation.GetSemanticModel(tree);
+                var model = compilation.GetSemanticModel(tree);
                 var diagnostics = model.GetDiagnostics();
                 var hasError = false;
                 for (var i = 0; i != diagnostics.Length; ++i)
