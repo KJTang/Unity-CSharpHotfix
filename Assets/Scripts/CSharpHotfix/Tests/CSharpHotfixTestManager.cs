@@ -13,9 +13,10 @@ namespace CSharpHotfix {
             "Test_HotfixMethod",
             "Test_HotfixStaticMethod",
             "Test_InvokeMethod",
+            "Test_InvokePrivateMethod",
             "Test_ThisExpression",
             "Test_ThisExpressionImplicit",
-            "Test_AccessMember", 
+            "Test_AccessMember",
             "Test_AccessPriviateMember",
         };
 
@@ -36,8 +37,7 @@ namespace CSharpHotfix {
         public static void RunTests()
         {
             var allTestTypes = new List<Type>();
-            var allAssemblies = System.AppDomain.CurrentDomain.GetAssemblies();
-            foreach (var assembly in allAssemblies)
+            foreach (var assembly in CSharpHotfixManager.GetAssemblies())
             {
                 foreach (var type in assembly.GetTypes())
                 {
@@ -46,6 +46,7 @@ namespace CSharpHotfix {
                 }
             }
 
+            CSharpHotfixManager.Message("#CS_HOTFIX# Run Test: total: {0}", allTestTypes.Count);
             foreach (var type in allTestTypes)
             {
                 CSharpHotfixManager.Message("#CS_HOTFIX# Run Test: {0}", type.Name);

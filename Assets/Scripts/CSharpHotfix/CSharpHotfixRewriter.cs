@@ -480,7 +480,105 @@ namespace CSharpHotfix
         }
     }
 
-#region remover
+    
+    /// <summary>
+    /// use reflection to rewrite hotfix class method invocations
+    /// </summary>
+    public class InvokeMemberRewriter : CSharpSyntaxRewriter
+    {
+        private SemanticModel semanticModel;
+
+        public InvokeMemberRewriter(SemanticModel semanticModel) 
+        {
+            this.semanticModel = semanticModel;
+        }
+
+        public override SyntaxNode VisitInvocationExpression(InvocationExpressionSyntax node)
+        {
+            if (semanticModel == null)
+                return node;
+
+            // if no expr node, we cannot get enough info to invoke it
+            var exprNode = node.Expression as MemberAccessExpressionSyntax;
+            if (exprNode == null)
+                return node;
+
+            var exprLeft = semanticModel.GetSymbolInfo(exprNode.Expression);
+            var exprRight = semanticModel.GetSymbolInfo(exprNode.Name);
+
+            // maybe need throw error, expression node should have symbol always
+            if (exprLeft.Symbol == null)
+                return node;
+
+            // name symbol is accessable, no need rewrite it
+            if (exprRight.Symbol != null)
+                return node;
+
+
+            // CSharpHotfix.CSharpHotfixManager.ReflectionInvokeXXX
+            var memberType = CSharpHotfixManager.ReflectionGetMemberType(exprLeft.Symbol.ToString(), exprNode.Name.Identifier.Text);
+            var returnVoid = memberType.FullName == "System.Void"; 
+            MemberAccessExpressionSyntax invokeExpr;
+            if (returnVoid)
+            {
+                invokeExpr = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+                    SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+                        SyntaxFactory.IdentifierName("CSharpHotfix"),
+                        SyntaxFactory.IdentifierName("CSharpHotfixManager")
+                    ),
+                    SyntaxFactory.IdentifierName("ReflectionReturnVoidInvoke")
+                );
+            }
+            else
+            {
+                invokeExpr = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+                    SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+                        SyntaxFactory.IdentifierName("CSharpHotfix"),
+                        SyntaxFactory.IdentifierName("CSharpHotfixManager")
+                    ),
+                    SyntaxFactory.IdentifierName("ReflectionReturnObjectInvoke")
+                );
+            }
+
+            var newArgs = new SeparatedSyntaxList<ArgumentSyntax>()
+                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(exprLeft.Symbol.ToString()))))
+                .Add(exprLeft.Symbol.Kind == SymbolKind.NamedType ?
+                    SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)) :
+                    SyntaxFactory.Argument(SyntaxFactory.IdentifierName(exprLeft.Symbol.Name))
+                )
+                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(exprNode.Name.Identifier.Text))))
+            ;
+            var argsNode = node.ArgumentList;
+            var invokeArgs = argsNode.WithArguments(argsNode.Arguments.InsertRange(0, newArgs));
+
+            // no return value or no need return value
+            if (returnVoid || node.Parent is ExpressionStatementSyntax)
+            {
+                var newNode = SyntaxFactory.InvocationExpression(invokeExpr, invokeArgs).WithTriviaFrom(node);
+                return newNode;
+            }
+
+            // cast return value
+            ExpressionSyntax castExpr;
+            var typeStrLst = memberType.FullName.Split('.');
+            if (typeStrLst.Length <= 1)
+            {
+                castExpr = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(memberType.Name), SyntaxFactory.InvocationExpression(invokeExpr, invokeArgs));
+            }
+            else
+            {
+                var qualifiedName = SyntaxFactory.QualifiedName(SyntaxFactory.IdentifierName(typeStrLst[0]), SyntaxFactory.IdentifierName(typeStrLst[1]));
+                for (var i = 2; i < typeStrLst.Length; ++i)
+                    qualifiedName = SyntaxFactory.QualifiedName(qualifiedName, SyntaxFactory.IdentifierName(typeStrLst[i]));
+                castExpr = SyntaxFactory.CastExpression(qualifiedName, SyntaxFactory.InvocationExpression(invokeExpr, invokeArgs));
+            }
+
+            castExpr = castExpr.WithTriviaFrom(node);
+            return castExpr;
+        }
+    }
+
+    #region remover
     public class CSharpSyntaxRemover : CSharpSyntaxRewriter
     {
         private List<SyntaxNode> nodeToRemove = new List<SyntaxNode>();

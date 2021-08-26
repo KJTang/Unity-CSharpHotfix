@@ -40,8 +40,12 @@
 40 CSharpHotfixTest.Test_HotfixStaticMethod.Func;Static;System.Void;0;;
 41 CSharpHotfixTest.Test_InvokeMethod.Func;NonStatic;System.Void;0;;
 42 CSharpHotfixTest.Test_InvokeMethod.InvokeFunc;NonStatic;System.Void;0;;
-43 CSharpHotfixTest.Test_ThisExpression.Func;NonStatic;System.Void;0;;
-44 CSharpHotfixTest.Test_ThisExpression.InvokeFunc;NonStatic;System.Void;0;System.Int32,;
-45 CSharpHotfixTest.Test_ThisExpressionImplicit.Func;NonStatic;System.Void;0;;
-46 CSharpHotfixTest.Test_ThisExpressionImplicit.InvokeFunc;NonStatic;System.Void;0;System.Int32,;
-47 CSharpHotfixTest.HelloWorld.Start;NonStatic;System.Void;0;;
+43 CSharpHotfixTest.Test_InvokePrivateMethod.Func;NonStatic;System.Void;0;;
+44 CSharpHotfixTest.Test_InvokePrivateMethod.InvokeFunc;NonStatic;System.Void;0;;
+45 CSharpHotfixTest.Test_InvokePrivateMethod.InvokeParamFunc;NonStatic;System.Int32;0;System.Int32,;
+46 CSharpHotfixTest.Test_InvokePrivateMethod.InvokeReturnValueFunc;NonStatic;System.Boolean;0;;
+47 CSharpHotfixTest.Test_ThisExpression.Func;NonStatic;System.Void;0;;
+48 CSharpHotfixTest.Test_ThisExpression.InvokeFunc;NonStatic;System.Void;0;System.Int32,;
+49 CSharpHotfixTest.Test_ThisExpressionImplicit.Func;NonStatic;System.Void;0;;
+50 CSharpHotfixTest.Test_ThisExpressionImplicit.InvokeFunc;NonStatic;System.Void;0;System.Int32,;
+51 CSharpHotfixTest.HelloWorld.Start;NonStatic;System.Void;0;;

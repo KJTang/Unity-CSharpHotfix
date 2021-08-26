@@ -293,7 +293,26 @@ namespace CSharpHotfix
                 }
             }
 
-            // TODO: rewrite hotfix class method invocation
+            // rewrite hotfix class method invocation
+            compilation = CSharpCompilation.Create(hotfixDllName)
+                .AddReferences(GetMetadataReferences())
+                .AddSyntaxTrees(treeLst)
+                .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+            ;
+            for (var i = 0; i != treeLst.Count; ++i)
+            {
+                var tree = treeLst[i];
+                var semanticModel = compilation.GetSemanticModel(tree, true);
+
+                var oldNode = tree.GetRoot();
+                var invokeRewriter = new InvokeMemberRewriter(semanticModel);
+                var newNode = invokeRewriter.Visit(oldNode);
+                if (oldNode != newNode)
+                {
+                    tree = tree.WithRootAndOptions(newNode, tree.Options);
+                    treeLst[i] = tree;
+                }
+            }
 
             // debug: output processed syntax tree, used to examine them
             for (var i = 0; i != treeLst.Count; ++i)

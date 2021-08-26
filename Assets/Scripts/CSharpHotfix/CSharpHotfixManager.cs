@@ -567,6 +567,39 @@ namespace CSharpHotfix
             Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
         }
 
+        public static void ReflectionReturnVoidInvoke(string typeName, object instance, string memberName, params object[] parameters)
+        {
+            var reflectionData = GetReflectionData(typeName);
+            Assert.IsNotNull(reflectionData, "cannot get reflection data for typeName: " + typeName);
+
+            // try method
+            MethodInfo method;
+            if (reflectionData.methods.TryGetValue(memberName, out method))
+            {
+                method.Invoke(instance, parameters);
+                return;
+            }
+
+            Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
+        }
+        
+
+        public static object ReflectionReturnObjectInvoke(string typeName, object instance, string memberName, params object[] parameters)
+        {
+            var reflectionData = GetReflectionData(typeName);
+            Assert.IsNotNull(reflectionData, "cannot get reflection data for typeName: " + typeName);
+
+            // try method
+            MethodInfo method;
+            if (reflectionData.methods.TryGetValue(memberName, out method))
+            {
+                return method.Invoke(instance, parameters);
+            }
+
+            Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
+            return null;
+        }
+
         public static Type ReflectionGetMemberType(string typeName, string memberName)
         {
             var reflectionData = GetReflectionData(typeName);
