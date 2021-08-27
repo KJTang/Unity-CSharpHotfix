@@ -219,6 +219,9 @@ namespace CSharpHotfix
             RewriteSyntaxTree(treeLst, new NotSupportPropertyRewriter());
             RewriteSyntaxTree(treeLst, new NotSupportFieldRewriter());
 
+            // rewrite macro definitions 
+            RewriteSyntaxTree(treeLst, new UnityMacroRewriter());
+
             // rewrite method declaration
             var classCollector = new HotfixClassCollector();
             for (var i = 0; i != treeLst.Count; ++i)
@@ -323,6 +326,7 @@ namespace CSharpHotfix
                 {
                     var bytes = new UTF8Encoding(true).GetBytes(tree.ToString());
                     fileStream.Write(bytes, 0, bytes.Length);
+                    treeLst[i] = CSharpSyntaxTree.ParseText(tree.ToString());
                 }
             }
             return true;
@@ -331,7 +335,7 @@ namespace CSharpHotfix
         private static MemoryStream CompileHotfix(List<SyntaxTree> treeLst, List<string> fileLst)
         {
             // create CSharpCompilation
-            // cause when assembly cannot be unload after loaded to AppDomain, 
+            // TODO: cause when assembly cannot be unload after loaded to AppDomain, 
             // we temporily create different assembly everytime here, 
             // incase new assembly will never load cause we have one same name assembly already loaded
             var unixTimestamp = (int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;

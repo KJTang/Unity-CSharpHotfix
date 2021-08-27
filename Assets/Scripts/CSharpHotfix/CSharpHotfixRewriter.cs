@@ -375,13 +375,6 @@ namespace CSharpHotfix
             if (isLeftValue)
                 return node;
 
-            //Debug.LogError("Member: " + nameNode + 
-            //    " \texpr: " + expressionSymbol.Symbol + " " + expressionSymbol.Symbol?.GetType() + " isNamedType: " + isNamedType + " " + expressionSymbol.Symbol?.Name +  
-            //    " \tname: " + nameSymbol.Symbol + 
-            //    " \treason: " + nameSymbol.CandidateReason + 
-            //    " \tisLeft: " + isLeftValue
-            //);
-
             // CSharpHotfix.CSharpHotfixManager.ReflectionGet
             var getExpr = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
                 SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
@@ -578,19 +571,132 @@ namespace CSharpHotfix
         }
     }
 
-    #region remover
+    /// <summary>
+    /// rewrite '#define' value to 'true'
+    /// </summary>
+    public class UnityMacroRewriter : CSharpSyntaxRewriter
+    {
+        private HashSet<string> macroDefinitions;
+
+        public UnityMacroRewriter() 
+        {
+            var definitions = new HashSet<string>();
+
+            #if UNITY_EDITOR
+                var defineSymbols = UnityEditor.PlayerSettings.GetScriptingDefineSymbolsForGroup(UnityEditor.BuildTargetGroup.Standalone);
+                var symbolLst = defineSymbols.Split(';');
+                foreach (var symbol in symbolLst)
+                    if (!string.IsNullOrEmpty(symbol))
+                        definitions.Add(symbol);
+            #endif
+
+
+            // platform
+            #if UNITY_EDITOR
+                definitions.Add("UNITY_EDITOR");
+            #elif UNITY_IOS
+                definitions.Add("UNITY_IOS");
+            #elif UNITY_ANDROID
+                definitions.Add("UNITY_ANDROID");
+            #elif UNITY_STANDALONE
+                definitions.Add("UNITY_STANDALONE");
+                
+            // build flag
+            #elif RELEASE
+                definitions.Add("RELEASE");
+            #elif RETAIL
+                definitions.Add("RETAIL");
+                
+            // others
+            #elif PANDORA_TEST
+                definitions.Add("PANDORA_TEST");
+            #elif ENABLE_PROFILER
+                definitions.Add("ENABLE_PROFILER");
+            #elif TEXTASSET_LOAD_LOCAL
+                definitions.Add("TEXTASSET_LOAD_LOCAL");
+            #elif XLUA
+                definitions.Add("XLUA");
+            #elif AB_IN_STREAMASSETS
+                definitions.Add("AB_IN_STREAMASSETS");
+            #elif GCLOUD_MSDK_WINDOWS
+                definitions.Add("GCLOUD_MSDK_WINDOWS");
+            #elif PC_XVERSION
+                definitions.Add("PC_XVERSION");
+            #elif HEADPACK_ENABLE
+                definitions.Add("HEADPACK_ENABLE");
+            #elif PUFFER_ENABLE
+                definitions.Add("PUFFER_ENABL");
+            #elif GCLOUD_MSDK_WINDOWS
+                definitions.Add("GCLOUD_MSDK_WINDOWS");
+
+            #endif
+
+
+            macroDefinitions = definitions;
+
+            //Debug.LogError("def cnt: " + macroDefinitions.Count);
+            //foreach (var def in macroDefinitions)
+            //{
+            //    Debug.LogError("def: " + def);
+            //}
+        }
+
+        public override SyntaxNode Visit(SyntaxNode node)
+        {
+            node = base.Visit(node);
+            if (node == null)
+                return node;
+
+            if (node is CompilationUnitSyntax)
+                return node;
+
+            var trivia = node.GetLeadingTrivia().FirstOrDefault(t => (t.Kind() == SyntaxKind.IfDirectiveTrivia || t.Kind() == SyntaxKind.ElifDirectiveTrivia));
+            if (trivia == default(SyntaxTrivia))
+                return node;
+
+            var triviaNode = trivia.GetStructure();
+            if (triviaNode == null)     // maybe error, it should be structure trivia
+                return node;
+
+            var newTriviaNode = (new MacroIdentifierRewriter(macroDefinitions)).Visit(triviaNode) as StructuredTriviaSyntax;
+            var newTrivia = SyntaxFactory.Trivia(newTriviaNode);
+            //Debug.LogError("Found: " + node.ToString() + " \ttrivia: " + trivia.ToString() + " \tstruct: " + trivia.GetStructure() + " \treplace: " + newTriviaNode);
+
+            var triviaList = node.GetLeadingTrivia();
+            triviaList = triviaList.Replace(trivia, newTrivia);
+            node = node.WithLeadingTrivia(triviaList);
+            return node;
+        }
+        
+    
+        public class MacroIdentifierRewriter : CSharpSyntaxRewriter
+        {
+            private HashSet<string> definitions;
+            public MacroIdentifierRewriter(HashSet<string> definitions)
+            {
+                this.definitions = definitions;
+            }
+
+            public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
+            {
+                if (!definitions.Contains(node.Identifier.Text))
+                    return node;
+                return SyntaxFactory.LiteralExpression(SyntaxKind.TrueLiteralExpression).WithTriviaFrom(node);
+            }
+        }
+    }
+
+#region remover
     public class CSharpSyntaxRemover : CSharpSyntaxRewriter
     {
         private List<SyntaxNode> nodeToRemove = new List<SyntaxNode>();
 
         public CSharpSyntaxRemover() {}
 
-        public override SyntaxNode Visit(SyntaxNode node)
+        public override SyntaxNode VisitCompilationUnit(CompilationUnitSyntax node)
         {
-            node = base.Visit(node);
-            var isRoot = node != null && node.SyntaxTree.GetRoot() == node;
-            if (isRoot)
-                node = node.RemoveNodes(nodeToRemove, SyntaxRemoveOptions.KeepEndOfLine);
+            node = base.VisitCompilationUnit(node) as CompilationUnitSyntax;
+            node = node.RemoveNodes(nodeToRemove, SyntaxRemoveOptions.KeepEndOfLine);
             return node;
         }
 
@@ -653,6 +759,7 @@ namespace CSharpHotfix
     {
         public static readonly SyntaxTriviaList ZeroWhitespaceTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, ""));
         public static readonly SyntaxTriviaList OneWhitespaceTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "));
+        public static readonly SyntaxTriviaList EndOfLineTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.EndOfLineTrivia, "\n"));
         public static readonly string InstanceParamName = "__INST__";
         public static readonly string ClassNamePostfix = "__HOTFIX_CLS";
         public static readonly string MethodNamePostfix = "__HOTFIX_MTD";

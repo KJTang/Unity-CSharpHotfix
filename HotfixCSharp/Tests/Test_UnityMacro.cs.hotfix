@@ -1,3 +1,5 @@
+#define MACRO_TEST
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,7 +10,7 @@ namespace CSharpHotfixTest {
     {
         static public string Func__HOTFIX_MTD(Test_UnityMacro __INST__)
         {
-            #if UNITY_EDITOR
+            #if true && MACRO_TEST
                 return "hotfixed";
             #endif
 
