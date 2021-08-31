@@ -9,10 +9,10 @@ Unity Toolbar -> CSharpHotfix -> Enable:
 ![enable tool](Document/enable_tool.png)
 
 ### Hello World
-create a new game object with new script named "Hello World":   
+create a new game object:   
 ![create hello world](Document/hello_world.png)
 
-### Edit Hello World
+create new script named "HelloWorld.cs" and attach it to the game object created before: 
 ``` csharp
 using System.Collections;
 using System.Collections.Generic;
@@ -114,3 +114,20 @@ namespace CSharpHotfixTest {
 }
 ```
 and ```Func``` need return ```"hello"``` in origin code, return ```"hotfixed"``` in hotfix code, cause we use this to check hotfix is successful or not.
+
+
+## Known issues
+
+### Error when use "Create and Add" when AddComponent
+![issue 01](Document/issue_01.png)  
+
+after adding/removeing/editing a C# script, we'll triggered a compilation, and after that, modify the ```Assembly-CSharp.dll``` file.  
+but "Create and Add" will directly use script before our modifications, it caused an error which cannot use the new created script.  
+so if using this tool, please manually create script, and then add it to game object.
+
+
+### Dll Error
+sometimes unknown operation may cause dll error (like "Create and Add" error claimed before), to fix it, you should do:  
+1. disable CSharpHotfix tool
+2. restart Unity
+3. Unity Toolbar -> CSharpHotfix -> Force Recompile

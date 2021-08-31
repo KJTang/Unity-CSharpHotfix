@@ -63,6 +63,19 @@ namespace CSharpHotfix.Editor
             }
         }
 
+        [MenuItem("CSharpHotfix/Hotfix", false, 2)]
+        public static void TryHotfix()
+        {
+            CSharpHotfixInterpreter.ReloadHotfixFiles();
+        }
+        
+
+        [MenuItem("CSharpHotfix/Force Recompile", false, 3)]
+        public static void ForceRecompileMenu()
+        {
+            ForceRecomiple();
+        }
+
         private static void ForceRecomiple()
         {
             var assetsPath = Application.dataPath;
@@ -84,13 +97,6 @@ namespace CSharpHotfix.Editor
                 }
             }
         }
-
-        [MenuItem("CSharpHotfix/Hotfix", false, 2)]
-        public static void TryHotfix()
-        {
-            CSharpHotfixInterpreter.ReloadHotfixFiles();
-        }
-
 
         [InitializeOnLoadMethod]
         private static void OnInitialized()
