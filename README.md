@@ -3,7 +3,7 @@
 A tool support modify c# code when Unity is playing.
 
 
-## How-to-Use
+## How to Use
 ### Enable Tool
 Unity Toolbar -> CSharpHotfix -> Enable: 
 ![enable tool](Document/enable_tool.png)
@@ -64,11 +64,19 @@ and you will see "Hello World (hotfixed)" in the console:
 ![output hotfix](Document/output_hotfix.png)  
 
 
-## Limited
+
+## Limitations
 There're many limitations when use this tool: 
-* **Cannot Debug**: as we will modify the .dll files when enable tool, you can't debug after then. For example, break points in visual studio will never be triggered. 
-* **Only Support Method**: you can only hotfix method which is already declared in old c# codes. new class/methd/member will be ignored.
-* **Bugs**: as a simple tool just created for testing, it hasn't been test enough.
+
+### Cannot Debug
+as we will modify the .dll files when enable tool, you can't debug after then.  
+For example, break points in visual studio will never been triggered. 
+
+### Only Support Method 
+you can only hotfix method which is already declared in old c# codes. new class/methd/member will be ignored.
+
+### Bugs
+as a simple tool just created for testing, it hasn't been test enough. 
 
 
 ## Run Tests
@@ -79,3 +87,30 @@ we have a few simple test cases included, just click the "Run Tests" button in S
 
 ### After Hotfix
 ![test hotfix](Document/test_hotfix.png)  
+
+### Add new test cases
+#### create test
+if you need add new test cases, just create files to path: 
+```Assets/CSharpHotfix/Tests/```  
+and  
+```YOU_PROJECT/HotfixCSharp/Tests/```  
+
+#### add to test list
+and add you test class to ```CSharpHotfixTestManager```:  
+![add test list](Document/add_test_list.png)  
+
+
+#### write code
+make sure your test class contains a method named 'Fund': 
+``` csharp
+namespace CSharpHotfixTest {
+    public class Test_HotfixMethod
+    {
+        public string Func()
+        {
+            return "hello";
+        }
+    }
+}
+```
+and ```Func``` need return ```"hello"``` in origin code, return ```"hotfixed"``` in hotfix code, cause we use this to check hotfix is successful or not.
