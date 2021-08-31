@@ -16,11 +16,11 @@ namespace CSharpHotfix
         {
             get
             {
-                if (UseIFixConfig)
-                { 
-                    var propInfo = typeof(IFixCfg).GetProperty("ToProcess", BindingFlags.NonPublic | BindingFlags.Static);    
-                    return propInfo.GetValue(null) as IEnumerable<Type>;
-                }
+                //if (UseIFixConfig)
+                //{ 
+                //    var propInfo = typeof(IFixCfg).GetProperty("ToProcess", BindingFlags.NonPublic | BindingFlags.Static);    
+                //    return propInfo.GetValue(null) as IEnumerable<Type>;
+                //}
 
                 return (from type in Assembly.Load("Assembly-CSharp").GetTypes()
                         where !type.Name.Contains("<")

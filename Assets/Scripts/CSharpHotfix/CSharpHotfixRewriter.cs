@@ -600,34 +600,8 @@ namespace CSharpHotfix
                 definitions.Add("UNITY_ANDROID");
             #elif UNITY_STANDALONE
                 definitions.Add("UNITY_STANDALONE");
-                
-            // build flag
-            #elif RELEASE
-                definitions.Add("RELEASE");
-            #elif RETAIL
-                definitions.Add("RETAIL");
-                
-            // others
-            #elif PANDORA_TEST
-                definitions.Add("PANDORA_TEST");
-            #elif ENABLE_PROFILER
-                definitions.Add("ENABLE_PROFILER");
-            #elif TEXTASSET_LOAD_LOCAL
-                definitions.Add("TEXTASSET_LOAD_LOCAL");
-            #elif XLUA
-                definitions.Add("XLUA");
-            #elif AB_IN_STREAMASSETS
-                definitions.Add("AB_IN_STREAMASSETS");
-            #elif GCLOUD_MSDK_WINDOWS
-                definitions.Add("GCLOUD_MSDK_WINDOWS");
-            #elif PC_XVERSION
-                definitions.Add("PC_XVERSION");
-            #elif HEADPACK_ENABLE
-                definitions.Add("HEADPACK_ENABLE");
-            #elif PUFFER_ENABLE
-                definitions.Add("PUFFER_ENABL");
-            #elif GCLOUD_MSDK_WINDOWS
-                definitions.Add("GCLOUD_MSDK_WINDOWS");
+
+            // TODO: add other definitions here
 
             #endif
 
@@ -660,7 +634,6 @@ namespace CSharpHotfix
 
             var newTriviaNode = (new MacroIdentifierRewriter(macroDefinitions)).Visit(triviaNode) as StructuredTriviaSyntax;
             var newTrivia = SyntaxFactory.Trivia(newTriviaNode);
-            //Debug.LogError("Found: " + node.ToString() + " \ttrivia: " + trivia.ToString() + " \tstruct: " + trivia.GetStructure() + " \treplace: " + newTriviaNode);
 
             var triviaList = node.GetLeadingTrivia();
             triviaList = triviaList.Replace(trivia, newTrivia);
