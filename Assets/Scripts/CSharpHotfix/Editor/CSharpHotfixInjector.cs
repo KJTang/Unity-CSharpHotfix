@@ -27,6 +27,8 @@ namespace CSharpHotfix
             "FlyingWormConsole3",       // my console plugin
         };
 
+        private const string injectedFlag = "CSharpHotfixInjectedFlag";
+
         public static void TryInject()
         {
             if (!CSharpHotfixManager.IsHotfixEnabled)
@@ -34,7 +36,7 @@ namespace CSharpHotfix
 
             if (EditorApplication.isCompiling || Application.isPlaying)
             {
-                CSharpHotfixManager.Error("#CS_HOTFIX# TryInject: inject failed, compiling or playing, please re-enable it");
+                CSharpHotfixManager.Error("#CS_HOTFIX# TryInject: inject failed, compiling or playing, please re-try after process finished");
                 CSharpHotfixManager.IsHotfixEnabled = false;
                 return;
             }
@@ -48,6 +50,72 @@ namespace CSharpHotfix
             // CSharpHotfixManager.PrintAllMethodId();
             CSharpHotfixManager.SaveMethodIdToFile();
             CSharpHotfixManager.Message("#CS_HOTFIX# InjectAssembly: inject finished");
+        }
+
+        public static void RevertInject()
+        {
+            if (CSharpHotfixManager.IsHotfixEnabled)
+                return;
+
+            if (EditorApplication.isCompiling || Application.isPlaying)
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed, compiling or playing, please re-try after process finished");
+                CSharpHotfixManager.IsHotfixEnabled = false;
+                return;
+            }
+
+            foreach (var assemblyName in injectAssemblys)
+            {
+                var assemblyPath = GetAssemblyPath(assemblyName);
+                CSharpHotfixManager.Message("#CS_HOTFIX# RevertAssembly: assemblyName: {0} \t{1}", assemblyName, assemblyPath);
+
+                // dll
+                try
+                {
+                    if (System.IO.File.Exists(assemblyPath))
+                        System.IO.File.Delete(assemblyPath);
+                }
+                catch (Exception e)
+                {
+                    CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed: {0}", e);
+                }
+                
+                // pdb
+                try
+                {
+                    var assemblyPDBPath = assemblyPath.Replace(".dll", ".pdb");
+                    if (System.IO.File.Exists(assemblyPDBPath))
+                        System.IO.File.Delete(assemblyPDBPath);
+                }
+                catch (Exception e)
+                {
+                    CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed: {0}", e);
+                }
+
+                // hotfix dll
+                try
+                {
+                    var hotfixPath = assemblyPath.Replace(".dll", ".hotfix.dll");
+                    if (System.IO.File.Exists(hotfixPath))
+                        System.IO.File.Delete(hotfixPath);
+                }
+                catch (Exception e)
+                {
+                    CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed: {0}", e);
+                }
+                
+                // hotfix pdb
+                try
+                {
+                    var hotfixPDBPath = assemblyPath.Replace(".pdb", ".hotfix.pdb");
+                    if (System.IO.File.Exists(hotfixPDBPath))
+                        System.IO.File.Delete(hotfixPDBPath);
+                }
+                catch (Exception e)
+                {
+                    CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed: {0}", e);
+                }
+            }
         }
 
         private static string assemblyDir;
@@ -130,6 +198,16 @@ namespace CSharpHotfix
             if (assembly == null)
                 return;
 
+
+            // check if injected before
+            if (assembly.MainModule.Types.Any(t => t.Name == injectedFlag))
+            {
+                CSharpHotfixManager.Message("#CS_HOTFIX# InjectAssembly: already injected");
+                return;
+            }
+            var objType = assembly.MainModule.ImportReference(typeof(System.Object));
+            var flagType = new TypeDefinition("CSharpHotfix", injectedFlag, Mono.Cecil.TypeAttributes.Class | Mono.Cecil.TypeAttributes.Public, objType);
+            assembly.MainModule.Types.Add(flagType);
 
             // inject il
             try

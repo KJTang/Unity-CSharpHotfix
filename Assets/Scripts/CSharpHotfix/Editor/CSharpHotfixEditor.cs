@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
+using System.IO;
 using System;
 using UnityEngine;
 using UnityEditor;
@@ -10,35 +11,78 @@ using Mono.Cecil.Cil;
 
 namespace CSharpHotfix.Editor
 {
-    public class CSharpHotfixEditor 
+    [InitializeOnLoad]
+    public static class CSharpHotfixEditor 
     {
 
-        [MenuItem("CSharpHotfix/Enable", false, 1)]
-        public static void EnableHotifxMenu()
-        {
-            CSharpHotfixManager.IsHotfixEnabled = true;
+        private const string kEnableBtnName = "CSharpHotfix/Enable";
 
-            // when not playing, inject the dll
-            if (!EditorApplication.isCompiling && !Application.isPlaying)
-                CSharpHotfixInjector.TryInject();
+        static CSharpHotfixEditor() 
+        {
+            var enabled = EditorPrefs.GetBool(kEnableBtnName, false);
+            CSharpHotfixManager.IsHotfixEnabled = enabled;
+
+            // called once after all inspector initilized    
+            //EditorApplication.delayCall += () => {
+            //    EnableHotfix(CSharpHotfixManager.IsHotfixEnabled);
+            //};
         }
-        
-        [MenuItem("CSharpHotfix/Enable", true, 1)]
+         
+        [MenuItem(kEnableBtnName, false, 1)]
+        private static void EnableHotifxMenuCheckMark() 
+        {
+            var enabled = !CSharpHotfixManager.IsHotfixEnabled;
+            EnableHotfix(enabled);
+        }
+
+        [MenuItem(kEnableBtnName, true, 1)]
         public static bool EnableHotifxMenuValidate()
         {
-            return !CSharpHotfixManager.IsHotfixEnabled;
+            if (EditorApplication.isCompiling || Application.isPlaying)
+                return false;
+            return true;
         }
 
-        [MenuItem("CSharpHotfix/Disable", false, 2)]
-        public static void DisableHotifxMenu()
+        private static void EnableHotfix(bool enabled)
         {
-            CSharpHotfixManager.IsHotfixEnabled = false;
+            var changed = enabled != CSharpHotfixManager.IsHotfixEnabled;
+            Menu.SetChecked(kEnableBtnName, enabled);
+            EditorPrefs.SetBool(kEnableBtnName, enabled);
+            CSharpHotfixManager.IsHotfixEnabled = enabled;
+
+            if (changed)
+            {
+                if (enabled)
+                {
+                    CSharpHotfixInjector.TryInject();
+                }
+                else
+                {
+                    ForceRecomiple();
+                }
+            }
         }
-        
-        [MenuItem("CSharpHotfix/Disable", true, 2)]
-        public static bool DisableHotifxMenuValidate()
+
+        private static void ForceRecomiple()
         {
-            return CSharpHotfixManager.IsHotfixEnabled;
+            var assetsPath = Application.dataPath;
+            var assetsUri = new System.Uri(assetsPath);
+            var files = Directory.GetFiles(assetsPath, "CSharpHotfixManager.cs", SearchOption.AllDirectories);
+            foreach (var file in files)
+            { 
+                if (file.EndsWith("CSharpHotfixManager.cs"))
+                {
+                    // delete old assemblies
+                    CSharpHotfixInjector.RevertInject();
+
+                    // reimport to force compile
+			        var relativeUri = assetsUri.MakeRelativeUri(new System.Uri(file));
+			        var relativePath = System.Uri.UnescapeDataString(relativeUri.ToString());
+                    AssetDatabase.ImportAsset(relativePath, ImportAssetOptions.ForceUpdate);
+                    AssetDatabase.Refresh();
+                    break;
+                }
+            }
         }
 
         [MenuItem("CSharpHotfix/Hotfix", false, 2)]
@@ -51,10 +95,14 @@ namespace CSharpHotfix.Editor
         [InitializeOnLoadMethod]
         private static void OnInitialized()
         {
-            CSharpHotfixManager.Message("#CS_HOTFIX# CSharpHotfixEditor.OnInitialized: " + CSharpHotfixManager.IsHotfixEnabled);
-            if (!CSharpHotfixManager.IsHotfixEnabled)
+            var enabled = EditorPrefs.GetBool(kEnableBtnName, false);
+            CSharpHotfixManager.IsHotfixEnabled = false;
+
+            CSharpHotfixManager.Message("#CS_HOTFIX# CSharpHotfixEditor.OnInitialized: is hotfix enabled: " + enabled);
+            if (!enabled)
                 return;
-            CSharpHotfixInjector.TryInject();
+
+            EnableHotfix(true);
         }
 
     }
