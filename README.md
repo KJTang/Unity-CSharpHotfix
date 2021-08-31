@@ -1,4 +1,4 @@
-# CSharpHotfix
+# Unity-CSharpHotfix
 
 A tool support modify c# code when Unity is playing.
 
