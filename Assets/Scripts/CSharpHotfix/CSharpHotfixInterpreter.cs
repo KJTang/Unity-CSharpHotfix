@@ -27,7 +27,7 @@ namespace CSharpHotfix
                 {
                     hotfixDirPath = hotfixDirPath.Remove(pos);
                 }
-                hotfixDirPath = hotfixDirPath + "HotfixCSharp";
+                hotfixDirPath = hotfixDirPath + "CSharpHotfix";
             }
             return hotfixDirPath;
         }

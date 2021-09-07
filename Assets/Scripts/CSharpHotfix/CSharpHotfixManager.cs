@@ -361,7 +361,7 @@ namespace CSharpHotfix
                 {
                     methodIdFilePath = methodIdFilePath.Remove(pos);
                 }
-                methodIdFilePath = methodIdFilePath + "HotfixCSharp/methodId.txt";
+                methodIdFilePath = methodIdFilePath + "CSharpHotfix/methodId.txt";
             }
             return methodIdFilePath;
         }

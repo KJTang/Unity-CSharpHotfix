@@ -35,7 +35,7 @@ run game, you will see "Hello World" in the console:
 
 ### Create Hotfix 
 no need stop game, copy "HelloWorld.cs" to path: 
-```YOU_PROJECT/CSharpHotfix/HelloWorld.cs```
+```YOUR_PROJECT/CSharpHotfix/HelloWorld.cs```
 
 and modify it: 
 ``` csharp
@@ -100,7 +100,7 @@ we have a few simple test cases included, just click the "Run Tests" button in S
 if you need add new test cases, just create files to path: 
 ```Assets/CSharpHotfix/Tests/```  
 and  
-```YOU_PROJECT/HotfixCSharp/Tests/```  
+```YOUR_PROJECT/CSharpHotfix/Tests/```  
 
 #### add to test list
 and add you test class to ```CSharpHotfixTestManager```:  
