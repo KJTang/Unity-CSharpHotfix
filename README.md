@@ -35,7 +35,7 @@ run game, you will see "Hello World" in the console:
 
 ### Create Hotfix 
 no need stop game, copy "HelloWorld.cs" to path: 
-```YOUR_PROJECT/CSharpHotfix/HelloWorld.cs```
+```YOUR_PROJECT/CSharpHotfix/Code/HelloWorld.cs```
 
 and modify it: 
 ``` csharp
