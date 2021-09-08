@@ -1,5 +1,3 @@
-#define COMPATIBLE_MODE
-
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -7,17 +5,11 @@ using System.Linq;
 using System.IO;
 using System;
 using System.Text;
-using UnityEngine;
-using UnityEditor;
-using Mono.Cecil;
-
-#if !COMPATIBLE_MODE
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-#endif
 
-namespace CSharpHotfix
+namespace CSharpHotfixTool
 {
     public class CSharpHotfixInterpreter 
     {
@@ -33,64 +25,9 @@ namespace CSharpHotfix
 
         private static IEnumerable<Assembly> GetReferencableAssemblies()
         {
-            return CSharpHotfixManager.GetAssemblies().Where(assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location));
+            var assemblies = CSharpHotfixManager.GetAssemblies().Where(assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location));
+            return assemblies;
         }
-        
-
-        private static string hotfixAssemblyDir;
-        private static string hotfixDllName = "CSHotfix_Assembly.dll";
-        private static string GetHotfixAssemblyPath()
-        {
-            if (hotfixAssemblyDir == null)
-            {
-                hotfixAssemblyDir = CSharpHotfixManager.GetAppRootPath() + "Library/ScriptAssemblies/";
-            }
-            var hotfixAssemblyPath = hotfixAssemblyDir + hotfixDllName;
-            return hotfixAssemblyPath;
-        }
-
-        public static void HotfixFromAssembly()
-        {
-            // load assembly from file
-            var hotfixStream = new MemoryStream();
-            using (var fileStream = new FileStream(GetHotfixAssemblyPath(), FileMode.Open, System.IO.FileAccess.Read)) 
-            {
-                byte[] bytes = new byte[fileStream.Length];
-                fileStream.Read(bytes, 0, (int)fileStream.Length);
-                hotfixStream.Write(bytes, 0, bytes.Length);
-            }
-
-            // save methodinfo
-            CSharpHotfixManager.ClearMethodInfo();
-            var hotfixAssembly = Assembly.Load(hotfixStream.GetBuffer(), null);
-            var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-            var typeLst = hotfixAssembly.GetTypes();
-            foreach (var type in typeLst)
-            {
-                var methodLst = type.GetMethods(bindingFlags);
-                foreach (var methodInfo in methodLst)
-                {
-                    var signature = CSharpHotfixManager.GetMethodSignature(methodInfo);
-                    var fixedSignature = CSharpHotfixManager.FixHotfixMethodSignature(signature);
-                    var methodId = CSharpHotfixManager.GetMethodId(fixedSignature);
-                    if (methodId <= 0) 
-                        continue;
-
-                    var state = CSharpHotfixManager.GetHotfixMethodStaticState(signature);
-                    CSharpHotfixManager.SetMethodInfo(methodId, methodInfo, state == 2);
-                    CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: {0} \t{1}", methodId, fixedSignature);
-                }
-            }
-
-            // close stream
-            hotfixStream.Close();
-            
-            // debug: 
-            //CSharpHotfixManager.PrintAllMethodInfo();
-            CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: hotfix (compatible mode) finished");
-        }
-        
-#if !COMPATIBLE_MODE
 
         private static IEnumerable<MetadataReference> GetMetadataReferences()
         {
@@ -102,8 +39,22 @@ namespace CSharpHotfix
             }
             return references;
         }
+        
 
-        public static void HotfixFromCodeFiles()
+        private static string hotfixAssemblyDir;
+        private static string hotfixDllName = "CSHotfix_Assembly.dll";
+        
+        private static string GetHotfixAssemblyPath()
+        {
+            if (hotfixAssemblyDir == null)
+            {
+                hotfixAssemblyDir = CSharpHotfixManager.GetAppRootPath() + "Library/ScriptAssemblies/";
+            }
+            var hotfixAssemblyPath = hotfixAssemblyDir + hotfixDllName;
+            return hotfixAssemblyPath;
+        }
+
+        public static void ReloadHotfixFiles()
         {
             if (!CSharpHotfixManager.IsMethodIdFileExist())
             {
@@ -137,34 +88,13 @@ namespace CSharpHotfix
             // get assembly
             //var assembly = Assembly.Load(hotfixStream.ToArray(), null);
 
+            Console.WriteLine("hotfix assembly: " + GetHotfixAssemblyPath());
             // save assembly to file (used to debug it)
             using (var fileStream = new FileStream(GetHotfixAssemblyPath(), FileMode.Create, System.IO.FileAccess.Write)) 
             {
                 byte[] bytes = new byte[hotfixStream.Length];
                 hotfixStream.Read(bytes, 0, (int)hotfixStream.Length);
                 fileStream.Write(bytes, 0, bytes.Length);
-            }
-
-            // save methodinfo
-            CSharpHotfixManager.ClearMethodInfo();
-            var hotfixAssembly = Assembly.Load(hotfixStream.GetBuffer(), null);
-            var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-            var typeLst = hotfixAssembly.GetTypes();
-            foreach (var type in typeLst)
-            {
-                var methodLst = type.GetMethods(bindingFlags);
-                foreach (var methodInfo in methodLst)
-                {
-                    var signature = CSharpHotfixManager.GetMethodSignature(methodInfo);
-                    var fixedSignature = CSharpHotfixManager.FixHotfixMethodSignature(signature);
-                    var methodId = CSharpHotfixManager.GetMethodId(fixedSignature);
-                    if (methodId <= 0) 
-                        continue;
-
-                    var state = CSharpHotfixManager.GetHotfixMethodStaticState(signature);
-                    CSharpHotfixManager.SetMethodInfo(methodId, methodInfo, state == 2);
-                    CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: {0} \t{1}", methodId, fixedSignature);
-                }
             }
 
             // close stream
@@ -199,8 +129,8 @@ namespace CSharpHotfix
                 }
             }
 
-            // parse test code
-            if (CSharpHotfixTestManager.EnableTest)
+            // parse test code ( always hotfix them )
+            //if (CSharpHotfixTestManager.EnableTest)
             {
                 for (var i = 0; i != files.Length; ++i)
                 {
@@ -208,8 +138,8 @@ namespace CSharpHotfix
                     if (fileInfo.Directory.Name != "Tests")
                         continue;
 
-                    if (!CSharpHotfixTestManager.IsTestFileEnabled(fileInfo.Name.Split('.')[0]))
-                        continue;
+                    //if (!CSharpHotfixTestManager.IsTestFileEnabled(fileInfo.Name.Split('.')[0]))
+                    //    continue;
 
                     CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: load test hotfix file: " + fileInfo.FullName);
                     using (var streamReader = fileInfo.OpenText())
@@ -450,8 +380,6 @@ namespace CSharpHotfix
 
             return hotfixDllStream;
         }
-
-#endif
     }
 
 }

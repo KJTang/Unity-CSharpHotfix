@@ -1,5 +1,4 @@
 ﻿// #define CSHOTFIX_ENABLE_LOG
-#define COMPATIBLE_MODE
 
 using System.Collections;
 using System.Collections.Generic;
@@ -9,28 +8,14 @@ using System.Linq;
 using System.Diagnostics;
 using System.IO;
 using System;
-using UnityEngine;
-using UnityEngine.Assertions;
-using Mono.Cecil;
-
-#if !COMPATIBLE_MODE
 using Microsoft.CodeAnalysis;
-#endif
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace CSharpHotfix
+namespace CSharpHotfixTool
 {
     public class CSharpHotfixManager 
     {
-        public static bool IsHotfixEnabled
-        {
-            get { return isHotfixEnabled; }
-            set
-            {
-                isHotfixEnabled = value;
-            }
-        }
-        private static bool isHotfixEnabled = false;
-
         
         private static Assembly[] assemblies;
         public static Assembly[] GetAssemblies()
@@ -42,11 +27,35 @@ namespace CSharpHotfix
             return assemblies;
         }
 
+        public static void LoadAssemblies(string assemblyPathStr)
+        {
+            var assembiesPathLst = assemblyPathStr.Split(';');
+            foreach (var assemblyPath in assembiesPathLst)
+            {
+                if (string.IsNullOrEmpty(assemblyPath))
+                    continue;
+                Assembly.LoadFile(assemblyPath);
+            }
+        }
+        
+        private static string appRootPath;
+        public static string GetAppRootPath()
+        {
+            // now we need manully set it
+            return appRootPath;
+        }
+
+        public static void SetAppRootPath(string path)
+        {
+            appRootPath = path;
+        }
+
 #region log
         [Conditional("CSHOTFIX_ENABLE_LOG")]
         public static void Log(string message, params object[] args)
         {
-            UnityEngine.Debug.LogFormat(message, args);
+            Console.WriteLine(message, args);
+            //UnityEngine.Debug.LogFormat(message, args);
         }
 
         public static void Warning(string message, params object[] args)
@@ -56,12 +65,14 @@ namespace CSharpHotfix
 
         public static void Error(string message, params object[] args)
         {
-            UnityEngine.Debug.LogErrorFormat(message, args);
+            Console.WriteLine(message, args);
+            //UnityEngine.Debug.LogErrorFormat(message, args);
         }
 
         public static void Message(string message, params object[] args)
         {
-            UnityEngine.Debug.LogFormat(message, args);
+            Console.WriteLine(message, args);
+            //UnityEngine.Debug.LogFormat(message, args);
         }
 
 #endregion log
@@ -125,45 +136,44 @@ namespace CSharpHotfix
         /// </summary>
         /// <param name="method"></param>
         /// <returns></returns>
-        public static string GetMethodSignature(MethodDefinition method)
-        {
-            methodSignatureBuilder.Length = 0;
+        //public static string GetMethodSignature(MethodDefinition method)
+        //{
+        //    methodSignatureBuilder.Length = 0;
 
-            // fullname
-            var methodName = method.Name;
-            var namespaceName = method.DeclaringType.FullName;
-            methodName = namespaceName + "." + methodName;
-            methodSignatureBuilder.Append(methodName);
-            methodSignatureBuilder.Append(";");
+        //    // fullname
+        //    var methodName = method.Name;
+        //    var namespaceName = method.DeclaringType.FullName;
+        //    methodName = namespaceName + "." + methodName;
+        //    methodSignatureBuilder.Append(methodName);
+        //    methodSignatureBuilder.Append(";");
 
-            // static
-            var isStatic = method.IsStatic ? "Static" : "NonStatic";
-            methodSignatureBuilder.Append(isStatic);
-            methodSignatureBuilder.Append(";");
+        //    // static
+        //    var isStatic = method.IsStatic ? "Static" : "NonStatic";
+        //    methodSignatureBuilder.Append(isStatic);
+        //    methodSignatureBuilder.Append(";");
 
-            // return type
-            var returnType = method.ReturnType.FullName;
-            methodSignatureBuilder.Append(returnType);
-            methodSignatureBuilder.Append(";");
+        //    // return type
+        //    var returnType = method.ReturnType.FullName;
+        //    methodSignatureBuilder.Append(returnType);
+        //    methodSignatureBuilder.Append(";");
 
-            // generic
-            var genericArgs = method.GenericParameters;
-            methodSignatureBuilder.Append(genericArgs.Count.ToString());
-            methodSignatureBuilder.Append(";");
+        //    // generic
+        //    var genericArgs = method.GenericParameters;
+        //    methodSignatureBuilder.Append(genericArgs.Count.ToString());
+        //    methodSignatureBuilder.Append(";");
 
-            // parameters
-            var parameters = method.Parameters;
-            foreach (var param in parameters)
-            {
-                methodSignatureBuilder.Append(param.ParameterType.FullName);
-                methodSignatureBuilder.Append(",");
-            }
-            methodSignatureBuilder.Append(";");
+        //    // parameters
+        //    var parameters = method.Parameters;
+        //    foreach (var param in parameters)
+        //    {
+        //        methodSignatureBuilder.Append(param.ParameterType.FullName);
+        //        methodSignatureBuilder.Append(",");
+        //    }
+        //    methodSignatureBuilder.Append(";");
 
-            return methodSignatureBuilder.ToString();
-        }
+        //    return methodSignatureBuilder.ToString();
+        //}
 
-#if !COMPATIBLE_MODE
         /// <summary>
         /// get method signature for Roslyn symbol
         /// </summary>
@@ -219,7 +229,34 @@ namespace CSharpHotfix
             return symbolName;
         }
 
-#endif
+
+        //public static string GetMethodSignature(MethodDeclarationSyntax method)
+        //{
+        //    methodSignatureBuilder.Length = 0;
+
+        //    // fullname
+        //    var methodName = method.Identifier.Text;
+        //    var node = method.Parent;
+        //    while (node != null)
+        //    {
+        //        var classNode = node as ClassDeclarationSyntax;
+        //        var namespaceNode = node as NamespaceDeclarationSyntax;
+        //        if (classNode != null)
+        //        {
+        //            methodName = classNode.Identifier.Text + "." + methodName;
+        //        }
+        //        else if (namespaceNode != null)
+        //        {
+        //            methodName = namespaceNode.Name.ToString() + "." + methodName;
+        //        }
+        //    }
+        //    methodSignatureBuilder.Append(methodName);
+        //    methodSignatureBuilder.Append(";");
+
+        //    // TODO: 
+        //    return methodSignatureBuilder.ToString();
+        //}
+        
 
         public static string FixHotfixMethodSignature(string signature)
         {
@@ -324,23 +361,7 @@ namespace CSharpHotfix
                 CSharpHotfixManager.Message("#CS_HOTFIX# MethodId: {0} \tSignature: {1}", kv.Value, kv.Key);
             }
         }
-
-        private static string appRootPath;
-        public static string GetAppRootPath()
-        {
-            if (string.IsNullOrEmpty(appRootPath))
-            {
-                var path = Application.dataPath;
-                var pos = path.IndexOf("Assets");
-                if (pos >= 0)
-                {
-                    path = path.Remove(pos);
-                }
-                appRootPath = path;
-            }
-            return appRootPath;
-        }
-
+        
         private static string methodIdFilePath;
         public static string GetMethodIdFilePath()
         {
@@ -409,99 +430,12 @@ namespace CSharpHotfix
 
 #endregion
         
-
-#region method wrapper
-
-        public class WrapMethodInfo
-        {
-            public MethodInfo methodInfo;
-            public int paramOffset;
-        }
-
-        private static Dictionary<int, WrapMethodInfo> methodInfoDict = new Dictionary<int, WrapMethodInfo>();
-
-        public static WrapMethodInfo GetMethodInfo(int methodId)
-        {
-            // UnityEngine.Debug.LogErrorFormat("GetMethodInfo: {0} \t{1}", methodId, methodInfoDict.ContainsKey(methodId));
-            WrapMethodInfo methodInfo;
-            if (methodInfoDict.TryGetValue(methodId, out methodInfo))
-            {
-                return methodInfo;
-            }
-            return null;
-        }
-
-        public static void SetMethodInfo(int methodId, MethodInfo methodInfo, bool isNonStaticMethod = false)
-        {
-            var methodData = new WrapMethodInfo();
-            methodData.methodInfo = methodInfo;
-            if (!isNonStaticMethod)
-                methodData.paramOffset = 2; // methodId, instance
-            else
-                methodData.paramOffset = 1; // methodId
-
-            methodInfoDict.Add(methodId, methodData);
-        }
-
-        public static void ClearMethodInfo()
-        {
-            methodInfoDict.Clear();
-        }
-
-        public static void PrintAllMethodInfo()
-        {
-            CSharpHotfixManager.Message("#CS_HOTFIX# PrintAllMethodInfo: {0}", methodInfoDict.Count);
-            foreach (var kv in methodInfoDict)
-            {
-                CSharpHotfixManager.Message("#CS_HOTFIX# methodInfo: {0} \t{1}", kv.Key, kv.Value);
-            }
-        }
-
-        public static bool HasMethodInfo(int methodId)
-        {
-            return methodInfoDict.ContainsKey(methodId);
-        }
-
-        public static void MethodReturnVoidWrapper(object[] objList)
-        {
-            var methodId = (System.Int32) objList[0];
-            var methodInfo = GetMethodInfo(methodId);
-            Assert.IsNotNull(methodInfo);
-
-            var offset = methodInfo.paramOffset;
-            var len = objList.Length - offset;
-            var param = new object[len];
-            for (var i = 0; i != len; ++i)
-                param[i] = objList[i + offset];
-
-            var instance = objList[1];
-            methodInfo.methodInfo.Invoke(instance, param);
-        }
-
-        public static object MethodReturnObjectWrapper(object[] objList)
-        {
-            var methodId = (System.Int32) objList[0];
-            var methodInfo = GetMethodInfo(methodId);
-            Assert.IsNotNull(methodInfo);
-            
-            var offset = methodInfo.paramOffset;
-            var len = objList.Length - offset;
-            var param = new object[len];
-            for (var i = 0; i != len; ++i)
-                param[i] = objList[i + offset];
-
-            var instance = objList[1];
-            return methodInfo.methodInfo.Invoke(instance, param);
-        }
-
-        #endregion
-
-
+        
 #region reflection helper
         public static object ReflectionGet(string typeName, object instance, string memberName)
         {
             var reflectionData = GetReflectionData(typeName);
-            Assert.IsNotNull(reflectionData, "cannot get reflection data for typeName: " + typeName);
+            Debug.Assert(reflectionData != null, "cannot get reflection data for typeName: " + typeName);
 
             // try field
             FieldInfo field;
@@ -524,14 +458,14 @@ namespace CSharpHotfix
                 return Delegate.CreateDelegate(reflectionData.type, instance, method);
             }
 
-            Assert.IsTrue(false, "not found member in typeName: " + typeName + " \t" + memberName);
+            Debug.Assert(false, "not found member in typeName: " + typeName + " \t" + memberName);
             return null;
         }
 
         public static void ReflectionSet(string typeName, object instance, string memberName, object value)
         {
             var reflectionData = GetReflectionData(typeName);
-            Assert.IsNotNull(reflectionData, "cannot get reflection data for typeName: " + typeName);
+            Debug.Assert(reflectionData != null, "cannot get reflection data for typeName: " + typeName);
 
             // try field
             FieldInfo field;
@@ -549,13 +483,13 @@ namespace CSharpHotfix
                 return;
             }
 
-            Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
+            Debug.Assert(false, "not found member in type: " + typeName + " \t" + memberName);
         }
 
         public static void ReflectionReturnVoidInvoke(string typeName, object instance, string memberName, params object[] parameters)
         {
             var reflectionData = GetReflectionData(typeName);
-            Assert.IsNotNull(reflectionData, "cannot get reflection data for typeName: " + typeName);
+            Debug.Assert(reflectionData != null, "cannot get reflection data for typeName: " + typeName);
 
             // try method
             MethodInfo method;
@@ -565,14 +499,14 @@ namespace CSharpHotfix
                 return;
             }
 
-            Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
+            Debug.Assert(false, "not found member in type: " + typeName + " \t" + memberName);
         }
         
 
         public static object ReflectionReturnObjectInvoke(string typeName, object instance, string memberName, params object[] parameters)
         {
             var reflectionData = GetReflectionData(typeName);
-            Assert.IsNotNull(reflectionData, "cannot get reflection data for typeName: " + typeName);
+            Debug.Assert(reflectionData != null, "cannot get reflection data for typeName: " + typeName);
 
             // try method
             MethodInfo method;
@@ -581,14 +515,14 @@ namespace CSharpHotfix
                 return method.Invoke(instance, parameters);
             }
 
-            Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
+            Debug.Assert(false, "not found member in type: " + typeName + " \t" + memberName);
             return null;
         }
 
         public static Type ReflectionGetMemberType(string typeName, string memberName)
         {
             var reflectionData = GetReflectionData(typeName);
-            Assert.IsNotNull(reflectionData, "cannot get reflection data for typeName: " + typeName);
+            Debug.Assert(reflectionData != null, "cannot get reflection data for typeName: " + typeName);
 
             // try field
             FieldInfo field;
@@ -611,7 +545,7 @@ namespace CSharpHotfix
                 return method.ReturnType;
             }
 
-            Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
+            Debug.Assert(false, "not found member in type: " + typeName + " \t" + memberName);
             return null;
         }
 
@@ -624,24 +558,24 @@ namespace CSharpHotfix
 
             public void Print()
             {
-                UnityEngine.Debug.Log("ReflectionData: " + type);
+                CSharpHotfixManager.Log("ReflectionData: " + type);
 
                 foreach (var kv in methods)
                 {
                     var method = kv.Value;
-                    UnityEngine.Debug.Log("method: " + method.Name);
+                    CSharpHotfixManager.Log("method: " + method.Name);
                 }
 
                 foreach (var kv in fields)
                 {
                     var field = kv.Value;
-                    UnityEngine.Debug.Log("field: " + field.Name);
+                    CSharpHotfixManager.Log("field: " + field.Name);
                 }
             
                 foreach (var kv in props)
                 {
                     var property = kv.Value;
-                    UnityEngine.Debug.Log("property: " + property.Name);
+                    CSharpHotfixManager.Log("property: " + property.Name);
                 }
             }
 
@@ -709,6 +643,7 @@ namespace CSharpHotfix
         }
 
 #endregion
+
     }
 
 }

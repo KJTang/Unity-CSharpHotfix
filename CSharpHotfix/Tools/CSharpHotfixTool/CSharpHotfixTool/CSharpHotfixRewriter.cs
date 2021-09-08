@@ -1,21 +1,15 @@
-#define COMPATIBLE_MODE
-
-#if !COMPATIBLE_MODE
-
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
 using System.IO;
 using System;
 using System.Text;
-using UnityEngine;
-using UnityEngine.Assertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace CSharpHotfix
+namespace CSharpHotfixTool
 {
     public struct HotfixClassData
     {
@@ -268,7 +262,7 @@ namespace CSharpHotfix
                     break;
                 }
             }
-            Assert.IsNotNull(classType, "invalid class name: " + className);
+            //Assert.IsNotNull(classType, "invalid class name: " + className);
 
             var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
             var methods = classType.GetMethods(bindingFlags);
@@ -812,7 +806,7 @@ namespace CSharpHotfix
                     break;
                 }
             }
-            Assert.IsNotNull(classType, "invalid class name: " + className);
+            //Assert.IsNotNull(classType, "invalid class name: " + className);
 
             var methodName = node.Identifier.Text;
             var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
@@ -829,7 +823,7 @@ namespace CSharpHotfix
                     // break;
                 }
             }
-            Assert.IsFalse(hasOverride, "TODO: currently not support hotfix override method");
+            //Assert.IsFalse(hasOverride, "TODO: currently not support hotfix override method");
             if (matched != null)
                 return false;
 
@@ -877,15 +871,3 @@ namespace CSharpHotfix
         }
     }
 }
-
-#else
-
-    public class CSharpHotfixRewriter
-    {
-        public static readonly string InstanceParamName = "__INST__";
-        public static readonly string ClassNamePostfix = "__HOTFIX_CLS";
-        public static readonly string MethodNamePostfix = "__HOTFIX_MTD";
-        public static readonly string StaticMethodNamePostfix = "__HOTFIX_MTD_S";
-    }
-
-#endif

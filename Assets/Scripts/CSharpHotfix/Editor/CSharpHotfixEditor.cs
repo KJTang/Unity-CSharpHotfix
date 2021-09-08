@@ -1,13 +1,15 @@
-﻿using System.Collections;
+﻿#define COMPATIBLE_MODE
+
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
 using System.IO;
 using System;
+using System.Text;
+using System.Diagnostics;
 using UnityEngine;
 using UnityEditor;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
 
 namespace CSharpHotfix.Editor
 {
@@ -63,11 +65,101 @@ namespace CSharpHotfix.Editor
             }
         }
 
+#if !COMPATIBLE_MODE
         [MenuItem("CSharpHotfix/Hotfix", false, 2)]
         public static void TryHotfix()
         {
-            CSharpHotfixInterpreter.ReloadHotfixFiles();
+            CSharpHotfixInterpreter.HotfixFromCodeFiles();
         }
+#endif
+        
+#if COMPATIBLE_MODE
+        [MenuItem("CSharpHotfix/Hotfix (Compatible Mode)", false, 2)]
+        public static void TryHotfixCompatibleMode()
+        {
+            var monoPath = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName),
+                "Data/MonoBleedingEdge/bin/mono.exe");
+            if (!File.Exists(monoPath))
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# TryHotfix (Compatible Mode): can not find mono: {0}", monoPath);
+                return;
+            }
+
+            var toolPath = CSharpHotfixManager.GetAppRootPath() + "CSharpHotfix/Tools/CSharpHotfixTool/CSharpHotfixTool/bin/Debug/net472/CSharpHotfixTool.exe";
+            if (!File.Exists(toolPath))
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# TryHotfix (Compatible Mode): can not find hotfix tool: {0}", toolPath);
+                return;
+            }
+
+            var hotfixProc = new Process();
+            hotfixProc.StartInfo.FileName = monoPath;
+            hotfixProc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            hotfixProc.StartInfo.RedirectStandardOutput = true;
+            hotfixProc.StartInfo.UseShellExecute = false;
+            hotfixProc.StartInfo.CreateNoWindow = true;
+
+            // arguments
+            // proj path
+            var projPath = CSharpHotfixManager.GetAppRootPath();
+
+            // assemblies
+            var assemblies = CSharpHotfixManager.GetAssemblies();
+            var sb = new StringBuilder();
+            foreach (var assembly in assemblies)
+            {
+                if (assembly.IsDynamic)
+                    continue;
+                sb.Append(assembly.Location);
+                sb.Append(";");
+            }
+
+            hotfixProc.StartInfo.Arguments = "--debug " + 
+                "\"" + toolPath + "\" " + 
+                "\"" + projPath + "\" " + 
+                "\"" + sb.ToString() + "\" ";
+            
+            //UnityEngine.Debug.LogError(hotfixProc.StartInfo.FileName);
+            //UnityEngine.Debug.LogError(hotfixProc.StartInfo.Arguments);
+            hotfixProc.Start();
+
+            // get output
+            StringBuilder exceptionInfo = null;
+            while (!hotfixProc.StandardOutput.EndOfStream)
+            {
+                string line = hotfixProc.StandardOutput.ReadLine();
+                if (exceptionInfo != null)
+                {
+                    exceptionInfo.AppendLine(line);
+                }
+                else
+                {
+                    if (line.StartsWith("Unhandled Exception:"))
+                    {
+                        exceptionInfo = new StringBuilder(line);
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.Log("#CS_HOTFIX# compatible mode: " + line);
+                    }
+                }
+            }
+            hotfixProc.WaitForExit();
+            if (exceptionInfo != null)
+            {
+                CSharpHotfixManager.Error(exceptionInfo.ToString());
+            }
+
+            var succ = exceptionInfo == null;
+            if (!succ)
+            {
+                UnityEngine.Debug.LogError("hotfix (compatible mode) finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
+                return;
+            }
+
+            CSharpHotfixInterpreter.HotfixFromAssembly();
+        }
+#endif
         
 
         [MenuItem("CSharpHotfix/Force Recompile", false, 3)]

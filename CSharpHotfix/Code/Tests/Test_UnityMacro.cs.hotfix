@@ -10,7 +10,7 @@ namespace CSharpHotfixTest {
     {
         static public string Func__HOTFIX_MTD(Test_UnityMacro __INST__)
         {
-            #if true && MACRO_TEST
+            #if UNITY_EDITOR && MACRO_TEST
                 return "hotfixed";
             #endif
 

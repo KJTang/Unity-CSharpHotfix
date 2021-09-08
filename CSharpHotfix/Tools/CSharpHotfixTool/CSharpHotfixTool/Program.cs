@@ -18,7 +18,23 @@ namespace CSharpHotfixTool
     {
         static void Main(string[] args)
         {
-            //
+            // args: projPath, assemblies
+            var argsLen = 2;
+            if (args.Length < argsLen)
+            {
+                Console.WriteLine("args length invalid");
+                return;
+            }
+
+            // projPath
+            Console.WriteLine("ProjPath: " + args[0]);
+            CSharpHotfixManager.SetAppRootPath(args[0]);
+
+            // assemblies
+            CSharpHotfixManager.LoadAssemblies(args[1]);
+
+            // do hotfix
+            CSharpHotfixInterpreter.ReloadHotfixFiles();
         }
     }
 }
