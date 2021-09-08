@@ -350,18 +350,28 @@ namespace CSharpHotfix
             }
         }
 
+        private static string appRootPath;
+        public static string GetAppRootPath()
+        {
+            if (string.IsNullOrEmpty(appRootPath))
+            {
+                var path = Application.dataPath;
+                var pos = path.IndexOf("Assets");
+                if (pos >= 0)
+                {
+                    path = path.Remove(pos);
+                }
+                appRootPath = path;
+            }
+            return appRootPath;
+        }
+
         private static string methodIdFilePath;
-        private static string GetMethodIdFilePath()
+        public static string GetMethodIdFilePath()
         {
             if (methodIdFilePath == null)
             {
-                methodIdFilePath = Application.dataPath;
-                var pos = methodIdFilePath.IndexOf("Assets");
-                if (pos >= 0)
-                {
-                    methodIdFilePath = methodIdFilePath.Remove(pos);
-                }
-                methodIdFilePath = methodIdFilePath + "CSharpHotfix/methodId.txt";
+                methodIdFilePath = CSharpHotfixManager.GetAppRootPath() + "CSharpHotfix/methodId.txt";
             }
             return methodIdFilePath;
         }

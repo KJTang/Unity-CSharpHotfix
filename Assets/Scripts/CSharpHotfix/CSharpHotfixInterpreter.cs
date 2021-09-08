@@ -21,13 +21,7 @@ namespace CSharpHotfix
         {
             if (hotfixDirPath == null)
             {
-                hotfixDirPath = Application.dataPath;
-                var pos = hotfixDirPath.IndexOf("Assets");
-                if (pos >= 0)
-                {
-                    hotfixDirPath = hotfixDirPath.Remove(pos);
-                }
-                hotfixDirPath = hotfixDirPath + "CSharpHotfix/Code";
+                hotfixDirPath = CSharpHotfixManager.GetAppRootPath() + "CSharpHotfix/Code";
             }
             return hotfixDirPath;
         }
@@ -63,13 +57,7 @@ namespace CSharpHotfix
         {
             if (hotfixAssemblyDir == null)
             {
-                hotfixAssemblyDir = Application.dataPath;
-                var pos = hotfixAssemblyDir.IndexOf("Assets");
-                if (pos >= 0)
-                {
-                    hotfixAssemblyDir = hotfixAssemblyDir.Remove(pos);
-                }
-                hotfixAssemblyDir = hotfixAssemblyDir + "Library/ScriptAssemblies/";
+                hotfixAssemblyDir = CSharpHotfixManager.GetAppRootPath() + "Library/ScriptAssemblies/";
             }
             var hotfixAssemblyPath = hotfixAssemblyDir + hotfixDllName;
             return hotfixAssemblyPath;
