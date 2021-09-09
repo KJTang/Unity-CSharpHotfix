@@ -1,6 +1,4 @@
-#define COMPATIBLE_MODE
-
-#if !COMPATIBLE_MODE
+#if !CSHOFIX_COMPATIBLE_MODE
 
 using System.Collections;
 using System.Collections.Generic;

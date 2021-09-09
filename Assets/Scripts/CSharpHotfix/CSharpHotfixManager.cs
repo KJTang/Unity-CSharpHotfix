@@ -1,6 +1,4 @@
 ﻿// #define CSHOTFIX_ENABLE_LOG
-#define COMPATIBLE_MODE
-
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -13,7 +11,7 @@ using UnityEngine;
 using UnityEngine.Assertions;
 using Mono.Cecil;
 
-#if !COMPATIBLE_MODE
+#if !CSHOFIX_COMPATIBLE_MODE
 using Microsoft.CodeAnalysis;
 #endif
 
@@ -163,7 +161,7 @@ namespace CSharpHotfix
             return methodSignatureBuilder.ToString();
         }
 
-#if !COMPATIBLE_MODE
+#if !CSHOFIX_COMPATIBLE_MODE
         /// <summary>
         /// get method signature for Roslyn symbol
         /// </summary>

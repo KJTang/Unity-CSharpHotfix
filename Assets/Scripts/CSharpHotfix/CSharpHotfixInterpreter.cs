@@ -1,5 +1,3 @@
-#define COMPATIBLE_MODE
-
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -11,7 +9,7 @@ using UnityEngine;
 using UnityEditor;
 using Mono.Cecil;
 
-#if !COMPATIBLE_MODE
+#if !CSHOFIX_COMPATIBLE_MODE
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -90,7 +88,7 @@ namespace CSharpHotfix
             CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: hotfix (compatible mode) finished");
         }
         
-#if !COMPATIBLE_MODE
+#if !CSHOFIX_COMPATIBLE_MODE
 
         private static IEnumerable<MetadataReference> GetMetadataReferences()
         {

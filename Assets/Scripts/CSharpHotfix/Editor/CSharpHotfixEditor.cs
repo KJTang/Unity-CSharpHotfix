@@ -1,6 +1,4 @@
-﻿#define COMPATIBLE_MODE
-
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
@@ -65,7 +63,7 @@ namespace CSharpHotfix.Editor
             }
         }
 
-#if !COMPATIBLE_MODE
+#if !CSHOFIX_COMPATIBLE_MODE
         [MenuItem("CSharpHotfix/Hotfix", false, 2)]
         public static void TryHotfix()
         {
@@ -73,7 +71,7 @@ namespace CSharpHotfix.Editor
         }
 #endif
         
-#if COMPATIBLE_MODE
+#if CSHOFIX_COMPATIBLE_MODE
         [MenuItem("CSharpHotfix/Hotfix (Compatible Mode)", false, 2)]
         public static void TryHotfixCompatibleMode()
         {
