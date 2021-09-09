@@ -578,39 +578,7 @@ namespace CSharpHotfixTool
 
         public UnityMacroRewriter() 
         {
-            var definitions = new HashSet<string>();
-
-            #if UNITY_EDITOR
-                var defineSymbols = UnityEditor.PlayerSettings.GetScriptingDefineSymbolsForGroup(UnityEditor.BuildTargetGroup.Standalone);
-                var symbolLst = defineSymbols.Split(';');
-                foreach (var symbol in symbolLst)
-                    if (!string.IsNullOrEmpty(symbol))
-                        definitions.Add(symbol);
-            #endif
-
-
-            // platform
-            #if UNITY_EDITOR
-                definitions.Add("UNITY_EDITOR");
-            #elif UNITY_IOS
-                definitions.Add("UNITY_IOS");
-            #elif UNITY_ANDROID
-                definitions.Add("UNITY_ANDROID");
-            #elif UNITY_STANDALONE
-                definitions.Add("UNITY_STANDALONE");
-
-            // TODO: add other definitions here
-
-            #endif
-
-
-            macroDefinitions = definitions;
-
-            //Debug.LogError("def cnt: " + macroDefinitions.Count);
-            //foreach (var def in macroDefinitions)
-            //{
-            //    Debug.LogError("def: " + def);
-            //}
+            macroDefinitions = CSharpHotfixManager.GetMacroDefinitions();
         }
 
         public override SyntaxNode Visit(SyntaxNode node)

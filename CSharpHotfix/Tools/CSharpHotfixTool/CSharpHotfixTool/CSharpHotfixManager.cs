@@ -50,6 +50,26 @@ namespace CSharpHotfixTool
             appRootPath = path;
         }
 
+        
+
+        private static HashSet<string> macroDefinitions;
+        
+        public static HashSet<string> GetMacroDefinitions() 
+        {
+            return macroDefinitions;
+        }
+
+        public static void SetMacroDefinitions(string definitionsStr)
+        {
+            macroDefinitions = new HashSet<string>();
+
+            var definitions = definitionsStr.Split(';');
+            foreach (var define in definitions)
+            {
+                macroDefinitions.Add(define);
+            }
+        }
+
 #region log
         [Conditional("CSHOTFIX_ENABLE_LOG")]
         public static void Log(string message, params object[] args)

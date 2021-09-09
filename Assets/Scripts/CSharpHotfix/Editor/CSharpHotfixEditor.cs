@@ -111,11 +111,24 @@ namespace CSharpHotfix.Editor
                 sb.Append(assembly.Location);
                 sb.Append(";");
             }
+            var assembliesStr = sb.ToString();
+
+            // defines
+            var definitions = CSharpHotfixManager.GetMacroDefinitions();
+            sb.Length = 0;
+            foreach (var define in definitions)
+            {
+                sb.Append(define);
+                sb.Append(";");
+            }
+            var definitionsStr = sb.ToString();
 
             hotfixProc.StartInfo.Arguments = "--debug " + 
                 "\"" + toolPath + "\" " + 
                 "\"" + projPath + "\" " + 
-                "\"" + sb.ToString() + "\" ";
+                "\"" + assembliesStr + "\" " + 
+                "\"" + definitionsStr + "\" " + 
+            "";
             
             //UnityEngine.Debug.LogError(hotfixProc.StartInfo.FileName);
             //UnityEngine.Debug.LogError(hotfixProc.StartInfo.Arguments);

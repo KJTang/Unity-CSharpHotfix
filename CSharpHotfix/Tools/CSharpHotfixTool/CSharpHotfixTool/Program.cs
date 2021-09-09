@@ -18,8 +18,8 @@ namespace CSharpHotfixTool
     {
         static void Main(string[] args)
         {
-            // args: projPath, assemblies
-            var argsLen = 2;
+            // args: projPath, assemblies, definitions
+            var argsLen = 3;
             if (args.Length < argsLen)
             {
                 Console.WriteLine("args length invalid");
@@ -32,6 +32,9 @@ namespace CSharpHotfixTool
 
             // assemblies
             CSharpHotfixManager.LoadAssemblies(args[1]);
+
+            // definitions
+            CSharpHotfixManager.SetMacroDefinitions(args[2]);
 
             // do hotfix
             CSharpHotfixInterpreter.ReloadHotfixFiles();
