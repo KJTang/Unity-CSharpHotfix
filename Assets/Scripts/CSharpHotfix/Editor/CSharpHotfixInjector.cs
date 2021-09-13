@@ -47,9 +47,9 @@ namespace CSharpHotfix
 
         private const string injectedFlag = "CSharpHotfixInjectedFlag";
 
-        public static void TryInject()
+        public static void TryInject(bool force = false)
         {
-            if (!CSharpHotfixManager.IsHotfixEnabled)
+            if (!CSharpHotfixManager.IsHotfixEnabled && !force)
                 return;
 
             if (EditorApplication.isCompiling || Application.isPlaying)

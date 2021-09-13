@@ -62,9 +62,16 @@ namespace CSharpHotfix.Editor
                 }
             }
         }
+
+
+        [MenuItem("CSharpHotfix/Inject", false, 2)]
+        public static void InjectMenu()
+        {
+            CSharpHotfixInjector.TryInject(true);
+        }
         
 #if !CSHOFIX_COMPATIBLE_MODE
-        [MenuItem("CSharpHotfix/Hotfix", false, 2)]
+        [MenuItem("CSharpHotfix/Hotfix", false, 3)]
         public static void TryHotfix()
         {
             CSharpHotfixInterpreter.HotfixFromCodeFiles();
@@ -72,7 +79,7 @@ namespace CSharpHotfix.Editor
 #endif
         
 #if CSHOFIX_COMPATIBLE_MODE
-        [MenuItem("CSharpHotfix/Hotfix (Compatible Mode)", false, 2)]
+        [MenuItem("CSharpHotfix/Hotfix (Compatible Mode)", false, 3)]
         public static void TryHotfixCompatibleMode()
         {
             var monoPath = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName),
@@ -173,7 +180,7 @@ namespace CSharpHotfix.Editor
 #endif
         
         
-        [MenuItem("CSharpHotfix/Force Recompile", false, 3)]
+        [MenuItem("CSharpHotfix/Force Recompile", false, 21)]
         public static void ForceRecompileMenu()
         {
             ForceRecomiple();
@@ -201,7 +208,7 @@ namespace CSharpHotfix.Editor
             }
         }
         
-        [MenuItem("CSharpHotfix/Gen Method Id", false, 4)]
+        [MenuItem("CSharpHotfix/Gen Method Id", false, 22)]
         public static void GenMethodIdMenu()
         {
             CSharpHotfixInjector.GenMethodId();
