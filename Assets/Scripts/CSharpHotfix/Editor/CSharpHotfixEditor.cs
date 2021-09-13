@@ -142,33 +142,26 @@ namespace CSharpHotfix.Editor
             hotfixProc.Start();
 
             // get output
-            StringBuilder exceptionInfo = null;
+            var succ = true;
+            StringBuilder exceptionInfo = new StringBuilder();
             while (!hotfixProc.StandardOutput.EndOfStream)
             {
-                string line = hotfixProc.StandardOutput.ReadLine();
-                if (exceptionInfo != null)
+                var line = hotfixProc.StandardOutput.ReadLine();
+                if (line.StartsWith("Exception:"))
                 {
-                    exceptionInfo.AppendLine(line);
-                }
-                else
-                {
-                    if (line.StartsWith("Unhandled Exception:"))
+                    exceptionInfo.Length = 0;
+                    while (!line.StartsWith("Exception End"))
                     {
-                        exceptionInfo = new StringBuilder(line);
+                        exceptionInfo.Append(line);
+                        line = hotfixProc.StandardOutput.ReadLine();
                     }
-                    else
-                    {
-                        UnityEngine.Debug.Log("#CS_HOTFIX# compatible mode: " + line);
-                    }
+                    succ = false;
+                    line = exceptionInfo.ToString();
                 }
+                UnityEngine.Debug.Log("#CS_HOTFIX# compatible mode: " + line);
             }
             hotfixProc.WaitForExit();
-            if (exceptionInfo != null)
-            {
-                CSharpHotfixManager.Error(exceptionInfo.ToString());
-            }
 
-            var succ = exceptionInfo == null;
             if (!succ)
             {
                 UnityEngine.Debug.LogError("hotfix (compatible mode) finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));

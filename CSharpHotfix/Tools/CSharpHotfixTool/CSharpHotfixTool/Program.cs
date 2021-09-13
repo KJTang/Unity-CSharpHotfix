@@ -39,7 +39,15 @@ namespace CSharpHotfixTool
             Console.WriteLine("Macro Deinitions: " + args[2]);
 
             // do hotfix
-            CSharpHotfixInterpreter.ReloadHotfixFiles();
+            try
+            {
+                CSharpHotfixInterpreter.ReloadHotfixFiles();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception: " + e.ToString());
+                Console.WriteLine("Exception End");
+            }
         }
     }
 }
