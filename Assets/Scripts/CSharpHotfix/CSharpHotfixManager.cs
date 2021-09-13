@@ -554,7 +554,7 @@ namespace CSharpHotfix
             PropertyInfo prop;
             if (reflectionData.props.TryGetValue(memberName, out prop))
             {
-                return prop.GetValue(instance);
+                return prop.GetValue(instance, null);
             }
 
             // try delegate
@@ -585,7 +585,7 @@ namespace CSharpHotfix
             PropertyInfo prop;
             if (reflectionData.props.TryGetValue(memberName, out prop))
             {
-                prop.SetValue(instance, value);
+                prop.SetValue(instance, value, null);
                 return;
             }
 

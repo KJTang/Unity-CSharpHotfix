@@ -62,7 +62,7 @@ namespace CSharpHotfix.Editor
                 }
             }
         }
-
+        
 #if !CSHOFIX_COMPATIBLE_MODE
         [MenuItem("CSharpHotfix/Hotfix", false, 2)]
         public static void TryHotfix()
@@ -172,7 +172,7 @@ namespace CSharpHotfix.Editor
         }
 #endif
         
-
+        
         [MenuItem("CSharpHotfix/Force Recompile", false, 3)]
         public static void ForceRecompileMenu()
         {
@@ -200,6 +200,13 @@ namespace CSharpHotfix.Editor
                 }
             }
         }
+        
+        [MenuItem("CSharpHotfix/Gen Method Id", false, 4)]
+        public static void GenMethodIdMenu()
+        {
+            CSharpHotfixInjector.GenMethodId();
+        }
+
 
         [InitializeOnLoadMethod]
         private static void OnInitialized()
