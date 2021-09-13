@@ -58,7 +58,8 @@ namespace CSharpHotfixTool
         {
             if (!CSharpHotfixManager.IsMethodIdFileExist())
             {
-                CSharpHotfixManager.Error("#CS_HOTFIX# HotfixMethod: no method id file cache, please re-generate it");
+                Console.WriteLine("#CS_HOTFIX# HotfixMethod: no method id file cache, please re-generate it");
+                // CSharpHotfixManager.Error("#CS_HOTFIX# HotfixMethod: no method id file cache, please re-generate it");
                 return;
             }
             CSharpHotfixManager.LoadMethodIdFromFile();
@@ -70,17 +71,26 @@ namespace CSharpHotfixTool
             // parse 
             var parseResult = ParseHotfix(treeLst, fileLst);
             if (!parseResult)
+            {
+                Console.WriteLine("#CS_HOTFIX# HotfixMethod: parse hotfix failed");
                 return;
+            }
 
             // rewrite
             var rewriteResult = RewriteHotfix(treeLst, fileLst);
             if (!rewriteResult)
+            {
+                Console.WriteLine("#CS_HOTFIX# HotfixMethod: rewrite hotfix failed");
                 return;
+            }
 
             // compile
             var hotfixStream = CompileHotfix(treeLst, fileLst);
             if (hotfixStream == null)
+            {
+                Console.WriteLine("#CS_HOTFIX# HotfixMethod: compile hotfix failed");
                 return;
+            }
 
             // modify assembly
             //hotfixStream = PostprocessAssembly(hotfixStream);

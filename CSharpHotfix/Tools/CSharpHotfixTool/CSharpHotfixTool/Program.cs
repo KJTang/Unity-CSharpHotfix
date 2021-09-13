@@ -27,14 +27,16 @@ namespace CSharpHotfixTool
             }
 
             // projPath
-            Console.WriteLine("ProjPath: " + args[0]);
             CSharpHotfixManager.SetAppRootPath(args[0]);
+            Console.WriteLine("ProjPath: " + args[0]);
 
             // assemblies
             CSharpHotfixManager.LoadAssemblies(args[1]);
+            Console.WriteLine("Load Assemblies Done");
 
             // definitions
             CSharpHotfixManager.SetMacroDefinitions(args[2]);
+            Console.WriteLine("Macro Deinitions: " + args[2]);
 
             // do hotfix
             CSharpHotfixInterpreter.ReloadHotfixFiles();
