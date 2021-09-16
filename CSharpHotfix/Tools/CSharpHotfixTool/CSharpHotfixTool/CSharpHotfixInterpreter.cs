@@ -67,17 +67,35 @@ namespace CSharpHotfixTool
 
             var treeLst = new List<SyntaxTree>();
             var fileLst = new List<string>();
-
+            
             // parse 
-            var parseResult = ParseHotfix(treeLst, fileLst);
+            var parseResult = false;
+            try
+            {
+                parseResult = ParseHotfix(treeLst, fileLst);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception: " + e.ToString());
+                Console.WriteLine("Exception End");
+            }
             if (!parseResult)
             {
                 Console.WriteLine("#CS_HOTFIX# HotfixMethod: parse hotfix failed");
                 return;
             }
-
+            
             // rewrite
-            var rewriteResult = RewriteHotfix(treeLst, fileLst);
+            var rewriteResult = false;
+            try
+            {
+                rewriteResult = RewriteHotfix(treeLst, fileLst);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception: " + e.ToString());
+                Console.WriteLine("Exception End");
+            }
             if (!rewriteResult)
             {
                 Console.WriteLine("#CS_HOTFIX# HotfixMethod: rewrite hotfix failed");
@@ -85,7 +103,16 @@ namespace CSharpHotfixTool
             }
 
             // compile
-            var hotfixStream = CompileHotfix(treeLst, fileLst);
+            MemoryStream hotfixStream = null;
+            try
+            {
+                hotfixStream = CompileHotfix(treeLst, fileLst);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception: " + e.ToString());
+                Console.WriteLine("Exception End");
+            }
             if (hotfixStream == null)
             {
                 Console.WriteLine("#CS_HOTFIX# HotfixMethod: compile hotfix failed");

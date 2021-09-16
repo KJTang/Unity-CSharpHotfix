@@ -2,19 +2,6 @@
   "version": 3,
   "targets": {
     ".NETFramework,Version=v4.7.2": {
-      "Microsoft.Build.Locator/1.2.2": {
-        "type": "package",
-        "compile": {
-          "lib/net46/Microsoft.Build.Locator.dll": {}
-        },
-        "runtime": {
-          "lib/net46/Microsoft.Build.Locator.dll": {}
-        },
-        "build": {
-          "build/Microsoft.Build.Locator.props": {},
-          "build/Microsoft.Build.Locator.targets": {}
-        }
-      },
       "Microsoft.CodeAnalysis.Analyzers/2.9.8": {
         "type": "package",
         "build": {
@@ -188,114 +175,6 @@
           }
         }
       },
-      "Microsoft.CodeAnalysis.VisualBasic/3.3.1": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.CodeAnalysis.Common": "[3.3.1]"
-        },
-        "compile": {
-          "lib/netstandard2.0/Microsoft.CodeAnalysis.VisualBasic.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard2.0/Microsoft.CodeAnalysis.VisualBasic.dll": {}
-        },
-        "resource": {
-          "lib/netstandard2.0/cs/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "cs"
-          },
-          "lib/netstandard2.0/de/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "de"
-          },
-          "lib/netstandard2.0/es/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "es"
-          },
-          "lib/netstandard2.0/fr/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "fr"
-          },
-          "lib/netstandard2.0/it/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "it"
-          },
-          "lib/netstandard2.0/ja/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "ja"
-          },
-          "lib/netstandard2.0/ko/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "ko"
-          },
-          "lib/netstandard2.0/pl/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "pl"
-          },
-          "lib/netstandard2.0/pt-BR/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "pt-BR"
-          },
-          "lib/netstandard2.0/ru/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "ru"
-          },
-          "lib/netstandard2.0/tr/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "tr"
-          },
-          "lib/netstandard2.0/zh-Hans/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "zh-Hans"
-          },
-          "lib/netstandard2.0/zh-Hant/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "zh-Hant"
-          }
-        }
-      },
-      "Microsoft.CodeAnalysis.VisualBasic.Workspaces/3.3.1": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.CodeAnalysis.Common": "[3.3.1]",
-          "Microsoft.CodeAnalysis.VisualBasic": "[3.3.1]",
-          "Microsoft.CodeAnalysis.Workspaces.Common": "[3.3.1]"
-        },
-        "compile": {
-          "lib/netstandard2.0/Microsoft.CodeAnalysis.VisualBasic.Workspaces.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard2.0/Microsoft.CodeAnalysis.VisualBasic.Workspaces.dll": {}
-        },
-        "resource": {
-          "lib/netstandard2.0/cs/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "cs"
-          },
-          "lib/netstandard2.0/de/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "de"
-          },
-          "lib/netstandard2.0/es/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "es"
-          },
-          "lib/netstandard2.0/fr/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "fr"
-          },
-          "lib/netstandard2.0/it/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "it"
-          },
-          "lib/netstandard2.0/ja/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "ja"
-          },
-          "lib/netstandard2.0/ko/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "ko"
-          },
-          "lib/netstandard2.0/pl/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "pl"
-          },
-          "lib/netstandard2.0/pt-BR/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "pt-BR"
-          },
-          "lib/netstandard2.0/ru/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "ru"
-          },
-          "lib/netstandard2.0/tr/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "tr"
-          },
-          "lib/netstandard2.0/zh-Hans/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "zh-Hans"
-          },
-          "lib/netstandard2.0/zh-Hant/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "zh-Hant"
-          }
-        }
-      },
       "Microsoft.CodeAnalysis.Workspaces.Common/3.3.1": {
         "type": "package",
         "dependencies": {
@@ -346,65 +225,6 @@
             "locale": "zh-Hans"
           },
           "lib/netstandard2.0/zh-Hant/Microsoft.CodeAnalysis.Workspaces.resources.dll": {
-            "locale": "zh-Hant"
-          }
-        }
-      },
-      "Microsoft.CodeAnalysis.Workspaces.MSBuild/3.3.1": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.CodeAnalysis.Common": "[3.3.1]",
-          "Microsoft.CodeAnalysis.Workspaces.Common": "[3.3.1]"
-        },
-        "frameworkAssemblies": [
-          "System.Runtime",
-          "System.Runtime.InteropServices",
-          "System.Threading.Thread"
-        ],
-        "compile": {
-          "lib/net472/Microsoft.CodeAnalysis.Workspaces.MSBuild.dll": {}
-        },
-        "runtime": {
-          "lib/net472/Microsoft.CodeAnalysis.Workspaces.MSBuild.dll": {}
-        },
-        "resource": {
-          "lib/net472/cs/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "cs"
-          },
-          "lib/net472/de/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "de"
-          },
-          "lib/net472/es/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "es"
-          },
-          "lib/net472/fr/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "fr"
-          },
-          "lib/net472/it/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "it"
-          },
-          "lib/net472/ja/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "ja"
-          },
-          "lib/net472/ko/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "ko"
-          },
-          "lib/net472/pl/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "pl"
-          },
-          "lib/net472/pt-BR/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "pt-BR"
-          },
-          "lib/net472/ru/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "ru"
-          },
-          "lib/net472/tr/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "tr"
-          },
-          "lib/net472/zh-Hans/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "zh-Hans"
-          },
-          "lib/net472/zh-Hant/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
             "locale": "zh-Hant"
           }
         }
@@ -573,19 +393,6 @@
       }
     },
     ".NETFramework,Version=v4.7.2/win7-x86": {
-      "Microsoft.Build.Locator/1.2.2": {
-        "type": "package",
-        "compile": {
-          "lib/net46/Microsoft.Build.Locator.dll": {}
-        },
-        "runtime": {
-          "lib/net46/Microsoft.Build.Locator.dll": {}
-        },
-        "build": {
-          "build/Microsoft.Build.Locator.props": {},
-          "build/Microsoft.Build.Locator.targets": {}
-        }
-      },
       "Microsoft.CodeAnalysis.Analyzers/2.9.8": {
         "type": "package",
         "build": {
@@ -759,114 +566,6 @@
           }
         }
       },
-      "Microsoft.CodeAnalysis.VisualBasic/3.3.1": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.CodeAnalysis.Common": "[3.3.1]"
-        },
-        "compile": {
-          "lib/netstandard2.0/Microsoft.CodeAnalysis.VisualBasic.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard2.0/Microsoft.CodeAnalysis.VisualBasic.dll": {}
-        },
-        "resource": {
-          "lib/netstandard2.0/cs/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "cs"
-          },
-          "lib/netstandard2.0/de/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "de"
-          },
-          "lib/netstandard2.0/es/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "es"
-          },
-          "lib/netstandard2.0/fr/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "fr"
-          },
-          "lib/netstandard2.0/it/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "it"
-          },
-          "lib/netstandard2.0/ja/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "ja"
-          },
-          "lib/netstandard2.0/ko/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "ko"
-          },
-          "lib/netstandard2.0/pl/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "pl"
-          },
-          "lib/netstandard2.0/pt-BR/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "pt-BR"
-          },
-          "lib/netstandard2.0/ru/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "ru"
-          },
-          "lib/netstandard2.0/tr/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "tr"
-          },
-          "lib/netstandard2.0/zh-Hans/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "zh-Hans"
-          },
-          "lib/netstandard2.0/zh-Hant/Microsoft.CodeAnalysis.VisualBasic.resources.dll": {
-            "locale": "zh-Hant"
-          }
-        }
-      },
-      "Microsoft.CodeAnalysis.VisualBasic.Workspaces/3.3.1": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.CodeAnalysis.Common": "[3.3.1]",
-          "Microsoft.CodeAnalysis.VisualBasic": "[3.3.1]",
-          "Microsoft.CodeAnalysis.Workspaces.Common": "[3.3.1]"
-        },
-        "compile": {
-          "lib/netstandard2.0/Microsoft.CodeAnalysis.VisualBasic.Workspaces.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard2.0/Microsoft.CodeAnalysis.VisualBasic.Workspaces.dll": {}
-        },
-        "resource": {
-          "lib/netstandard2.0/cs/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "cs"
-          },
-          "lib/netstandard2.0/de/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "de"
-          },
-          "lib/netstandard2.0/es/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "es"
-          },
-          "lib/netstandard2.0/fr/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "fr"
-          },
-          "lib/netstandard2.0/it/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "it"
-          },
-          "lib/netstandard2.0/ja/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "ja"
-          },
-          "lib/netstandard2.0/ko/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "ko"
-          },
-          "lib/netstandard2.0/pl/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "pl"
-          },
-          "lib/netstandard2.0/pt-BR/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "pt-BR"
-          },
-          "lib/netstandard2.0/ru/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "ru"
-          },
-          "lib/netstandard2.0/tr/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "tr"
-          },
-          "lib/netstandard2.0/zh-Hans/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "zh-Hans"
-          },
-          "lib/netstandard2.0/zh-Hant/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll": {
-            "locale": "zh-Hant"
-          }
-        }
-      },
       "Microsoft.CodeAnalysis.Workspaces.Common/3.3.1": {
         "type": "package",
         "dependencies": {
@@ -917,65 +616,6 @@
             "locale": "zh-Hans"
           },
           "lib/netstandard2.0/zh-Hant/Microsoft.CodeAnalysis.Workspaces.resources.dll": {
-            "locale": "zh-Hant"
-          }
-        }
-      },
-      "Microsoft.CodeAnalysis.Workspaces.MSBuild/3.3.1": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.CodeAnalysis.Common": "[3.3.1]",
-          "Microsoft.CodeAnalysis.Workspaces.Common": "[3.3.1]"
-        },
-        "frameworkAssemblies": [
-          "System.Runtime",
-          "System.Runtime.InteropServices",
-          "System.Threading.Thread"
-        ],
-        "compile": {
-          "lib/net472/Microsoft.CodeAnalysis.Workspaces.MSBuild.dll": {}
-        },
-        "runtime": {
-          "lib/net472/Microsoft.CodeAnalysis.Workspaces.MSBuild.dll": {}
-        },
-        "resource": {
-          "lib/net472/cs/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "cs"
-          },
-          "lib/net472/de/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "de"
-          },
-          "lib/net472/es/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "es"
-          },
-          "lib/net472/fr/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "fr"
-          },
-          "lib/net472/it/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "it"
-          },
-          "lib/net472/ja/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "ja"
-          },
-          "lib/net472/ko/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "ko"
-          },
-          "lib/net472/pl/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "pl"
-          },
-          "lib/net472/pt-BR/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "pt-BR"
-          },
-          "lib/net472/ru/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "ru"
-          },
-          "lib/net472/tr/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "tr"
-          },
-          "lib/net472/zh-Hans/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
-            "locale": "zh-Hans"
-          },
-          "lib/net472/zh-Hant/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll": {
             "locale": "zh-Hant"
           }
         }
@@ -1139,21 +779,6 @@
     }
   },
   "libraries": {
-    "Microsoft.Build.Locator/1.2.2": {
-      "sha512": "tke8qeM7s23iapuxatU131tK89kdlOFZvDJ4IrX9pHJIiTPwjJO0Euw5/cSM6N8W2Q/NY/NEfJYoMFmBnbCUwQ==",
-      "type": "package",
-      "path": "microsoft.build.locator/1.2.2",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "build/Microsoft.Build.Locator.props",
-        "build/Microsoft.Build.Locator.targets",
-        "lib/net46/Microsoft.Build.Locator.dll",
-        "lib/netcoreapp2.0/Microsoft.Build.Locator.dll",
-        "microsoft.build.locator.1.2.2.nupkg.sha512",
-        "microsoft.build.locator.nuspec"
-      ]
-    },
     "Microsoft.CodeAnalysis.Analyzers/2.9.8": {
       "sha512": "7ZFIPFQRcL9VEkhm2v7bsIV5Klz/NwvLzhzB/1bEXjvsuTiQA3I9vSS9DOQOMt+iGhT6jxa+djBc6PmSXgIvNw==",
       "type": "package",
@@ -1334,62 +959,6 @@
         "microsoft.codeanalysis.csharp.workspaces.nuspec"
       ]
     },
-    "Microsoft.CodeAnalysis.VisualBasic/3.3.1": {
-      "sha512": "F7fc/G+0ocOYkKSCJ7Y8Q7eAEkAdG5RYODI9FtSl2Hm8zIDBVA3NccCm98gaOvCamLfMHYqeOjpb3yJnnw3m/w==",
-      "type": "package",
-      "path": "microsoft.codeanalysis.visualbasic/3.3.1",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "ThirdPartyNotices.rtf",
-        "lib/netstandard2.0/Microsoft.CodeAnalysis.VisualBasic.dll",
-        "lib/netstandard2.0/Microsoft.CodeAnalysis.VisualBasic.pdb",
-        "lib/netstandard2.0/Microsoft.CodeAnalysis.VisualBasic.xml",
-        "lib/netstandard2.0/cs/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
-        "lib/netstandard2.0/de/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
-        "lib/netstandard2.0/es/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
-        "lib/netstandard2.0/fr/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
-        "lib/netstandard2.0/it/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
-        "lib/netstandard2.0/ja/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
-        "lib/netstandard2.0/ko/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
-        "lib/netstandard2.0/pl/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
-        "lib/netstandard2.0/pt-BR/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
-        "lib/netstandard2.0/ru/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
-        "lib/netstandard2.0/tr/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
-        "lib/netstandard2.0/zh-Hans/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
-        "lib/netstandard2.0/zh-Hant/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
-        "microsoft.codeanalysis.visualbasic.3.3.1.nupkg.sha512",
-        "microsoft.codeanalysis.visualbasic.nuspec"
-      ]
-    },
-    "Microsoft.CodeAnalysis.VisualBasic.Workspaces/3.3.1": {
-      "sha512": "Oi4AUxMKAYpx7nHNh7jUO8X18JFCzwtIfu/yDzGzOBpo50591AF7EEdv99geAEidGtmJqbzQ6uRk5dEOL+7F/Q==",
-      "type": "package",
-      "path": "microsoft.codeanalysis.visualbasic.workspaces/3.3.1",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "ThirdPartyNotices.rtf",
-        "lib/netstandard2.0/Microsoft.CodeAnalysis.VisualBasic.Workspaces.dll",
-        "lib/netstandard2.0/Microsoft.CodeAnalysis.VisualBasic.Workspaces.pdb",
-        "lib/netstandard2.0/Microsoft.CodeAnalysis.VisualBasic.Workspaces.xml",
-        "lib/netstandard2.0/cs/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll",
-        "lib/netstandard2.0/de/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll",
-        "lib/netstandard2.0/es/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll",
-        "lib/netstandard2.0/fr/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll",
-        "lib/netstandard2.0/it/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll",
-        "lib/netstandard2.0/ja/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll",
-        "lib/netstandard2.0/ko/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll",
-        "lib/netstandard2.0/pl/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll",
-        "lib/netstandard2.0/pt-BR/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll",
-        "lib/netstandard2.0/ru/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll",
-        "lib/netstandard2.0/tr/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll",
-        "lib/netstandard2.0/zh-Hans/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll",
-        "lib/netstandard2.0/zh-Hant/Microsoft.CodeAnalysis.VisualBasic.Workspaces.resources.dll",
-        "microsoft.codeanalysis.visualbasic.workspaces.3.3.1.nupkg.sha512",
-        "microsoft.codeanalysis.visualbasic.workspaces.nuspec"
-      ]
-    },
     "Microsoft.CodeAnalysis.Workspaces.Common/3.3.1": {
       "sha512": "NfBz3b5hFSbO+7xsCNryD+p8axsIJFTG7qM3jvMTC/MqYrU6b8E1b6JoRj5rJSOBB+pSunk+CMqyGQTOWHeDUg==",
       "type": "package",
@@ -1415,50 +984,6 @@
         "lib/netstandard2.0/zh-Hant/Microsoft.CodeAnalysis.Workspaces.resources.dll",
         "microsoft.codeanalysis.workspaces.common.3.3.1.nupkg.sha512",
         "microsoft.codeanalysis.workspaces.common.nuspec"
-      ]
-    },
-    "Microsoft.CodeAnalysis.Workspaces.MSBuild/3.3.1": {
-      "sha512": "1SDiPU1KFdDAaxTt7VL9G9OWQb2u2VXJGgSfz/181jw1D18ehsrGSjjcmpmy/ll6ImR0FGSxI0svDwJTqFGgQw==",
-      "type": "package",
-      "path": "microsoft.codeanalysis.workspaces.msbuild/3.3.1",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "ThirdPartyNotices.rtf",
-        "lib/net472/Microsoft.CodeAnalysis.Workspaces.MSBuild.dll",
-        "lib/net472/Microsoft.CodeAnalysis.Workspaces.MSBuild.pdb",
-        "lib/net472/Microsoft.CodeAnalysis.Workspaces.MSBuild.xml",
-        "lib/net472/cs/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/net472/de/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/net472/es/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/net472/fr/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/net472/it/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/net472/ja/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/net472/ko/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/net472/pl/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/net472/pt-BR/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/net472/ru/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/net472/tr/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/net472/zh-Hans/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/net472/zh-Hant/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/netcoreapp2.1/Microsoft.CodeAnalysis.Workspaces.MSBuild.dll",
-        "lib/netcoreapp2.1/Microsoft.CodeAnalysis.Workspaces.MSBuild.pdb",
-        "lib/netcoreapp2.1/Microsoft.CodeAnalysis.Workspaces.MSBuild.xml",
-        "lib/netcoreapp2.1/cs/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/netcoreapp2.1/de/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/netcoreapp2.1/es/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/netcoreapp2.1/fr/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/netcoreapp2.1/it/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/netcoreapp2.1/ja/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/netcoreapp2.1/ko/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/netcoreapp2.1/pl/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/netcoreapp2.1/pt-BR/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/netcoreapp2.1/ru/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/netcoreapp2.1/tr/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/netcoreapp2.1/zh-Hans/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "lib/netcoreapp2.1/zh-Hant/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll",
-        "microsoft.codeanalysis.workspaces.msbuild.3.3.1.nupkg.sha512",
-        "microsoft.codeanalysis.workspaces.msbuild.nuspec"
       ]
     },
     "System.Buffers/4.4.0": {
@@ -1780,11 +1305,8 @@
   },
   "projectFileDependencyGroups": {
     ".NETFramework,Version=v4.7.2": [
-      "Microsoft.Build.Locator >= 1.2.2",
       "Microsoft.CodeAnalysis.Analyzers >= 2.9.8",
-      "Microsoft.CodeAnalysis.CSharp.Workspaces >= 3.3.1",
-      "Microsoft.CodeAnalysis.VisualBasic.Workspaces >= 3.3.1",
-      "Microsoft.CodeAnalysis.Workspaces.MSBuild >= 3.3.1"
+      "Microsoft.CodeAnalysis.CSharp.Workspaces >= 3.3.1"
     ]
   },
   "packageFolders": {
@@ -1827,24 +1349,12 @@
       "net472": {
         "targetAlias": "net472",
         "dependencies": {
-          "Microsoft.Build.Locator": {
-            "target": "Package",
-            "version": "[1.2.2, )"
-          },
           "Microsoft.CodeAnalysis.Analyzers": {
             "suppressParent": "All",
             "target": "Package",
             "version": "[2.9.8, )"
           },
           "Microsoft.CodeAnalysis.CSharp.Workspaces": {
-            "target": "Package",
-            "version": "[3.3.1, )"
-          },
-          "Microsoft.CodeAnalysis.VisualBasic.Workspaces": {
-            "target": "Package",
-            "version": "[3.3.1, )"
-          },
-          "Microsoft.CodeAnalysis.Workspaces.MSBuild": {
             "target": "Package",
             "version": "[3.3.1, )"
           }
