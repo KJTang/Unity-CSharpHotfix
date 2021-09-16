@@ -200,7 +200,7 @@ namespace CSharpHotfix
             if (!System.IO.File.Exists(assemblyPath))
             {
                 CSharpHotfixManager.Warning("#CS_HOTFIX# InjectAssembly: assembly not exist: {0}", assemblyPath);
-                return false;
+                return true;
             }
             var assemblyPDBPath = assemblyPath.Replace(".dll", ".pdb");
             var hotfixAssemblyPath = assemblyPath.Replace(".dll", ".hotfix.dll");
@@ -256,6 +256,10 @@ namespace CSharpHotfix
             }
             CSharpHotfixManager.Message("#CS_HOTFIX# InjectAssembly: Profile: gen methodId time: {0}", EditorApplication.timeSinceStartup - beginTime);
             if (onlyGenMethodId)
+                return true;
+
+            // no need inject
+            if (classCanBeInject.Count <= 0 && methodCanBeInject.Count <= 0)
                 return true;
 
 
