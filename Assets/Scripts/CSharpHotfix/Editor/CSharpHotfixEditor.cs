@@ -82,8 +82,9 @@ namespace CSharpHotfix.Editor
         [MenuItem("CSharpHotfix/Hotfix (Compatible Mode)", false, 3)]
         public static void TryHotfixCompatibleMode()
         {
-            var monoPath = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName),
-                "Data/MonoBleedingEdge/bin/mono.exe");
+            // Replace it to your mono which support higher version than .net framework 4.7
+            //var monoPath = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "Data/MonoBleedingEdge/bin/mono.exe");
+            var monoPath = "C:/Program Files/Unity/2019.4.29f1/Editor/Data/MonoBleedingEdge/bin/mono.exe";
             if (!File.Exists(monoPath))
             {
                 CSharpHotfixManager.Error("#CS_HOTFIX# TryHotfix (Compatible Mode): can not find mono: {0}", monoPath);
