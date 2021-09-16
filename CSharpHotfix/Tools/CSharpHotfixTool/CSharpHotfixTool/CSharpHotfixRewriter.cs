@@ -540,6 +540,8 @@ namespace CSharpHotfixTool
                 .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(exprNode.Name.Identifier.Text))))
             ;
             var argsNode = node.ArgumentList;
+            if (argsNode.Arguments.Count <= 0)
+                newArgs = newArgs.Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)));
             var invokeArgs = argsNode.WithArguments(argsNode.Arguments.InsertRange(0, newArgs));
 
             // no return value or no need return value

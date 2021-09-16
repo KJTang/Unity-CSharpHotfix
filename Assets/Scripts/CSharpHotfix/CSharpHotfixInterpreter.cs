@@ -49,6 +49,14 @@ namespace CSharpHotfix
 
         public static void HotfixFromAssembly()
         {
+            if (!CSharpHotfixManager.IsMethodIdFileExist())
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# HotfixMethod: no method id file cache, please re-generate it");
+                return;
+            }
+            CSharpHotfixManager.LoadMethodIdFromFile();
+            CSharpHotfixManager.ClearReflectionData();
+
             // load assembly from file
             var hotfixStream = new MemoryStream();
             using (var fileStream = new FileStream(GetHotfixAssemblyPath(), FileMode.Open, System.IO.FileAccess.Read)) 
