@@ -26,7 +26,7 @@ namespace CSharpHotfix
             // "UnityEditor", 
             "FlyingWormConsole3",       // my console plugin
         };
-
+        
         public static bool IsFilteredNamespace(string ns)
         {
             if (string.IsNullOrEmpty(ns))
@@ -38,7 +38,10 @@ namespace CSharpHotfix
 
             foreach (var filterNS in filterNamespace)
             {
-                if (ns.StartsWith(filterNS))
+                if (ns == filterNS)
+                    return true;
+
+                if (ns.Split('.')[0] == filterNS)
                     return true;
             }
 
