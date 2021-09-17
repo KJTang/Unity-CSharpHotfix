@@ -12,11 +12,22 @@ namespace CSharpHotfixTest {
 
         private static int fieldStaticTest = 1;
 
+        private List<int> listTest = new List<int>() {1, 2, 3};
+
         public string Func()
         {
-            if (fieldTest >= 0 && CSharpHotfixTest.Test_AccessPriviateMember.fieldStaticTest >= 0)
-                PropTest = true;
-            return "hello";
+            PropTest = true;
+
+            if (fieldTest < 0 || CSharpHotfixTest.Test_AccessPriviateMember.fieldStaticTest < 0)
+                PropTest = false;
+
+            if (!listTest.Contains(1))
+                PropTest = false;
+
+            if (PropTest)
+                return "hello";
+            else
+                return "hello";
         }
     }
 }

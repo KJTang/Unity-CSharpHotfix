@@ -10,9 +10,18 @@ namespace CSharpHotfixTest {
 
         static public string Func__HOTFIX_MTD(Test_AccessPriviateMember __INST__)
         {
-            if ((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"fieldTest") >= 0 && (System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",null,"fieldStaticTest") >= 0)
-                CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest",true);
-            return "hotfixed";
+            CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest",true);
+
+            if ((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"fieldTest") < 0 || (System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",null,"fieldStaticTest") < 0)
+                CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest",false);
+
+            if (!__INST__.listTest.Contains(1))
+                CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest",false);
+
+            if ((System.Boolean)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest"))
+                return "hotfixed";
+            else
+                return "error";
         }
     }
 }
