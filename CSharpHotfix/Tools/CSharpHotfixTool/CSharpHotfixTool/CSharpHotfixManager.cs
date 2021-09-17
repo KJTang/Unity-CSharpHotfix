@@ -71,28 +71,73 @@ namespace CSharpHotfixTool
         }
 
 #region log
+        private static FileStream fileStream;
+        public static void OpenLogFile()
+        {
+            var path = GetAppRootPath() + "/CSharpHotfix/log.txt";
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+            fileStream = new FileStream(path, FileMode.OpenOrCreate);
+
+            Console.OutputEncoding = Encoding.UTF8;
+        }
+
+        public static void CloseLogFile()
+        {
+            if (fileStream != null)
+                fileStream.Close();
+            fileStream = null;
+        }
+
+
         [Conditional("CSHOTFIX_ENABLE_LOG")]
         public static void Log(string message, params object[] args)
         {
             Console.WriteLine(message, args);
             //UnityEngine.Debug.LogFormat(message, args);
+
+            if (fileStream != null)
+            {
+                var bytes = new UTF8Encoding(true).GetBytes(string.Format(message, args) + "\n");
+                fileStream.Write(bytes, 0, bytes.Length);
+            }
         }
 
         public static void Warning(string message, params object[] args)
         {
             //UnityEngine.Debug.LogWarningFormat(message, args);
+            
+            //if (fileStream != null)
+            //{
+            //    var bytes = new UTF8Encoding(true).GetBytes(string.Format(message, args) + "\n");
+            //    fileStream.Write(bytes, 0, bytes.Length);
+            //}
         }
 
         public static void Error(string message, params object[] args)
         {
             Console.WriteLine(message, args);
             //UnityEngine.Debug.LogErrorFormat(message, args);
+            
+            if (fileStream != null)
+            {
+                var bytes = new UTF8Encoding(true).GetBytes(string.Format(message, args) + "\n");
+                fileStream.Write(bytes, 0, bytes.Length);
+            }
         }
 
         public static void Message(string message, params object[] args)
         {
             Console.WriteLine(message, args);
             //UnityEngine.Debug.LogFormat(message, args);
+            
+            if (fileStream != null)
+            {
+                var bytes = new UTF8Encoding(true).GetBytes(string.Format(message, args) + "\n");
+                fileStream.Write(bytes, 0, bytes.Length);
+            }
         }
 
 #endregion log

@@ -26,6 +26,7 @@ namespace CSharpHotfixTool
 
             // projPath
             CSharpHotfixManager.SetAppRootPath(args[0]);
+            CSharpHotfixManager.OpenLogFile();
             CSharpHotfixManager.Message("ProjPath: " + args[0]);
 
             // assemblies
@@ -45,6 +46,10 @@ namespace CSharpHotfixTool
             {
                 CSharpHotfixManager.Error("Exception: " + e.ToString());
                 CSharpHotfixManager.Error("Exception End");
+            }
+            finally
+            {
+                CSharpHotfixManager.CloseLogFile();
             }
         }
     }
