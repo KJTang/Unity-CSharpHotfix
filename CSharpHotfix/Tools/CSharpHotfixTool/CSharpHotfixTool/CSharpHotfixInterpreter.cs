@@ -58,8 +58,7 @@ namespace CSharpHotfixTool
         {
             if (!CSharpHotfixManager.IsMethodIdFileExist())
             {
-                Console.WriteLine("#CS_HOTFIX# HotfixMethod: no method id file cache, please re-generate it");
-                // CSharpHotfixManager.Error("#CS_HOTFIX# HotfixMethod: no method id file cache, please re-generate it");
+                CSharpHotfixManager.Error("#CS_HOTFIX# HotfixMethod: no method id file cache, please re-generate it");
                 return;
             }
             CSharpHotfixManager.LoadMethodIdFromFile();
@@ -76,12 +75,12 @@ namespace CSharpHotfixTool
             }
             catch (Exception e)
             {
-                Console.WriteLine("Exception: " + e.ToString());
-                Console.WriteLine("Exception End");
+                CSharpHotfixManager.Error("Exception: " + e.ToString());
+                CSharpHotfixManager.Error("Exception End");
             }
             if (!parseResult)
             {
-                Console.WriteLine("#CS_HOTFIX# HotfixMethod: parse hotfix failed");
+                CSharpHotfixManager.Error("#CS_HOTFIX# HotfixMethod: parse hotfix failed");
                 return;
             }
             
@@ -93,12 +92,12 @@ namespace CSharpHotfixTool
             }
             catch (Exception e)
             {
-                Console.WriteLine("Exception: " + e.ToString());
-                Console.WriteLine("Exception End");
+                CSharpHotfixManager.Error("Exception: " + e.ToString());
+                CSharpHotfixManager.Error("Exception End");
             }
             if (!rewriteResult)
             {
-                Console.WriteLine("#CS_HOTFIX# HotfixMethod: rewrite hotfix failed");
+                CSharpHotfixManager.Error("#CS_HOTFIX# HotfixMethod: rewrite hotfix failed");
                 return;
             }
 
@@ -110,12 +109,12 @@ namespace CSharpHotfixTool
             }
             catch (Exception e)
             {
-                Console.WriteLine("Exception: " + e.ToString());
-                Console.WriteLine("Exception End");
+                CSharpHotfixManager.Error("Exception: " + e.ToString());
+                CSharpHotfixManager.Error("Exception End");
             }
             if (hotfixStream == null)
             {
-                Console.WriteLine("#CS_HOTFIX# HotfixMethod: compile hotfix failed");
+                CSharpHotfixManager.Error("#CS_HOTFIX# HotfixMethod: compile hotfix failed");
                 return;
             }
 
@@ -125,7 +124,7 @@ namespace CSharpHotfixTool
             // get assembly
             //var assembly = Assembly.Load(hotfixStream.ToArray(), null);
 
-            Console.WriteLine("hotfix assembly: " + GetHotfixAssemblyPath());
+            CSharpHotfixManager.Message("hotfix assembly: " + GetHotfixAssemblyPath());
             // save assembly to file (used to debug it)
             using (var fileStream = new FileStream(GetHotfixAssemblyPath(), FileMode.Create, System.IO.FileAccess.Write)) 
             {

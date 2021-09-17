@@ -20,21 +20,21 @@ namespace CSharpHotfixTool
             var argsLen = 3;
             if (args.Length < argsLen)
             {
-                Console.WriteLine("args length invalid");
+                CSharpHotfixManager.Error("args length invalid");
                 return;
             }
 
             // projPath
             CSharpHotfixManager.SetAppRootPath(args[0]);
-            Console.WriteLine("ProjPath: " + args[0]);
+            CSharpHotfixManager.Message("ProjPath: " + args[0]);
 
             // assemblies
             CSharpHotfixManager.LoadAssemblies(args[1]);
-            Console.WriteLine("Load Assemblies Done");
+            CSharpHotfixManager.Message("Load Assemblies Done");
 
             // definitions
             CSharpHotfixManager.SetMacroDefinitions(args[2]);
-            Console.WriteLine("Macro Deinitions: " + args[2]);
+            CSharpHotfixManager.Message("Macro Deinitions: " + args[2]);
 
             // do hotfix
             try
@@ -43,8 +43,8 @@ namespace CSharpHotfixTool
             }
             catch (Exception e)
             {
-                Console.WriteLine("Exception: " + e.ToString());
-                Console.WriteLine("Exception End");
+                CSharpHotfixManager.Error("Exception: " + e.ToString());
+                CSharpHotfixManager.Error("Exception End");
             }
         }
     }

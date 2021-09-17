@@ -11,7 +11,10 @@ namespace CSharpHotfix
     public class CSharpHotfixCfg 
     {
         private static bool UseIFixConfig = true;
-
+        
+        /// <summary>
+        /// return types need to be hotfixed
+        /// </summary>
         public static IEnumerable<Type> ToProcess
         {
             get
@@ -26,6 +29,19 @@ namespace CSharpHotfix
                         where !type.Name.Contains("<")
                         select type);
             }
+        }
+
+
+        /// <summary>
+        /// return mono path compatible mode needed
+        /// </summary>
+        /// <returns></returns>
+        public static string GetMonoPath()
+        {
+            // Replace it to your mono which support higher version than .net framework 4.7
+            //var monoPath = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "Data/MonoBleedingEdge/bin/mono.exe");
+            var monoPath = "C:/Program Files/Unity/2019.4.29f1/Editor/Data/MonoBleedingEdge/bin/mono.exe";
+            return monoPath;
         }
     }
 }
