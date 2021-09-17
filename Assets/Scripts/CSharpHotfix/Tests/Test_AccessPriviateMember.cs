@@ -14,6 +14,8 @@ namespace CSharpHotfixTest {
 
         private List<int> listTest = new List<int>() {1, 2, 3};
 
+        private Dictionary<string, List<int>> dictTest = new Dictionary<string, List<int>>();
+
         public string Func()
         {
             PropTest = true;
@@ -22,6 +24,9 @@ namespace CSharpHotfixTest {
                 PropTest = false;
 
             if (!listTest.Contains(1))
+                PropTest = false;
+            
+            if (dictTest.ContainsKey("invalid"))
                 PropTest = false;
 
             if (PropTest)

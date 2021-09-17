@@ -14,14 +14,19 @@ namespace CSharpHotfixTest {
 
         private List<int> listTest = new List<int>() {1, 2, 3};
 
+        private Dictionary<string, List<int>> dictTest = new Dictionary<string, List<int>>();
+
         public string Func()
         {
             PropTest = true;
 
-            if (fieldTest < 0 || CSharpHotfixTest.Test_AccessPriviateMember.fieldStaticTest < 0)
-                PropTest = false;
+            //if (fieldTest < 0 || CSharpHotfixTest.Test_AccessPriviateMember.fieldStaticTest < 0)
+            //    PropTest = false;
 
             if (!listTest.Contains(1))
+                PropTest = false;
+            
+            if (dictTest.ContainsKey("invalid"))
                 PropTest = false;
 
             if (PropTest)

@@ -12,10 +12,13 @@ namespace CSharpHotfixTest {
         {
             CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest",true);
 
-            if ((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"fieldTest") < 0 || (System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",null,"fieldStaticTest") < 0)
-                CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest",false);
+            //if (fieldTest < 0 || CSharpHotfixTest.Test_AccessPriviateMember.fieldStaticTest < 0)
+            //    PropTest = false;
 
-            if (!__INST__.listTest.Contains(1))
+            if (!((System.Collections.Generic.List<System.Int32>)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"listTest")).Contains(1))
+                CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest",false);
+            
+            if (((System.Collections.Generic.Dictionary<System.String,System.Collections.Generic.List<System.Int32>>)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"dictTest")).ContainsKey("invalid"))
                 CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest",false);
 
             if ((System.Boolean)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest"))

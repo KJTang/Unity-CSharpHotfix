@@ -7,6 +7,7 @@ using System.Linq;
 using System.IO;
 using System;
 using System.Text;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Assertions;
 using Microsoft.CodeAnalysis;
@@ -360,9 +361,17 @@ namespace CSharpHotfix
             var expressionSymbol = semanticModel.GetSymbolInfo(expressionNode);
             var nameSymbol = semanticModel.GetSymbolInfo(nameNode);
 
-            // maybe need throw error, expression node should have symbol always
-            if (expressionSymbol.Symbol == null) 
+            // if expression no symbol, recursive check it
+            if (expressionSymbol.Symbol == null)
+            {
+                var newExprNode = base.Visit(expressionNode);
+                if (newExprNode != expressionNode)
+                {
+                    newExprNode = SyntaxFactory.ParenthesizedExpression(newExprNode as ExpressionSyntax);
+                    node = node.WithExpression(newExprNode as ExpressionSyntax);
+                }
                 return node;
+            }
 
             // name symbol is accessable, no need rewrite it
             if (nameSymbol.Symbol != null)
@@ -395,21 +404,10 @@ namespace CSharpHotfix
                 .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(nameNode.Identifier.Text))))
             );
 
-            ExpressionSyntax castExpr;
+            // cast 
             var memberType = CSharpHotfixManager.ReflectionGetMemberType(expressionSymbol.Symbol.ToString(), nameNode.Identifier.Text);
-            var typeStrLst = memberType.FullName.Split('.');
-            if (typeStrLst.Length <= 1)
-            {
-                castExpr = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(memberType.Name), SyntaxFactory.InvocationExpression(getExpr, getArgs));
-            }
-            else
-            {
-                var qualifiedName = SyntaxFactory.QualifiedName(SyntaxFactory.IdentifierName(typeStrLst[0]), SyntaxFactory.IdentifierName(typeStrLst[1]));
-                for (var i = 2; i < typeStrLst.Length; ++i)
-                    qualifiedName = SyntaxFactory.QualifiedName(qualifiedName, SyntaxFactory.IdentifierName(typeStrLst[i]));
-                castExpr = SyntaxFactory.CastExpression(qualifiedName, SyntaxFactory.InvocationExpression(getExpr, getArgs));
-            }
-
+            var typeNode = CSharpHotfixRewriter.TypeStringToSyntaxNode(memberType.ToString());
+            var castExpr = SyntaxFactory.CastExpression(typeNode, SyntaxFactory.InvocationExpression(getExpr, getArgs));
             castExpr = castExpr.WithTriviaFrom(node);
             return castExpr;
         }
@@ -554,22 +552,10 @@ namespace CSharpHotfix
                 var newNode = SyntaxFactory.InvocationExpression(invokeExpr, invokeArgs).WithTriviaFrom(node);
                 return newNode;
             }
-
-            // cast return value
-            ExpressionSyntax castExpr;
-            var typeStrLst = memberType.FullName.Split('.');
-            if (typeStrLst.Length <= 1)
-            {
-                castExpr = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(memberType.Name), SyntaxFactory.InvocationExpression(invokeExpr, invokeArgs));
-            }
-            else
-            {
-                var qualifiedName = SyntaxFactory.QualifiedName(SyntaxFactory.IdentifierName(typeStrLst[0]), SyntaxFactory.IdentifierName(typeStrLst[1]));
-                for (var i = 2; i < typeStrLst.Length; ++i)
-                    qualifiedName = SyntaxFactory.QualifiedName(qualifiedName, SyntaxFactory.IdentifierName(typeStrLst[i]));
-                castExpr = SyntaxFactory.CastExpression(qualifiedName, SyntaxFactory.InvocationExpression(invokeExpr, invokeArgs));
-            }
-
+            
+            // cast 
+            var typeNode = CSharpHotfixRewriter.TypeStringToSyntaxNode(memberType.ToString());
+            var castExpr = SyntaxFactory.CastExpression(typeNode, SyntaxFactory.InvocationExpression(invokeExpr, invokeArgs));
             castExpr = castExpr.WithTriviaFrom(node);
             return castExpr;
         }
@@ -842,6 +828,77 @@ namespace CSharpHotfix
             //         return true;
             // }
             return false;
+        }
+
+
+        private static Regex leftPattern = new Regex(@"`\d+\[");
+        private static Regex rightPattern = new Regex(@"\]");
+        public static TypeSyntax TypeStringToSyntaxNode(string typeString)
+        {
+            TypeSyntax syntaxNode;
+
+            // translate
+            typeString = typeString.Trim();
+            if (typeString.Contains("`"))
+            {
+                typeString = leftPattern.Replace(typeString, "<");
+                typeString = rightPattern.Replace(typeString, ">");
+            }
+
+            // generic type
+            if (typeString.Contains("<"))
+            {
+                var leftPos = typeString.IndexOf('<');
+                var rightPos = typeString.LastIndexOf('>');
+
+                // exp. 'System.Collections.Generic.List' of 'System.Collections.Generic.List<System.Int32>'
+                var genericTypeStr = typeString.Substring(0, leftPos);
+                var genericTypeLst = genericTypeStr.Split('.');
+
+                // exp. 'System.Int32' of 'System.Collections.Generic.List<System.Int32>'
+                var genericArgStr = typeString.Substring(leftPos + 1, rightPos - leftPos - 1);
+                var genericArgLst = genericArgStr.Split(',');
+
+                // build generic node
+                var argSyntax = new SeparatedSyntaxList<TypeSyntax>();
+                foreach (var arg in genericArgLst)
+                {
+                    argSyntax = argSyntax.Add(TypeStringToSyntaxNode(arg));
+                }
+                var genericNode = SyntaxFactory.GenericName(SyntaxFactory.Identifier(genericTypeLst[genericTypeLst.Length - 1]), SyntaxFactory.TypeArgumentList(argSyntax));
+
+                // build type syntax
+                if (genericTypeLst.Length <= 1)     // single name type
+                {
+                    syntaxNode = genericNode;
+                }
+                else    // qualified type
+                {
+                    var qualifiedName = SyntaxFactory.QualifiedName(SyntaxFactory.IdentifierName(genericTypeLst[0]), SyntaxFactory.IdentifierName(genericTypeLst[1]));
+                    for (var i = 2; i < genericTypeLst.Length - 1; ++i)
+                        qualifiedName = SyntaxFactory.QualifiedName(qualifiedName, SyntaxFactory.IdentifierName(genericTypeLst[i]));
+                    syntaxNode = SyntaxFactory.QualifiedName(qualifiedName, genericNode);
+                }
+                return syntaxNode;
+
+            }
+
+
+            // build type syntax
+            var typeStrLst = typeString.Split('.');
+            if (typeStrLst.Length <= 1)     // single name type
+            {
+                syntaxNode = SyntaxFactory.IdentifierName(typeString);
+            }
+            else    // qualified type
+            {
+                var qualifiedName = SyntaxFactory.QualifiedName(SyntaxFactory.IdentifierName(typeStrLst[0]), SyntaxFactory.IdentifierName(typeStrLst[1]));
+                for (var i = 2; i < typeStrLst.Length; ++i)
+                    qualifiedName = SyntaxFactory.QualifiedName(qualifiedName, SyntaxFactory.IdentifierName(typeStrLst[i]));
+                syntaxNode = qualifiedName;
+            }
+
+            return syntaxNode;
         }
     }
 }
