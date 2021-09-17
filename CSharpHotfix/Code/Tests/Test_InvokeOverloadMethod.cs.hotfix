@@ -1,0 +1,32 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace CSharpHotfixTest {
+
+    public class Test_InvokeOverloadMethod__HOTFIX_CLS
+    {
+
+
+        static public string Func__HOTFIX_MTD(Test_InvokeOverloadMethod __INST__)
+        {
+            CSharpHotfix.CSharpHotfixManager.ReflectionReturnVoidInvoke("CSharpHotfixTest.Test_InvokeOverloadMethod",__INST__,"InvokeFunc",null);
+            CSharpHotfix.CSharpHotfixManager.ReflectionReturnVoidInvoke("CSharpHotfixTest.Test_InvokeOverloadMethod",__INST__,"InvokeFunc",0);
+
+            if ((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_InvokeOverloadMethod",__INST__,"invokeCnt") == 2)
+                return "hotfixed";
+            else
+                return "invalid";
+        }
+
+        static private void InvokeFunc__HOTFIX_MTD(Test_InvokeOverloadMethod __INST__)
+        {
+            CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_InvokeOverloadMethod",__INST__,"invokeCnt",(System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_InvokeOverloadMethod",__INST__,"invokeCnt") + 1);
+        }
+
+        static private void InvokeFunc__HOTFIX_MTD(Test_InvokeOverloadMethod __INST__,int i)
+        {
+            CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_InvokeOverloadMethod",__INST__,"invokeCnt",(System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_InvokeOverloadMethod",__INST__,"invokeCnt") + 1);
+        }
+    }
+}

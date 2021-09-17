@@ -558,9 +558,11 @@ namespace CSharpHotfix
             }
 
             // try delegate
-            MethodInfo method;
-            if (reflectionData.methods.TryGetValue(memberName, out method))
+            MethodInfoWrap methodWrap;
+            if (reflectionData.methods.TryGetValue(memberName, out methodWrap))
             {
+                // TODO: fix overload
+                var method = methodWrap.Single();
                 return Delegate.CreateDelegate(reflectionData.type, instance, method);
             }
 
@@ -598,10 +600,10 @@ namespace CSharpHotfix
             Assert.IsNotNull(reflectionData, "cannot get reflection data for typeName: " + typeName);
 
             // try method
-            MethodInfo method;
-            if (reflectionData.methods.TryGetValue(memberName, out method))
+            MethodInfoWrap methodWrap;
+            if (reflectionData.methods.TryGetValue(memberName, out methodWrap))
             {
-                method.Invoke(instance, parameters);
+                methodWrap.Invoke(instance, parameters);
                 return;
             }
 
@@ -615,10 +617,10 @@ namespace CSharpHotfix
             Assert.IsNotNull(reflectionData, "cannot get reflection data for typeName: " + typeName);
 
             // try method
-            MethodInfo method;
-            if (reflectionData.methods.TryGetValue(memberName, out method))
+            MethodInfoWrap methodWrap;
+            if (reflectionData.methods.TryGetValue(memberName, out methodWrap))
             {
-                return method.Invoke(instance, parameters);
+                return methodWrap.Invoke(instance, parameters);
             }
 
             Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
@@ -645,14 +647,93 @@ namespace CSharpHotfix
             }
 
             // try delegate
-            MethodInfo method;
-            if (reflectionData.methods.TryGetValue(memberName, out method))
+            MethodInfoWrap methodWrap;
+            if (reflectionData.methods.TryGetValue(memberName, out methodWrap))
             {
-                return method.ReturnType;
+                return methodWrap.ReturnType;
             }
 
             Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
             return null;
+        }
+
+        /// <summary>
+        /// wrap MethodInfo, to resolve overload methods
+        /// </summary>
+        public class MethodInfoWrap
+        {
+            public string Name
+            {
+                get { return Single().Name; }
+            }
+
+            public Type ReturnType
+            {
+                get { return Single().ReturnType; }
+            }
+
+            public int Count
+            {
+                get { return methodLst.Count; }
+            }
+
+            private List<MethodInfo> methodLst = new List<MethodInfo>();
+
+            public void Add(MethodInfo method)
+            {
+                methodLst.Add(method);
+            }
+
+            public MethodInfo Single()
+            {
+                return methodLst[0];
+            }
+
+            public object Invoke(object instance, object[] parameters)
+            {
+                if (methodLst.Count == 1)
+                {
+                    return methodLst[0].Invoke(instance, parameters);
+                }
+
+                var paramLength = parameters == null ? 0 : parameters.Length;
+                foreach (var method in methodLst)
+                {
+                    var paramInfos = method.GetParameters();
+                    if (paramInfos.Length < paramLength)
+                        continue;
+
+                    var matched = true;
+                    for (var i = 0; i != paramInfos.Length; ++i)
+                    {
+                        var paramInfo = paramInfos[i];
+                        if (i >= paramLength)
+                        {
+                            if (!paramInfo.HasDefaultValue)
+                            {
+                                matched = false;
+                                break;
+                            }
+                            continue;
+                        }
+                        
+                        var paramInst = parameters[i];
+                        if (!paramInfo.ParameterType.IsAssignableFrom(paramInst.GetType()))
+                        {
+                            matched = false;
+                            break;
+                        }
+                    }
+                    if (!matched)
+                        continue;
+
+                    // found method, invoke it
+                    return method.Invoke(instance, parameters);
+                }
+
+                Assert.IsTrue(false, "invoke method failed");
+                return null;
+            }
         }
 
         public class ReflectionData
@@ -660,7 +741,7 @@ namespace CSharpHotfix
             public Type type;
             public Dictionary<string, FieldInfo> fields = new Dictionary<string, FieldInfo>();
             public Dictionary<string, PropertyInfo> props = new Dictionary<string, PropertyInfo>();
-            public Dictionary<string, MethodInfo> methods = new Dictionary<string, MethodInfo>();
+            public Dictionary<string, MethodInfoWrap> methods = new Dictionary<string, MethodInfoWrap>();
 
             public void Print()
             {
@@ -668,8 +749,8 @@ namespace CSharpHotfix
 
                 foreach (var kv in methods)
                 {
-                    var method = kv.Value;
-                    UnityEngine.Debug.Log("method: " + method.Name);
+                    var methodWrap = kv.Value;
+                    UnityEngine.Debug.Log("method: " + methodWrap.Name);
                 }
 
                 foreach (var kv in fields)
@@ -725,7 +806,13 @@ namespace CSharpHotfix
             var methods = type.GetMethods(bindingFlags);
             foreach (var method in methods)
             {
-                data.methods.Add(method.Name, method);
+                MethodInfoWrap methodWrap; 
+                if (!data.methods.TryGetValue(method.Name, out methodWrap))
+                {
+                    methodWrap = new MethodInfoWrap();
+                    data.methods.Add(method.Name, methodWrap);
+                }
+                methodWrap.Add(method);
             }
 
             var fields = type.GetFields(bindingFlags);
