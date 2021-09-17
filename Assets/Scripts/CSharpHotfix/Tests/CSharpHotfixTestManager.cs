@@ -20,6 +20,7 @@ namespace CSharpHotfix {
             "Test_AccessMember",
             "Test_AccessPriviateMember",
             "Test_UnityMacro",
+            "Test_AssignMember",
         };
 
         public static bool EnableTest = true;

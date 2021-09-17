@@ -1,0 +1,28 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace CSharpHotfixTest {
+
+    public class Test_AssignMember__HOTFIX_CLS
+    {
+
+
+        static public string Func__HOTFIX_MTD(Test_AssignMember __INST__)
+        {
+            CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AssignMember",__INST__,"count",1);
+
+            CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AssignMember",__INST__,"count",2);
+
+            CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AssignMember",__INST__,"count",3);
+
+            CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AssignMember",__INST__,"count",-1);
+
+            CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AssignMember",__INST__,"count",1);
+
+            if ((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AssignMember",__INST__,"count") == 2)
+                return "hotfixed";
+            return "invalid";
+        }
+    }
+}
