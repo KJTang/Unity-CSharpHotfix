@@ -11,10 +11,6 @@ using UnityEngine;
 using UnityEngine.Assertions;
 using Mono.Cecil;
 
-#if !CSHOFIX_COMPATIBLE_MODE
-using Microsoft.CodeAnalysis;
-#endif
-
 namespace CSharpHotfix
 {
     public class CSharpHotfixManager 
@@ -219,64 +215,12 @@ namespace CSharpHotfix
             return methodSignatureBuilder.ToString();
         }
 
-#if !CSHOFIX_COMPATIBLE_MODE
+
         /// <summary>
-        /// get method signature for Roslyn symbol
+        /// fix hotfixed method signature to non-hotfixed method signature, to make them can match
         /// </summary>
-        /// <param name="method"></param>
+        /// <param name="signature"></param>
         /// <returns></returns>
-        public static string GetMethodSignature(IMethodSymbol method)
-        {
-            methodSignatureBuilder.Length = 0;
-
-            // fullname
-            var methodName = GetSymbolFullName(method);
-            methodSignatureBuilder.Append(methodName);
-            methodSignatureBuilder.Append(";");
-
-            // static
-            var isStatic = method.IsStatic ? "Static" : "NonStatic";
-            methodSignatureBuilder.Append(isStatic);
-            methodSignatureBuilder.Append(";");
-
-            // return type
-            var returnType = GetSymbolFullName(method.ReturnType);
-            methodSignatureBuilder.Append(returnType);
-            methodSignatureBuilder.Append(";");
-
-            // generic
-            var genericArgs = method.TypeParameters;
-            methodSignatureBuilder.Append(genericArgs.Length.ToString());
-            methodSignatureBuilder.Append(";");
-
-            // parameters
-            var parameters = method.Parameters;
-            foreach (var param in parameters)
-            {
-                methodSignatureBuilder.Append(GetSymbolFullName(param.Type));
-                methodSignatureBuilder.Append(",");
-            }
-            methodSignatureBuilder.Append(";");
-
-            return methodSignatureBuilder.ToString();
-        }
-
-        private static string GetSymbolFullName(ISymbol symbol)
-        {
-            var symbolName = symbol.Name;
-            var parent = symbol.ContainingSymbol;
-            while (parent != null)
-            {
-                if (parent is INamespaceSymbol && (parent as INamespaceSymbol).IsGlobalNamespace)
-                    break;
-                symbolName = parent.Name + "." + symbolName;
-                parent = parent.ContainingSymbol;
-            }
-            return symbolName;
-        }
-
-#endif
-
         public static string FixHotfixMethodSignature(string signature)
         {
             // fix class name

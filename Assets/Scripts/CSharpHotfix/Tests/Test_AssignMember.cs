@@ -10,14 +10,19 @@ namespace CSharpHotfixTest {
 
         public string Func()
         {
+            // SimpleAssignmentExpression
             count = 1;
 
+            // AddAssignmentExpression
             count += 2;
 
+            // SubtractAssignmentExpression
             count -= 3;
 
+            // MultiplyAssignmentExpression
             count *= -1;
 
+            // LeftShiftAssignmentExpression
             count <<= 1;
 
             if (count == 2)

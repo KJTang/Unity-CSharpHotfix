@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31321.278
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpHotfixTool", "CSharpHotfixTool\CSharpHotfixTool.csproj", "{06496CF3-D4EF-4FE9-A266-169B1CCE18CA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{06496CF3-D4EF-4FE9-A266-169B1CCE18CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06496CF3-D4EF-4FE9-A266-169B1CCE18CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06496CF3-D4EF-4FE9-A266-169B1CCE18CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06496CF3-D4EF-4FE9-A266-169B1CCE18CA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {095A0010-328B-4DAD-87CD-E17E4A2ED914}
+	EndGlobalSection
+EndGlobal

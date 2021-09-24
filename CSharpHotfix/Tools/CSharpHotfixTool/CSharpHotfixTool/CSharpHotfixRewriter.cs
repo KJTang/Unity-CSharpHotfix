@@ -445,6 +445,9 @@ namespace CSharpHotfixTool
             if (nameSymbol.Symbol != null)
                 return node;
 
+            // check is simple assignment
+            var isSimpleAssignment = node.IsKind(SyntaxKind.SimpleAssignmentExpression);
+
             // CSharpHotfix.CSharpHotfixManager.ReflectionSet
             var setExpr = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
                 SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 

@@ -64,48 +64,34 @@ namespace CSharpHotfix.Editor
         }
 
 
-        [MenuItem("CSharpHotfix/Inject", false, 2)]
+        [MenuItem("CSharpHotfix/Inject (Compatible Mode)", false, 2)]
         public static void InjectMenu()
         {
-            CSharpHotfixInjector.TryInject(true);
+            //CSharpHotfixInjector.TryInject(true);
+            
+            if (EditorApplication.isCompiling || Application.isPlaying)
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# Inject: cannot inject during playing or compiling");
+                return;
+            }
+            
+            var arguments = new List<string>();
+            var succ = ExecuteCommand(true, arguments);
+            if (!succ)
+            {
+                UnityEngine.Debug.LogError("Inject (compatible mode) finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
+                return;
+            }
         }
         
-#if !CSHOFIX_COMPATIBLE_MODE
-        [MenuItem("CSharpHotfix/Hotfix", false, 3)]
-        public static void TryHotfix()
-        {
-            CSharpHotfixInterpreter.HotfixFromCodeFiles();
-        }
-#endif
-        
-#if CSHOFIX_COMPATIBLE_MODE
         [MenuItem("CSharpHotfix/Hotfix (Compatible Mode)", false, 3)]
         public static void TryHotfixCompatibleMode()
         {
-            var monoPath = CSharpHotfixCfg.GetMonoPath();
-            if (!File.Exists(monoPath))
+            if (EditorApplication.isCompiling)
             {
-                CSharpHotfixManager.Error("#CS_HOTFIX# TryHotfix (Compatible Mode): can not find mono: {0}", monoPath);
+                CSharpHotfixManager.Error("#CS_HOTFIX# Hotfix: cannot hotfix during compiling");
                 return;
             }
-
-            var toolPath = CSharpHotfixManager.GetAppRootPath() + "CSharpHotfix/Tools/CSharpHotfixTool/CSharpHotfixTool/bin/Debug/net472/CSharpHotfixTool.exe";
-            if (!File.Exists(toolPath))
-            {
-                CSharpHotfixManager.Error("#CS_HOTFIX# TryHotfix (Compatible Mode): can not find hotfix tool: {0}", toolPath);
-                return;
-            }
-
-            var hotfixProc = new Process();
-            hotfixProc.StartInfo.FileName = monoPath;
-            hotfixProc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            hotfixProc.StartInfo.RedirectStandardOutput = true;
-            hotfixProc.StartInfo.UseShellExecute = false;
-            hotfixProc.StartInfo.CreateNoWindow = true;
-
-            // arguments
-            // proj path
-            var projPath = CSharpHotfixManager.GetAppRootPath();
 
             // assemblies
             var assemblies = CSharpHotfixManager.GetAssemblies();
@@ -129,12 +115,58 @@ namespace CSharpHotfix.Editor
             }
             var definitionsStr = sb.ToString();
 
-            hotfixProc.StartInfo.Arguments = "--debug " + 
-                "\"" + toolPath + "\" " + 
-                "\"" + projPath + "\" " + 
-                "\"" + assembliesStr + "\" " + 
-                "\"" + definitionsStr + "\" " + 
-            "";
+            // execute cmd
+            var arguments = new List<string>();
+            arguments.Add(assembliesStr);
+            arguments.Add(definitionsStr);
+            var succ = ExecuteCommand(false, arguments);
+
+            if (!succ)
+            {
+                UnityEngine.Debug.LogError("Hotfix (compatible mode) finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
+                return;
+            }
+
+            CSharpHotfixInterpreter.HotfixFromAssembly();
+        }
+        
+        private static bool ExecuteCommand(bool isInjectMode, List<string> arguments)
+        {
+            var monoPath = CSharpHotfixCfg.GetMonoPath();
+            if (!File.Exists(monoPath))
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# ExecuteCommand: can not find mono: {0}", monoPath);
+                return false;
+            }
+
+            var toolPath = CSharpHotfixManager.GetAppRootPath() + "CSharpHotfix/Tools/CSharpHotfixTool/CSharpHotfixTool/bin/Debug/net472/CSharpHotfixTool.exe";
+            if (!File.Exists(toolPath))
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# ExecuteCommand: can not find hotfix tool: {0}", toolPath);
+                return false;
+            }
+
+            var hotfixProc = new Process();
+            hotfixProc.StartInfo.FileName = monoPath;
+            hotfixProc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            hotfixProc.StartInfo.RedirectStandardOutput = true;
+            hotfixProc.StartInfo.UseShellExecute = false;
+            hotfixProc.StartInfo.CreateNoWindow = true;
+
+            // arguments
+            var projPath = CSharpHotfixManager.GetAppRootPath();
+            var mode = isInjectMode ? "--inject" : "--hotfix";
+
+            var argSb = new StringBuilder();
+            argSb.Append("--debug ");
+            argSb.Append("\"" + toolPath + "\" ");
+            argSb.Append("\"" + mode + "\" ");
+            argSb.Append("\"" + projPath + "\" ");
+            foreach (var arg in arguments)
+            {
+                argSb.Append("\"" + arg + "\" ");
+            }
+            hotfixProc.StartInfo.Arguments = argSb.ToString();
             
             //UnityEngine.Debug.LogError(hotfixProc.StartInfo.FileName);
             //UnityEngine.Debug.LogError(hotfixProc.StartInfo.Arguments);
@@ -163,13 +195,11 @@ namespace CSharpHotfix.Editor
 
             if (!succ)
             {
-                UnityEngine.Debug.LogError("hotfix (compatible mode) finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
-                return;
+                UnityEngine.Debug.LogError("#CS_HOTFIX# ExecuteCommand: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
+                return false;
             }
-
-            CSharpHotfixInterpreter.HotfixFromAssembly();
+            return true;
         }
-#endif
         
         
         [MenuItem("CSharpHotfix/Force Recompile", false, 21)]
