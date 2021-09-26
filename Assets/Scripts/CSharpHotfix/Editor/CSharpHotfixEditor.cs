@@ -27,15 +27,16 @@ namespace CSharpHotfix.Editor
             //    EnableHotfix(CSharpHotfixManager.IsHotfixEnabled);
             //};
         }
-         
-        [MenuItem(kEnableBtnName, false, 1)]
-        private static void EnableHotifxMenuCheckMark() 
+
+        // hide "Enable" btn right now
+        //[MenuItem(kEnableBtnName, false, 1)]
+        private static void EnableHotifxMenuCheckMark()
         {
             var enabled = !CSharpHotfixManager.IsHotfixEnabled;
             EnableHotfix(enabled);
         }
 
-        [MenuItem(kEnableBtnName, true, 1)]
+        //[MenuItem(kEnableBtnName, true, 1)]
         public static bool EnableHotifxMenuValidate()
         {
             if (EditorApplication.isCompiling || Application.isPlaying)
@@ -67,21 +68,22 @@ namespace CSharpHotfix.Editor
         [MenuItem("CSharpHotfix/Inject (Compatible Mode)", false, 2)]
         public static void InjectMenu()
         {
-            //CSharpHotfixInjector.TryInject(true);
+            CSharpHotfixInjector.TryInject(true);
             
-            if (EditorApplication.isCompiling || Application.isPlaying)
-            {
-                CSharpHotfixManager.Error("#CS_HOTFIX# Inject: cannot inject during playing or compiling");
-                return;
-            }
+            // TODO: 
+            //if (EditorApplication.isCompiling || Application.isPlaying)
+            //{
+            //    CSharpHotfixManager.Error("#CS_HOTFIX# Inject: cannot inject during playing or compiling");
+            //    return;
+            //}
             
-            var arguments = new List<string>();
-            var succ = ExecuteCommand(true, arguments);
-            if (!succ)
-            {
-                UnityEngine.Debug.LogError("Inject (compatible mode) finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
-                return;
-            }
+            //var arguments = new List<string>();
+            //var succ = ExecuteCommand(true, arguments);
+            //if (!succ)
+            //{
+            //    UnityEngine.Debug.LogError("Inject (compatible mode) finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
+            //    return;
+            //}
         }
         
         [MenuItem("CSharpHotfix/Hotfix (Compatible Mode)", false, 3)]
@@ -127,8 +129,108 @@ namespace CSharpHotfix.Editor
                 return;
             }
 
-            CSharpHotfixInterpreter.HotfixFromAssembly();
+            HotfixFromAssembly();
         }
+        
+        [MenuItem("CSharpHotfix/Force Recompile", false, 21)]
+        public static void ForceRecompileMenu()
+        {
+            ForceRecomiple();
+        }
+
+        private static void ForceRecomiple()
+        {
+            var assetsPath = Application.dataPath;
+            var assetsUri = new System.Uri(assetsPath);
+            var files = Directory.GetFiles(assetsPath, "CSharpHotfixManager.cs", SearchOption.AllDirectories);
+            foreach (var file in files)
+            { 
+                if (file.EndsWith("CSharpHotfixManager.cs"))
+                {
+                    // delete old assemblies
+                    CSharpHotfixInjector.RevertInject();
+
+                    // reimport to force compile
+			        var relativeUri = assetsUri.MakeRelativeUri(new System.Uri(file));
+			        var relativePath = System.Uri.UnescapeDataString(relativeUri.ToString());
+                    AssetDatabase.ImportAsset(relativePath, ImportAssetOptions.ForceUpdate);
+                    AssetDatabase.Refresh();
+                    break;
+                }
+            }
+        }
+        
+        [MenuItem("CSharpHotfix/Gen Method Id", false, 22)]
+        public static void GenMethodIdMenu()
+        {
+            CSharpHotfixInjector.GenMethodId();
+        }
+
+
+        [InitializeOnLoadMethod]
+        private static void OnInitialized()
+        {
+            var enabled = EditorPrefs.GetBool(kEnableBtnName, false);
+            CSharpHotfixManager.IsHotfixEnabled = false;
+
+            CSharpHotfixManager.Message("#CS_HOTFIX# CSharpHotfixEditor.OnInitialized: is hotfix enabled: " + enabled);
+            if (!enabled)
+                return;
+
+            EnableHotfix(true);
+        }
+
+
+        
+        public static void HotfixFromAssembly()
+        {
+            if (!CSharpHotfixManager.IsMethodIdFileExist())
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# HotfixMethod: no method id file cache, please re-generate it");
+                return;
+            }
+            CSharpHotfixManager.LoadMethodIdFromFile();
+            CSharpHotfixManager.ClearReflectionData();
+
+            // load assembly from file
+            var hotfixStream = new MemoryStream();
+            using (var fileStream = new FileStream(CSharpHotfixManager.GetHotfixAssemblyPath(), FileMode.Open, System.IO.FileAccess.Read)) 
+            {
+                byte[] bytes = new byte[fileStream.Length];
+                fileStream.Read(bytes, 0, (int)fileStream.Length);
+                hotfixStream.Write(bytes, 0, bytes.Length);
+            }
+
+            // save methodinfo
+            CSharpHotfixManager.ClearMethodInfo();
+            var hotfixAssembly = Assembly.Load(hotfixStream.GetBuffer(), null);
+            var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            var typeLst = hotfixAssembly.GetTypes();
+            foreach (var type in typeLst)
+            {
+                var methodLst = type.GetMethods(bindingFlags);
+                foreach (var methodInfo in methodLst)
+                {
+                    var signature = CSharpHotfixManager.GetMethodSignature(methodInfo);
+                    var fixedSignature = CSharpHotfixManager.FixHotfixMethodSignature(signature);
+                    var methodId = CSharpHotfixManager.GetMethodId(fixedSignature);
+                    if (methodId <= 0) 
+                        continue;
+
+                    var state = CSharpHotfixManager.GetHotfixMethodStaticState(signature);
+                    CSharpHotfixManager.SetMethodInfo(methodId, methodInfo, state == 2);
+                    CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: {0} \t{1}", methodId, fixedSignature);
+                }
+            }
+
+            // close stream
+            hotfixStream.Close();
+            
+            // debug: 
+            //CSharpHotfixManager.PrintAllMethodInfo();
+            CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: hotfix (compatible mode) finished");
+        }
+        
         
         private static bool ExecuteCommand(bool isInjectMode, List<string> arguments)
         {
@@ -201,54 +303,6 @@ namespace CSharpHotfix.Editor
             return true;
         }
         
-        
-        [MenuItem("CSharpHotfix/Force Recompile", false, 21)]
-        public static void ForceRecompileMenu()
-        {
-            ForceRecomiple();
-        }
-
-        private static void ForceRecomiple()
-        {
-            var assetsPath = Application.dataPath;
-            var assetsUri = new System.Uri(assetsPath);
-            var files = Directory.GetFiles(assetsPath, "CSharpHotfixManager.cs", SearchOption.AllDirectories);
-            foreach (var file in files)
-            { 
-                if (file.EndsWith("CSharpHotfixManager.cs"))
-                {
-                    // delete old assemblies
-                    CSharpHotfixInjector.RevertInject();
-
-                    // reimport to force compile
-			        var relativeUri = assetsUri.MakeRelativeUri(new System.Uri(file));
-			        var relativePath = System.Uri.UnescapeDataString(relativeUri.ToString());
-                    AssetDatabase.ImportAsset(relativePath, ImportAssetOptions.ForceUpdate);
-                    AssetDatabase.Refresh();
-                    break;
-                }
-            }
-        }
-        
-        [MenuItem("CSharpHotfix/Gen Method Id", false, 22)]
-        public static void GenMethodIdMenu()
-        {
-            CSharpHotfixInjector.GenMethodId();
-        }
-
-
-        [InitializeOnLoadMethod]
-        private static void OnInitialized()
-        {
-            var enabled = EditorPrefs.GetBool(kEnableBtnName, false);
-            CSharpHotfixManager.IsHotfixEnabled = false;
-
-            CSharpHotfixManager.Message("#CS_HOTFIX# CSharpHotfixEditor.OnInitialized: is hotfix enabled: " + enabled);
-            if (!enabled)
-                return;
-
-            EnableHotfix(true);
-        }
 
     }
 

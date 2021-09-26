@@ -94,6 +94,19 @@ namespace CSharpHotfix
             return macroDefinitions;
         }
 
+        
+        private static string hotfixAssemblyDir;
+        private static string hotfixDllName = "CSHotfix_Assembly.dll";
+        public static string GetHotfixAssemblyPath()
+        {
+            if (hotfixAssemblyDir == null)
+            {
+                hotfixAssemblyDir = GetAppRootPath() + "Library/ScriptAssemblies/";
+            }
+            var hotfixAssemblyPath = hotfixAssemblyDir + hotfixDllName;
+            return hotfixAssemblyPath;
+        }
+
 #region log
         [Conditional("CSHOTFIX_ENABLE_LOG")]
         public static void Log(string message, params object[] args)
@@ -215,6 +228,14 @@ namespace CSharpHotfix
             return methodSignatureBuilder.ToString();
         }
 
+        
+        // same as CSharpHotfixRewriter.cs in CSharpHotfixTool Project
+        // if need change, modify them in both files
+        public static readonly string InstanceParamName = "__INST__";
+        public static readonly string ClassNamePostfix = "__HOTFIX_CLS";
+        public static readonly string MethodNamePostfix = "__HOTFIX_MTD";
+        public static readonly string StaticMethodNamePostfix = "__HOTFIX_MTD_S";
+
 
         /// <summary>
         /// fix hotfixed method signature to non-hotfixed method signature, to make them can match
@@ -225,7 +246,7 @@ namespace CSharpHotfix
         {
             // fix class name
             if (IsHotfixClass(signature))
-                signature = signature.Replace(CSharpHotfixRewriter.ClassNamePostfix, "");
+                signature = signature.Replace(ClassNamePostfix, "");
 
             // fix static
             var oldStaticStr = "NonStatic";
@@ -241,9 +262,9 @@ namespace CSharpHotfix
 
             // fix method name
             if (staticState == 1)
-                signature = signature.Replace(CSharpHotfixRewriter.StaticMethodNamePostfix, "");
+                signature = signature.Replace(StaticMethodNamePostfix, "");
             else if (staticState == 2)
-                signature = signature.Replace(CSharpHotfixRewriter.MethodNamePostfix, "");
+                signature = signature.Replace(MethodNamePostfix, "");
 
             // fix parameter list
             if (staticState == 2)
@@ -265,15 +286,15 @@ namespace CSharpHotfix
 
         public static bool IsHotfixClass(string signature)
         {
-            return signature.Contains(CSharpHotfixRewriter.ClassNamePostfix);
+            return signature.Contains(ClassNamePostfix);
         }
 
         public static int GetHotfixMethodStaticState(string signature)
         {
             var state = 0;  // non hotfix
-            if (signature.Contains(CSharpHotfixRewriter.StaticMethodNamePostfix))
+            if (signature.Contains(StaticMethodNamePostfix))
                 state = 1;  // static
-            else if (signature.Contains(CSharpHotfixRewriter.MethodNamePostfix))
+            else if (signature.Contains(MethodNamePostfix))
                 state = 2;  // non static
             return state;
         }
