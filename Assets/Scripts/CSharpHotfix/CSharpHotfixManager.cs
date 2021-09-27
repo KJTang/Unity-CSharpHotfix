@@ -9,7 +9,6 @@ using System.IO;
 using System;
 using UnityEngine;
 using UnityEngine.Assertions;
-using Mono.Cecil;
 
 namespace CSharpHotfix
 {
@@ -40,6 +39,18 @@ namespace CSharpHotfix
                 appRootPath = path;
             }
             return appRootPath;
+        }
+        
+        private static string assemblyDir;
+        public static string GetAssemblyPath(string assemblyName)
+        {
+            if (assemblyDir == null)
+            {
+                assemblyDir = GetAppRootPath();
+                assemblyDir = assemblyDir + "Library/ScriptAssemblies/";
+            }
+            var assemblyPath = assemblyDir + assemblyName + ".dll";
+            return assemblyPath;
         }
 
         private static Assembly[] assemblies;
@@ -184,51 +195,7 @@ namespace CSharpHotfix
 
             return methodSignatureBuilder.ToString();
         }
-
-        /// <summary>
-        /// get method signature for Mono.Cecil.MethodDefinition
-        /// </summary>
-        /// <param name="method"></param>
-        /// <returns></returns>
-        public static string GetMethodSignature(MethodDefinition method)
-        {
-            methodSignatureBuilder.Length = 0;
-
-            // fullname
-            var methodName = method.Name;
-            var namespaceName = method.DeclaringType.FullName;
-            methodName = namespaceName + "." + methodName;
-            methodSignatureBuilder.Append(methodName);
-            methodSignatureBuilder.Append(";");
-
-            // static
-            var isStatic = method.IsStatic ? "Static" : "NonStatic";
-            methodSignatureBuilder.Append(isStatic);
-            methodSignatureBuilder.Append(";");
-
-            // return type
-            var returnType = method.ReturnType.FullName;
-            methodSignatureBuilder.Append(returnType);
-            methodSignatureBuilder.Append(";");
-
-            // generic
-            var genericArgs = method.GenericParameters;
-            methodSignatureBuilder.Append(genericArgs.Count.ToString());
-            methodSignatureBuilder.Append(";");
-
-            // parameters
-            var parameters = method.Parameters;
-            foreach (var param in parameters)
-            {
-                methodSignatureBuilder.Append(param.ParameterType.FullName);
-                methodSignatureBuilder.Append(",");
-            }
-            methodSignatureBuilder.Append(";");
-
-            return methodSignatureBuilder.ToString();
-        }
-
-        
+                
         // same as CSharpHotfixRewriter.cs in CSharpHotfixTool Project
         // if need change, modify them in both files
         public static readonly string InstanceParamName = "__INST__";

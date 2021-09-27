@@ -11,6 +11,7 @@ using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Mono.Cecil;
 
 namespace CSharpHotfixTool
 {
@@ -50,6 +51,29 @@ namespace CSharpHotfixTool
             appRootPath = path;
         }
 
+        
+        private static string assemblyDir;
+        public static string GetAssemblyPath(string assemblyName)
+        {
+            if (assemblyDir == null)
+            {
+                assemblyDir = GetAppRootPath();
+                assemblyDir = assemblyDir + "Library/ScriptAssemblies/";
+            }
+            var assemblyPath = assemblyDir + assemblyName + ".dll";
+            return assemblyPath;
+        }
+
+        private static IEnumerable<Type> typesToInject;
+        public static IEnumerable<Type> GetTypesToInject()
+        {
+            return typesToInject;
+        }
+        public static void SetTypesToInject()
+        {
+            // TODO: 
+            typesToInject = new List<Type>();
+        }
         
 
         private static HashSet<string> macroDefinitions;
@@ -195,49 +219,50 @@ namespace CSharpHotfixTool
 
             return methodSignatureBuilder.ToString();
         }
-
+        
         /// <summary>
         /// get method signature for Mono.Cecil.MethodDefinition
         /// </summary>
         /// <param name="method"></param>
         /// <returns></returns>
-        //public static string GetMethodSignature(MethodDefinition method)
-        //{
-        //    methodSignatureBuilder.Length = 0;
+        public static string GetMethodSignature(MethodDefinition method)
+        {
+            methodSignatureBuilder.Length = 0;
 
-        //    // fullname
-        //    var methodName = method.Name;
-        //    var namespaceName = method.DeclaringType.FullName;
-        //    methodName = namespaceName + "." + methodName;
-        //    methodSignatureBuilder.Append(methodName);
-        //    methodSignatureBuilder.Append(";");
+            // fullname
+            var methodName = method.Name;
+            var namespaceName = method.DeclaringType.FullName;
+            methodName = namespaceName + "." + methodName;
+            methodSignatureBuilder.Append(methodName);
+            methodSignatureBuilder.Append(";");
 
-        //    // static
-        //    var isStatic = method.IsStatic ? "Static" : "NonStatic";
-        //    methodSignatureBuilder.Append(isStatic);
-        //    methodSignatureBuilder.Append(";");
+            // static
+            var isStatic = method.IsStatic ? "Static" : "NonStatic";
+            methodSignatureBuilder.Append(isStatic);
+            methodSignatureBuilder.Append(";");
 
-        //    // return type
-        //    var returnType = method.ReturnType.FullName;
-        //    methodSignatureBuilder.Append(returnType);
-        //    methodSignatureBuilder.Append(";");
+            // return type
+            var returnType = method.ReturnType.FullName;
+            methodSignatureBuilder.Append(returnType);
+            methodSignatureBuilder.Append(";");
 
-        //    // generic
-        //    var genericArgs = method.GenericParameters;
-        //    methodSignatureBuilder.Append(genericArgs.Count.ToString());
-        //    methodSignatureBuilder.Append(";");
+            // generic
+            var genericArgs = method.GenericParameters;
+            methodSignatureBuilder.Append(genericArgs.Count.ToString());
+            methodSignatureBuilder.Append(";");
 
-        //    // parameters
-        //    var parameters = method.Parameters;
-        //    foreach (var param in parameters)
-        //    {
-        //        methodSignatureBuilder.Append(param.ParameterType.FullName);
-        //        methodSignatureBuilder.Append(",");
-        //    }
-        //    methodSignatureBuilder.Append(";");
+            // parameters
+            var parameters = method.Parameters;
+            foreach (var param in parameters)
+            {
+                methodSignatureBuilder.Append(param.ParameterType.FullName);
+                methodSignatureBuilder.Append(",");
+            }
+            methodSignatureBuilder.Append(";");
 
-        //    return methodSignatureBuilder.ToString();
-        //}
+            return methodSignatureBuilder.ToString();
+        }
+
 
         /// <summary>
         /// get method signature for Roslyn symbol

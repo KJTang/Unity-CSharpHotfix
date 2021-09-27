@@ -15,60 +15,21 @@ namespace CSharpHotfix.Editor
     public static class CSharpHotfixEditor 
     {
 
-        private const string kEnableBtnName = "CSharpHotfix/Enable";
-
         static CSharpHotfixEditor() 
         {
-            var enabled = EditorPrefs.GetBool(kEnableBtnName, false);
-            CSharpHotfixManager.IsHotfixEnabled = enabled;
-
-            // called once after all inspector initilized    
-            //EditorApplication.delayCall += () => {
-            //    EnableHotfix(CSharpHotfixManager.IsHotfixEnabled);
-            //};
         }
 
-        // hide "Enable" btn right now
-        //[MenuItem(kEnableBtnName, false, 1)]
-        private static void EnableHotifxMenuCheckMark()
+
+        [InitializeOnLoadMethod]
+        private static void OnInitialized()
         {
-            var enabled = !CSharpHotfixManager.IsHotfixEnabled;
-            EnableHotfix(enabled);
-        }
-
-        //[MenuItem(kEnableBtnName, true, 1)]
-        public static bool EnableHotifxMenuValidate()
-        {
-            if (EditorApplication.isCompiling || Application.isPlaying)
-                return false;
-            return true;
-        }
-
-        private static void EnableHotfix(bool enabled)
-        {
-            var changed = enabled != CSharpHotfixManager.IsHotfixEnabled;
-            Menu.SetChecked(kEnableBtnName, enabled);
-            EditorPrefs.SetBool(kEnableBtnName, enabled);
-            CSharpHotfixManager.IsHotfixEnabled = enabled;
-
-            if (changed)
-            {
-                if (enabled)
-                {
-                    CSharpHotfixInjector.TryInject();
-                }
-                else
-                {
-                    ForceRecomiple();
-                }
-            }
         }
 
 
-        [MenuItem("CSharpHotfix/Inject (Compatible Mode)", false, 2)]
+        [MenuItem("CSharpHotfix/Inject", false, 1)]
         public static void InjectMenu()
         {
-            CSharpHotfixInjector.TryInject(true);
+            //CSharpHotfixInjector.TryInject(true);
             
             // TODO: 
             //if (EditorApplication.isCompiling || Application.isPlaying)
@@ -81,13 +42,13 @@ namespace CSharpHotfix.Editor
             //var succ = ExecuteCommand(true, arguments);
             //if (!succ)
             //{
-            //    UnityEngine.Debug.LogError("Inject (compatible mode) finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
+            //    UnityEngine.Debug.LogError("Inject finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
             //    return;
             //}
         }
         
-        [MenuItem("CSharpHotfix/Hotfix (Compatible Mode)", false, 3)]
-        public static void TryHotfixCompatibleMode()
+        [MenuItem("CSharpHotfix/Hotfix", false, 2)]
+        public static void TryHotfix()
         {
             if (EditorApplication.isCompiling)
             {
@@ -125,7 +86,7 @@ namespace CSharpHotfix.Editor
 
             if (!succ)
             {
-                UnityEngine.Debug.LogError("Hotfix (compatible mode) finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
+                UnityEngine.Debug.LogError("Hotfix finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
                 return;
             }
 
@@ -135,11 +96,6 @@ namespace CSharpHotfix.Editor
         [MenuItem("CSharpHotfix/Force Recompile", false, 21)]
         public static void ForceRecompileMenu()
         {
-            ForceRecomiple();
-        }
-
-        private static void ForceRecomiple()
-        {
             var assetsPath = Application.dataPath;
             var assetsUri = new System.Uri(assetsPath);
             var files = Directory.GetFiles(assetsPath, "CSharpHotfixManager.cs", SearchOption.AllDirectories);
@@ -148,7 +104,7 @@ namespace CSharpHotfix.Editor
                 if (file.EndsWith("CSharpHotfixManager.cs"))
                 {
                     // delete old assemblies
-                    CSharpHotfixInjector.RevertInject();
+                    RevertInject();
 
                     // reimport to force compile
 			        var relativeUri = assetsUri.MakeRelativeUri(new System.Uri(file));
@@ -163,24 +119,77 @@ namespace CSharpHotfix.Editor
         [MenuItem("CSharpHotfix/Gen Method Id", false, 22)]
         public static void GenMethodIdMenu()
         {
-            CSharpHotfixInjector.GenMethodId();
+            //CSharpHotfixInjector.GenMethodId();
+
+            // TODO: 
         }
 
-
-        [InitializeOnLoadMethod]
-        private static void OnInitialized()
+        
+        public static void RevertInject()
         {
-            var enabled = EditorPrefs.GetBool(kEnableBtnName, false);
-            CSharpHotfixManager.IsHotfixEnabled = false;
-
-            CSharpHotfixManager.Message("#CS_HOTFIX# CSharpHotfixEditor.OnInitialized: is hotfix enabled: " + enabled);
-            if (!enabled)
+            if (CSharpHotfixManager.IsHotfixEnabled)
                 return;
 
-            EnableHotfix(true);
+            if (EditorApplication.isCompiling || Application.isPlaying)
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed, compiling or playing, please re-try after process finished");
+                CSharpHotfixManager.IsHotfixEnabled = false;
+                return;
+            }
+
+            foreach (var assemblyName in CSharpHotfixCfg.InjectAssemblies)
+            {
+                var assemblyPath = CSharpHotfixManager.GetAssemblyPath(assemblyName);
+                CSharpHotfixManager.Message("#CS_HOTFIX# RevertAssembly: assemblyName: {0} \t{1}", assemblyName, assemblyPath);
+
+                // dll
+                try
+                {
+                    if (System.IO.File.Exists(assemblyPath))
+                        System.IO.File.Delete(assemblyPath);
+                }
+                catch (Exception e)
+                {
+                    CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed: {0}", e);
+                }
+                
+                // pdb
+                try
+                {
+                    var assemblyPDBPath = assemblyPath.Replace(".dll", ".pdb");
+                    if (System.IO.File.Exists(assemblyPDBPath))
+                        System.IO.File.Delete(assemblyPDBPath);
+                }
+                catch (Exception e)
+                {
+                    CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed: {0}", e);
+                }
+
+                // hotfix dll
+                try
+                {
+                    var hotfixPath = assemblyPath.Replace(".dll", ".hotfix.dll");
+                    if (System.IO.File.Exists(hotfixPath))
+                        System.IO.File.Delete(hotfixPath);
+                }
+                catch (Exception e)
+                {
+                    CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed: {0}", e);
+                }
+                
+                // hotfix pdb
+                try
+                {
+                    var hotfixPDBPath = assemblyPath.Replace(".pdb", ".hotfix.pdb");
+                    if (System.IO.File.Exists(hotfixPDBPath))
+                        System.IO.File.Delete(hotfixPDBPath);
+                }
+                catch (Exception e)
+                {
+                    CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed: {0}", e);
+                }
+            }
         }
-
-
         
         public static void HotfixFromAssembly()
         {
@@ -230,7 +239,6 @@ namespace CSharpHotfix.Editor
             //CSharpHotfixManager.PrintAllMethodInfo();
             CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: hotfix (compatible mode) finished");
         }
-        
         
         private static bool ExecuteCommand(bool isInjectMode, List<string> arguments)
         {

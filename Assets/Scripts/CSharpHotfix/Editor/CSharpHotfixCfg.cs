@@ -43,6 +43,16 @@ namespace CSharpHotfix
             var monoPath = "C:/Program Files/Unity/2019.4.29f1/Editor/Data/MonoBleedingEdge/bin/mono.exe";
             return monoPath;
         }
+
+
+        /// <summary>
+        /// Assemblies to Inject
+        /// </summary>
+        public static string[] InjectAssemblies = new string[]
+        {
+            "Assembly-CSharp",
+            "Assembly-CSharp-firstpass"
+        };
     }
 }
 
