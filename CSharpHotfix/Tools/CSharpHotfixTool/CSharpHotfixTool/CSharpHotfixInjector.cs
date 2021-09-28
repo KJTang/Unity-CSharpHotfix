@@ -15,6 +15,7 @@ namespace CSharpHotfixTool
         private AssemblyDefinition assemblyDef = null;
         private bool assemblyReadSymbols = true;
         private string assemblyPath = null;
+        private string hotfixAssemblyPath = null;
 
         public AssemblyDefinitionHandle() {}
 
@@ -23,9 +24,10 @@ namespace CSharpHotfixTool
             return assemblyDef;
         }
 
-        public AssemblyDefinition ReadAssembly(string path)
+        public AssemblyDefinition ReadAssembly(string path, string hotfixPath)
         {
             assemblyPath = null;
+            hotfixAssemblyPath = null;
             assemblyDef = null;
             assemblyReadSymbols = true;
             ClearReference();
@@ -75,6 +77,7 @@ namespace CSharpHotfixTool
                 return null;
             
             assemblyPath = path;
+            hotfixAssemblyPath = hotfixPath;
             assemblyDef = assembly;
             assemblyReadSymbols = readSymbols;
             ImportReference();  // import references
@@ -120,7 +123,7 @@ namespace CSharpHotfixTool
             if (assemblyDef == null || assemblyPath == null)
                 return;
 
-            assemblyDef.Write(assemblyPath, new WriterParameters { WriteSymbols = assemblyReadSymbols });
+            assemblyDef.Write(hotfixAssemblyPath, new WriterParameters { WriteSymbols = assemblyReadSymbols });
         }
 
         private void ImportReference()
@@ -261,7 +264,7 @@ namespace CSharpHotfixTool
 
             // read assembly
             var assemblyHandle = new AssemblyDefinitionHandle();
-            var assembly = assemblyHandle.ReadAssembly(assemblyPath);
+            var assembly = assemblyHandle.ReadAssembly(assemblyPath, hotfixAssemblyPath);
             if (assembly == null)
                 return false;
 
