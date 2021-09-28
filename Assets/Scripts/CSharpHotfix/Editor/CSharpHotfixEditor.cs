@@ -29,22 +29,46 @@ namespace CSharpHotfix.Editor
         [MenuItem("CSharpHotfix/Inject", false, 1)]
         public static void InjectMenu()
         {
-            //CSharpHotfixInjector.TryInject(true);
-            
-            // TODO: 
-            //if (EditorApplication.isCompiling || Application.isPlaying)
-            //{
-            //    CSharpHotfixManager.Error("#CS_HOTFIX# Inject: cannot inject during playing or compiling");
-            //    return;
-            //}
-            
-            //var arguments = new List<string>();
-            //var succ = ExecuteCommand(true, arguments);
-            //if (!succ)
-            //{
-            //    UnityEngine.Debug.LogError("Inject finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
-            //    return;
-            //}
+            if (EditorApplication.isCompiling || Application.isPlaying)
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# Inject: cannot inject during playing or compiling");
+                return;
+            }
+
+            // types to inject
+            var sb = new StringBuilder();
+            foreach (var assemblyName in CSharpHotfixCfg.InjectAssemblies)
+            {
+                var typeList = CSharpHotfixCfg.ToProcess.Where(type => type is Type)
+                    .Select(type => type)
+                    .Where(type => 
+                        type.Assembly.GetName().Name == assemblyName && 
+                        (string.IsNullOrEmpty(type.Namespace) || !CSharpHotfixCfg.InjectFilterNamespace.Contains(type.Namespace.Split('.')[0])))
+                    .ToList();
+
+                // format: "assemblyA;typeA;typeB;typeC|assemblyB;typeD;typeE;"
+                sb.Append(assemblyName);
+                sb.Append(";");
+
+                foreach (var type in typeList)
+                {
+                    sb.Append(type.FullName);
+                    sb.Append(";");
+                }
+
+                sb.Append("|");
+            }
+            var injectTypesStr = sb.ToString();
+
+            // execute cmd
+            var arguments = new List<string>();
+            arguments.Add(injectTypesStr);
+            var succ = ExecuteCommand(InjectMode.INJECT, arguments);
+            if (!succ)
+            {
+                UnityEngine.Debug.LogError("Inject finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
+                return;
+            }
         }
         
         [MenuItem("CSharpHotfix/Hotfix", false, 2)]
@@ -82,7 +106,7 @@ namespace CSharpHotfix.Editor
             var arguments = new List<string>();
             arguments.Add(assembliesStr);
             arguments.Add(definitionsStr);
-            var succ = ExecuteCommand(false, arguments);
+            var succ = ExecuteCommand(InjectMode.HOTFIX, arguments);
 
             if (!succ)
             {
@@ -119,9 +143,46 @@ namespace CSharpHotfix.Editor
         [MenuItem("CSharpHotfix/Gen Method Id", false, 22)]
         public static void GenMethodIdMenu()
         {
-            //CSharpHotfixInjector.GenMethodId();
+            if (EditorApplication.isCompiling || Application.isPlaying)
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# Inject: cannot gen method id during playing or compiling");
+                return;
+            }
 
-            // TODO: 
+            // types to inject
+            var sb = new StringBuilder();
+            foreach (var assemblyName in CSharpHotfixCfg.InjectAssemblies)
+            {
+                var typeList = CSharpHotfixCfg.ToProcess.Where(type => type is Type)
+                    .Select(type => type)
+                    .Where(type => 
+                        type.Assembly.GetName().Name == assemblyName && 
+                        (string.IsNullOrEmpty(type.Namespace) || !CSharpHotfixCfg.InjectFilterNamespace.Contains(type.Namespace.Split('.')[0])))
+                    .ToList();
+
+                // format: "assemblyA;typeA;typeB;typeC|assemblyB;typeD;typeE;"
+                sb.Append(assemblyName);
+                sb.Append(";");
+
+                foreach (var type in typeList)
+                {
+                    sb.Append(type.FullName);
+                    sb.Append(";");
+                }
+
+                sb.Append("|");
+            }
+            var injectTypesStr = sb.ToString();
+
+            // execute cmd
+            var arguments = new List<string>();
+            arguments.Add(injectTypesStr);
+            var succ = ExecuteCommand(InjectMode.GEN_METHOD_ID, arguments);
+            if (!succ)
+            {
+                UnityEngine.Debug.LogError("Inject finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
+                return;
+            }
         }
 
         
@@ -240,7 +301,14 @@ namespace CSharpHotfix.Editor
             CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: hotfix (compatible mode) finished");
         }
         
-        private static bool ExecuteCommand(bool isInjectMode, List<string> arguments)
+        public enum InjectMode
+        {
+            INJECT = 1, 
+            HOTFIX = 2, 
+            GEN_METHOD_ID = 3, 
+        }
+
+        private static bool ExecuteCommand(InjectMode injectMode, List<string> arguments)
         {
             var monoPath = CSharpHotfixCfg.GetMonoPath();
             if (!File.Exists(monoPath))
@@ -265,7 +333,19 @@ namespace CSharpHotfix.Editor
 
             // arguments
             var projPath = CSharpHotfixManager.GetAppRootPath();
-            var mode = isInjectMode ? "--inject" : "--hotfix";
+            var mode = "";
+            switch (injectMode)
+            {
+                case InjectMode.INJECT:
+                    mode = "--inject";
+                    break;
+                case InjectMode.HOTFIX:
+                    mode = "--hotfix";
+                    break;
+                case InjectMode.GEN_METHOD_ID:
+                    mode = "--gen_method_id";
+                    break;
+            }
 
             var argSb = new StringBuilder();
             argSb.Append("--debug ");

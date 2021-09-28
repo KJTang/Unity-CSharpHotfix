@@ -53,6 +53,19 @@ namespace CSharpHotfix
             "Assembly-CSharp",
             "Assembly-CSharp-firstpass"
         };
+
+        
+        /// <summary>
+        /// filter namespace to avoid inject
+        /// </summary>
+        public static HashSet<string> InjectFilterNamespace = new HashSet<string>()
+        {
+            "CSharpHotfix", 
+            "System", 
+            // "UnityEngine", 
+            // "UnityEditor", 
+            "FlyingWormConsole3",       // my console plugin
+        };
     }
 }
 

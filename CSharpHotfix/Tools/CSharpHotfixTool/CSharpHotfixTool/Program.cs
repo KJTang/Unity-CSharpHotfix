@@ -16,31 +16,100 @@ namespace CSharpHotfixTool
     {
         static void Main(string[] args)
         {
-            // args: projPath, assemblies, definitions
-            var argsLen = 3;
-            if (args.Length < argsLen)
+            if (args.Length <= 2)
             {
                 CSharpHotfixManager.Error("args length invalid");
                 return;
             }
 
+            // tool mode
+            var mode = args[0];
+
             // projPath
-            CSharpHotfixManager.SetAppRootPath(args[0]);
+            var projPath = args[1];
+            CSharpHotfixManager.SetAppRootPath(projPath);
             CSharpHotfixManager.OpenLogFile();
-            CSharpHotfixManager.Message("ProjPath: " + args[0]);
+            CSharpHotfixManager.Message("ProjPath: " + projPath);
 
-            // assemblies
-            CSharpHotfixManager.LoadAssemblies(args[1]);
-            CSharpHotfixManager.Message("Load Assemblies Done");
+            // init arguments
+            RunInProtectMode(() =>
+            {
+                switch (mode)
+                {
+                    case "--inject":
+                    {
+                        // inject types
+                        var injectTypes = args[2];
+                        CSharpHotfixManager.SetTypesToInject(injectTypes);
+                        CSharpHotfixManager.Message("Set Inject Types Done");
+                        break;
+                    }
+                    case "--hotfix":
+                    {
+                        // assemblies
+                        var assembies = args[2];
+                        CSharpHotfixManager.LoadAssemblies(assembies);
+                        CSharpHotfixManager.Message("Load Assemblies Done");
 
-            // definitions
-            CSharpHotfixManager.SetMacroDefinitions(args[2]);
-            CSharpHotfixManager.Message("Macro Deinitions: " + args[2]);
+                        // definitions
+                        var definitions = args[3];
+                        CSharpHotfixManager.SetMacroDefinitions(definitions);
+                        CSharpHotfixManager.Message("Macro Deinitions: " + definitions);
+                        break;
+                    }
+                    case "--gen_method_id":
+                    {
+                        // inject types
+                        var injectTypes = args[2];
+                        CSharpHotfixManager.SetTypesToInject(injectTypes);
+                        CSharpHotfixManager.Message("Set Gen MethodId Types Done");
+                        break;
+                    }
+                    default:
+                    {
+                        CSharpHotfixManager.Error("invalid tool mode: {0}", mode);
+                        break;
+                    }
+                }
+            });
 
-            // do hotfix
+            // do logic
+            RunInProtectMode(() =>
+            {
+                switch (mode)
+                {
+                    case "--inject":
+                    {
+                        CSharpHotfixInjector.TryInject();
+                        break;
+                    }
+                    case "--hotfix":
+                    {
+                        CSharpHotfixInterpreter.TryHotfix();
+                        break;
+                    }
+                    case "--gen_method_id":
+                    {
+                        CSharpHotfixInjector.GenMethodId();
+                        break;
+                    }
+                    default:
+                    {
+                        CSharpHotfixManager.Error("invalid tool mode: {0}", mode);
+                        break;
+                    }
+                }
+            });
+
+
+            CSharpHotfixManager.CloseLogFile();
+        }
+
+        static void RunInProtectMode(System.Action func)
+        {
             try
             {
-                CSharpHotfixInterpreter.ReloadHotfixFiles();
+                func();
             }
             catch (Exception e)
             {
@@ -49,7 +118,6 @@ namespace CSharpHotfixTool
             }
             finally
             {
-                CSharpHotfixManager.CloseLogFile();
             }
         }
     }

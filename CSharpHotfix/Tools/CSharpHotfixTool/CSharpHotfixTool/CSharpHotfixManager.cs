@@ -64,15 +64,35 @@ namespace CSharpHotfixTool
             return assemblyPath;
         }
 
-        private static IEnumerable<Type> typesToInject;
-        public static IEnumerable<Type> GetTypesToInject()
+
+        private static Dictionary<string, List<string>> typesToInject;
+        public static List<string> GetTypesToInject(string assemblyName)
         {
-            return typesToInject;
+            if (typesToInject == null)
+                return null;
+
+            List<string> result;
+            if (typesToInject.TryGetValue(assemblyName, out result))
+            {
+                return result;
+            }
+            return null;
         }
-        public static void SetTypesToInject()
+        
+        public static IEnumerable<string> GetAssembliesToInject()
         {
-            // TODO: 
-            typesToInject = new List<Type>();
+            return typesToInject.Keys.ToList();
+        }
+
+        public static void SetTypesToInject(string injectTypes)
+        {
+            typesToInject = new Dictionary<string, List<string>>();
+            var strLst = injectTypes.Split('|');
+            foreach (var str in strLst)
+            {
+                var typeLst = str.Split(';');
+                typesToInject.Add(typeLst[0], typeLst.ToList().GetRange(1, typeLst.Length - 1));
+            }
         }
         
 

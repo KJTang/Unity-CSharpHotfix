@@ -54,7 +54,7 @@ namespace CSharpHotfixTool
             return hotfixAssemblyPath;
         }
 
-        public static void ReloadHotfixFiles()
+        public static void TryHotfix()
         {
             if (!CSharpHotfixManager.IsMethodIdFileExist())
             {

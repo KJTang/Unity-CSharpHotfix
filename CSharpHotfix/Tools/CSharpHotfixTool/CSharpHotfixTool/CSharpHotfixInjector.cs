@@ -10,57 +10,14 @@ namespace CSharpHotfixTool
 {
     public class CSharpHotfixInjector 
     {
-        private static string[] injectAssemblys = new string[]
-        {
-            "Assembly-CSharp",
-            "Assembly-CSharp-firstpass"
-        };
-
-        private static HashSet<string> filterNamespace= new HashSet<string>()
-        {
-            "CSharpHotfix", 
-            "System", 
-            // "UnityEngine", 
-            // "UnityEditor", 
-            "FlyingWormConsole3",       // my console plugin
-        };
-        
-        public static bool IsFilteredNamespace(string ns)
-        {
-            if (string.IsNullOrEmpty(ns))
-                return false;
-
-            //var first = ns.Split('.')[0];
-            //if (filterNamespace.Contains(first))
-            //    return true;
-
-            foreach (var filterNS in filterNamespace)
-            {
-                if (ns == filterNS)
-                    return true;
-
-                if (ns.Split('.')[0] == filterNS)
-                    return true;
-            }
-
-            return false;
-        }
-
         private const string injectedFlag = "CSharpHotfixInjectedFlag";
 
         public static void TryInject()
         {
-            //if (EditorApplication.isCompiling || Application.isPlaying)
-            //{
-            //    CSharpHotfixManager.Error("#CS_HOTFIX# TryInject: inject failed, compiling or playing, please re-try after process finished");
-            //    CSharpHotfixManager.IsHotfixEnabled = false;
-            //    return;
-            //}
-
             // inject
             CSharpHotfixManager.PrepareMethodId();
             var succ = true;
-            foreach (var assembly in injectAssemblys)
+            foreach (var assembly in CSharpHotfixManager.GetAssembliesToInject())
             {
                 if (!InjectAssembly(assembly))
                 {
@@ -80,17 +37,10 @@ namespace CSharpHotfixTool
 
         public static void GenMethodId()
         {
-            //if (EditorApplication.isCompiling || Application.isPlaying)
-            //{
-            //    CSharpHotfixManager.Error("#CS_HOTFIX# GenMethodId: generate failed, compiling or playing, please re-try after process finished");
-            //    CSharpHotfixManager.IsHotfixEnabled = false;
-            //    return;
-            //}
-
             // inject
             CSharpHotfixManager.PrepareMethodId();
             var succ = true;
-            foreach (var assembly in injectAssemblys)
+            foreach (var assembly in CSharpHotfixManager.GetAssembliesToInject())
             {
                 if (!InjectAssembly(assembly, true))
                 {
@@ -121,13 +71,22 @@ namespace CSharpHotfixTool
             var hotfixAssemblyPDBPath = assemblyPath.Replace(".pdb", ".hotfix.pdb");
 
             // get method list need inject
-            //var typeList = CSharpHotfixCfg.ToProcess.Where(type => type is Type)
-            //    .Select(type => type)
-            //    .Where(type => 
-            //        type.Assembly.GetName().Name == assemblyName && 
-            //        !IsFilteredNamespace(type.Namespace))
-            //    .ToList();
-            var typeList = CSharpHotfixManager.GetTypesToInject();
+            var typeStrList = CSharpHotfixManager.GetTypesToInject(assemblyName);
+            if (typeStrList == null || typeStrList.Count <= 0)
+            {
+                CSharpHotfixManager.Warning("#CS_HOTFIX# InjectAssembly: assembly has nothing to inject: {0}", assemblyPath);
+                return true;
+            }
+
+            var originAsssembly = Assembly.Load(assemblyPath);
+            var typeList = new List<Type>();
+            foreach (var typeStr in typeStrList)
+            { 
+                var type = originAsssembly.GetType(typeStr);
+                if (type != null)
+                    typeList.Add(type);
+            }
+
 
             // record who can be injected, make injection faster
             var classCanBeInject = new HashSet<string>();
