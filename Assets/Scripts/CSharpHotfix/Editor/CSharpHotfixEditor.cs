@@ -60,9 +60,21 @@ namespace CSharpHotfix.Editor
             }
             var injectTypesStr = sb.ToString();
 
+            // search paths
+            sb.Length = 0;
+            foreach (var path in
+                (from asm in AppDomain.CurrentDomain.GetAssemblies()
+                    select System.IO.Path.GetDirectoryName(asm.ManifestModule.FullyQualifiedName)).Distinct())
+            {
+                sb.Append(path);
+                sb.Append(";");
+            }
+            var searchPathStr = sb.ToString();
+
             // execute cmd
             var arguments = new List<string>();
             arguments.Add(injectTypesStr);
+            arguments.Add(searchPathStr);
             var succ = ExecuteCommand(InjectMode.INJECT, arguments);
             if (!succ)
             {
@@ -174,9 +186,21 @@ namespace CSharpHotfix.Editor
             }
             var injectTypesStr = sb.ToString();
 
+            // search paths
+            sb.Length = 0;
+            foreach (var path in
+                (from asm in AppDomain.CurrentDomain.GetAssemblies()
+                    select System.IO.Path.GetDirectoryName(asm.ManifestModule.FullyQualifiedName)).Distinct())
+            {
+                sb.Append(path);
+                sb.Append(";");
+            }
+            var searchPathStr = sb.ToString();
+
             // execute cmd
             var arguments = new List<string>();
             arguments.Add(injectTypesStr);
+            arguments.Add(searchPathStr);
             var succ = ExecuteCommand(InjectMode.GEN_METHOD_ID, arguments);
             if (!succ)
             {
@@ -298,7 +322,7 @@ namespace CSharpHotfix.Editor
             
             // debug: 
             //CSharpHotfixManager.PrintAllMethodInfo();
-            CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: hotfix (compatible mode) finished");
+            CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: hotfix finished");
         }
         
         public enum InjectMode
@@ -379,7 +403,7 @@ namespace CSharpHotfix.Editor
                     succ = false;
                     line = exceptionInfo.ToString();
                 }
-                UnityEngine.Debug.Log("#CS_HOTFIX# compatible mode: " + line);
+                UnityEngine.Debug.Log("#CS_HOTFIX# CSharpHotfixTool: " + line);
             }
             hotfixProc.WaitForExit();
 

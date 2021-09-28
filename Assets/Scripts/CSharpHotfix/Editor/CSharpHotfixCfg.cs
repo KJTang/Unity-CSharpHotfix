@@ -33,7 +33,7 @@ namespace CSharpHotfix
 
 
         /// <summary>
-        /// return mono path compatible mode needed
+        /// mono path needed
         /// </summary>
         /// <returns></returns>
         public static string GetMonoPath()

@@ -8,10 +8,184 @@ using Mono.Cecil.Cil;
 
 namespace CSharpHotfixTool
 {
-    public class CSharpHotfixInjector 
+    public class AssemblyDefinitionHandle
     {
         private const string injectedFlag = "CSharpHotfixInjectedFlag";
 
+        private AssemblyDefinition assemblyDef = null;
+        private bool assemblyReadSymbols = true;
+        private string assemblyPath = null;
+
+        public AssemblyDefinitionHandle() {}
+
+        public AssemblyDefinition GetAssemblyDefinition()
+        {
+            return assemblyDef;
+        }
+
+        public AssemblyDefinition ReadAssembly(string path)
+        {
+            assemblyPath = null;
+            assemblyDef = null;
+            assemblyReadSymbols = true;
+            ClearReference();
+
+            // read assembly
+            AssemblyDefinition assembly = null;
+            var readSymbols = true;
+            try
+            {
+                // try read with symbols
+                assembly = AssemblyDefinition.ReadAssembly(path, new ReaderParameters { ReadSymbols = true });
+            }
+            catch
+            {
+                // read with symbols failed, just don't read them
+                CSharpHotfixManager.Warning("InjectAssembly: read assembly with symbol failed: {0}", path);
+                try
+                {
+                    readSymbols = false;
+                    assembly = AssemblyDefinition.ReadAssembly(path, new ReaderParameters { ReadSymbols = false });
+                }
+                catch (Exception e)
+                {
+                    CSharpHotfixManager.Error("InjectAssembly: read assembly failed: {0}", e);
+                }
+            }
+            if (assembly == null)
+                return null;
+
+            // init resolver search path
+            var initResolverSucc = true;
+            var resolver = assembly.MainModule.AssemblyResolver as BaseAssemblyResolver;
+            foreach (var searchPath in CSharpHotfixManager.GetInjectSearchPaths())
+            {
+                try
+                {
+                    //UnityEngine.Debug.LogError("searchPath:" + searchPath);
+                    resolver.AddSearchDirectory(searchPath);
+                }
+                catch (Exception e) 
+                { 
+                    initResolverSucc = false;
+                    CSharpHotfixManager.Error("InjectAssembly: init resolver failed: {0}", e);
+                }
+            }
+            if (!initResolverSucc)
+                return null;
+            
+            assemblyPath = path;
+            assemblyDef = assembly;
+            assemblyReadSymbols = readSymbols;
+            ImportReference();  // import references
+            return assembly;
+        }
+
+        public void DisposeAssembly()
+        {
+            assemblyReadSymbols = true;
+            if (assemblyDef == null)
+                return;
+            
+            // clear symbol reader, incase lock file on windows
+            if (assemblyDef.MainModule.SymbolReader != null)
+            {
+                assemblyDef.MainModule.SymbolReader.Dispose();
+            }
+            assemblyDef.Dispose();
+            assemblyDef = null;
+        }
+
+        public bool IsInjected()
+        {
+            if (assemblyDef == null)
+                return false;
+
+            var injected = assemblyDef.MainModule.Types.Any(t => t.Name == injectedFlag);
+            return injected;
+        }
+
+        public void SetIsInjected()
+        {
+            if (assemblyDef == null)
+                return;
+
+            var objType = assemblyDef.MainModule.ImportReference(typeof(System.Object));
+            var flagType = new TypeDefinition("CSharpHotfix", injectedFlag, Mono.Cecil.TypeAttributes.Class | Mono.Cecil.TypeAttributes.Public, objType);
+            assemblyDef.MainModule.Types.Add(flagType);
+        }
+
+        public void Write()
+        {
+            if (assemblyDef == null || assemblyPath == null)
+                return;
+
+            assemblyDef.Write(assemblyPath, new WriterParameters { WriteSymbols = assemblyReadSymbols });
+        }
+
+        private void ImportReference()
+        {
+            var mgrType = assemblyDef.MainModule.GetType("CSharpHotfix.CSharpHotfixManager");
+            foreach (MethodDefinition method in mgrType.Methods)
+            {
+                if (method.Name == "HasMethodInfo")
+                    mr_HasMethodInfo = assemblyDef.MainModule.ImportReference(method);
+                else if (method.Name == "MethodReturnVoidWrapper")
+                    mr_MethodReturnVoidWrapper = assemblyDef.MainModule.ImportReference(method);
+                else if (method.Name == "MethodReturnObjectWrapper")
+                    mr_MethodReturnObjectWrapper = assemblyDef.MainModule.ImportReference(method);
+            }
+            
+            var objType = typeof(System.Object);
+            tr_SystemObject = assemblyDef.MainModule.ImportReference(objType);
+            
+            var intType = typeof(System.Int32);
+            tr_SystemInt = assemblyDef.MainModule.ImportReference(intType);
+        }
+
+        private void ClearReference()
+        {
+            mr_HasMethodInfo = null;
+            mr_MethodReturnVoidWrapper = null;
+            mr_MethodReturnObjectWrapper = null;
+
+            tr_SystemObject = null;
+            tr_SystemInt = null;
+        }
+
+        public MethodReference MR_HasMethodInfo
+        {
+            get { return mr_HasMethodInfo; }
+        }
+        private MethodReference mr_HasMethodInfo;
+
+        public MethodReference MR_MethodReturnVoidWrapper
+        {
+            get { return mr_MethodReturnVoidWrapper; }
+        }
+        private MethodReference mr_MethodReturnVoidWrapper;
+        
+        public MethodReference MR_MethodReturnObjectWrapper
+        {
+            get { return mr_MethodReturnObjectWrapper; }
+        }
+        private MethodReference mr_MethodReturnObjectWrapper;
+        
+        public TypeReference TR_SystemObject
+        {
+            get { return tr_SystemObject; }
+        }
+        private TypeReference tr_SystemObject;
+        
+        public TypeReference TR_SystemInt
+        {
+            get { return tr_SystemInt; }
+        }
+        private TypeReference tr_SystemInt;
+    }
+
+    public class CSharpHotfixInjector 
+    {
         public static void TryInject()
         {
             // inject
@@ -29,9 +203,9 @@ namespace CSharpHotfixTool
             CSharpHotfixManager.SaveMethodIdToFile();
 
             if (succ)
-                CSharpHotfixManager.Message("#CS_HOTFIX# InjectAssembly: inject finished");
+                CSharpHotfixManager.Message("InjectAssembly: inject finished");
             else
-                CSharpHotfixManager.Message("#CS_HOTFIX# InjectAssembly: inject failed");
+                CSharpHotfixManager.Message("InjectAssembly: inject failed");
         }
 
 
@@ -51,19 +225,19 @@ namespace CSharpHotfixTool
             // CSharpHotfixManager.PrintAllMethodId();
             CSharpHotfixManager.SaveMethodIdToFile();
             if (succ)
-                CSharpHotfixManager.Message("#CS_HOTFIX# InjectAssembly: gen methoId finished");
+                CSharpHotfixManager.Message("InjectAssembly: gen methoId finished");
             else
-                CSharpHotfixManager.Message("#CS_HOTFIX# InjectAssembly: gen methoId failed");
+                CSharpHotfixManager.Message("InjectAssembly: gen methoId failed");
         }
 
         
         private static bool InjectAssembly(string assemblyName, bool onlyGenMethodId = false)
         {
             var assemblyPath = CSharpHotfixManager.GetAssemblyPath(assemblyName);
-            CSharpHotfixManager.Message("#CS_HOTFIX# InjectAssembly: assemblyName: {0} \t{1}", assemblyName, assemblyPath);
+            CSharpHotfixManager.Message("InjectAssembly: assemblyName: {0} \t{1}", assemblyName, assemblyPath);
             if (!System.IO.File.Exists(assemblyPath))
             {
-                CSharpHotfixManager.Warning("#CS_HOTFIX# InjectAssembly: assembly not exist: {0}", assemblyPath);
+                CSharpHotfixManager.Warning("InjectAssembly: assembly not exist: {0}", assemblyPath);
                 return true;
             }
             var assemblyPDBPath = assemblyPath.Replace(".dll", ".pdb");
@@ -74,118 +248,27 @@ namespace CSharpHotfixTool
             var typeStrList = CSharpHotfixManager.GetTypesToInject(assemblyName);
             if (typeStrList == null || typeStrList.Count <= 0)
             {
-                CSharpHotfixManager.Warning("#CS_HOTFIX# InjectAssembly: assembly has nothing to inject: {0}", assemblyPath);
+                CSharpHotfixManager.Warning("InjectAssembly: assembly has nothing to inject: {0}", assemblyPath);
                 return true;
             }
-
-            var originAsssembly = Assembly.Load(assemblyPath);
-            var typeList = new List<Type>();
+            var typeStrDict = new HashSet<string>();
             foreach (var typeStr in typeStrList)
-            { 
-                var type = originAsssembly.GetType(typeStr);
-                if (type != null)
-                    typeList.Add(type);
-            }
-
-
-            // record who can be injected, make injection faster
-            var classCanBeInject = new HashSet<string>();
-            var methodCanBeInject = new HashSet<string>();
-
-            // generate method id for method need inject
-            var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-            foreach (var type in typeList)
             {
-                CSharpHotfixManager.Log("#CS_HOTFIX# InjectAssembly: reflection type: {0} \tnamespace: {1}", type, type.Namespace);
-                if (!type.IsClass || type.IsGenericType)
+                if (string.IsNullOrEmpty(typeStr))
                     continue;
-
-                var canBeInject = false;
-                var methodList = type.GetMethods(bindingFlags);
-                foreach (var method in methodList)
-                {
-                    if (method.IsGenericMethod)
-                        continue;
-
-                    var isExtern = (method.GetMethodImplementationFlags() & System.Reflection.MethodImplAttributes.InternalCall) != 0;
-                    if (isExtern)
-                        continue;
-
-                    if (method.IsSpecialName && (method.Name.StartsWith("get_") || method.Name.StartsWith("set_")))
-                        continue;
-
-                    var signature = CSharpHotfixManager.GetMethodSignature(method);
-                    var methodId = CSharpHotfixManager.GetMethodId(signature, true);    // true: will generate method id if not exist before
-
-                    canBeInject = true;
-                    methodCanBeInject.Add(method.Name);
-                    // Debug.LogFormat("#CS_HOTFIX# method: {0}\tsignature: {1}\tmethodId: {2}", method, signature, methodId);
-                }
-
-                if (canBeInject)
-                {
-                    classCanBeInject.Add(type.FullName);
-                }
+                typeStrDict.Add(typeStr);
             }
-            if (onlyGenMethodId)
-                return true;
-
-            // no need inject
-            if (classCanBeInject.Count <= 0 && methodCanBeInject.Count <= 0)
-                return true;
-
 
             // read assembly
-            AssemblyDefinition assembly = null;
-            var readSymbols = true;
-            try
-            {
-                // try read with symbols
-                assembly = AssemblyDefinition.ReadAssembly(assemblyPath, new ReaderParameters { ReadSymbols = true });
-            }
-            catch
-            {
-                // read with symbols failed, just don't read them
-                CSharpHotfixManager.Warning("#CS_HOTFIX# InjectAssembly: read assembly with symbol failed: {0}", assemblyPath);
-                try
-                {
-                    readSymbols = false;
-                    assembly = AssemblyDefinition.ReadAssembly(assemblyPath, new ReaderParameters { ReadSymbols = false });
-                }
-                catch (Exception e)
-                {
-                    CSharpHotfixManager.Error("#CS_HOTFIX# InjectAssembly: read assembly failed: {0}", e);
-                }
-            }
+            var assemblyHandle = new AssemblyDefinitionHandle();
+            var assembly = assemblyHandle.ReadAssembly(assemblyPath);
             if (assembly == null)
                 return false;
 
-            // init resolver search path
-            var initResolverSucc = true;
-            var resolver = assembly.MainModule.AssemblyResolver as BaseAssemblyResolver;
-            foreach (var path in
-                (from asm in AppDomain.CurrentDomain.GetAssemblies()
-                    select System.IO.Path.GetDirectoryName(asm.ManifestModule.FullyQualifiedName)).Distinct())
-            {
-                try
-                {
-                    //UnityEngine.Debug.LogError("searchPath:" + path);
-                    resolver.AddSearchDirectory(path);
-                }
-                catch (Exception e) 
-                { 
-                    initResolverSucc = false;
-                    CSharpHotfixManager.Error("#CS_HOTFIX# InjectAssembly: init resolver failed: {0}", e);
-                }
-            }
-            if (!initResolverSucc)
-                return false;
-
-
             // check if injected before
-            if (assembly.MainModule.Types.Any(t => t.Name == injectedFlag))
+            if (!onlyGenMethodId && assemblyHandle.IsInjected())
             {
-                CSharpHotfixManager.Message("#CS_HOTFIX# InjectAssembly: already injected");
+                CSharpHotfixManager.Message("InjectAssembly: already injected");
                 return false;
             }
 
@@ -197,15 +280,12 @@ namespace CSharpHotfixTool
                 ModuleDefinition module = assembly.MainModule;
                 foreach (TypeDefinition type in module.Types) 
                 {
-                    CSharpHotfixManager.Log("#CS_HOTFIX# InjectAssembly: cecil type: {0}", type);
-                    if (!type.IsClass || !classCanBeInject.Contains(type.FullName))
+                    CSharpHotfixManager.Log("InjectAssembly: cecil type: {0}", type);
+                    if (!type.IsClass || !typeStrDict.Contains(type.FullName))
                         continue;
 
                     foreach (MethodDefinition method in type.Methods)
                     {
-                        if (!methodCanBeInject.Contains(method.Name))
-                            continue; 
-
                         if (method.IsGetter || method.IsSetter || method.HasGenericParameters)
                             continue;
 
@@ -216,63 +296,63 @@ namespace CSharpHotfixTool
                         }
 
                         var signature = CSharpHotfixManager.GetMethodSignature(method);
-                        var methodId = CSharpHotfixManager.GetMethodId(signature);
-                        if (methodId <= 0)
+                        var methodId = CSharpHotfixManager.GetMethodId(signature, true);      // true: will generate method id if not exist before
+
+                        // do inject
+                        if (!onlyGenMethodId)
                         {
-                            // CSharpHotfixManager.Log("#CS_HOTFIX# Cecil: cannot find method id: {0}", signature);
-                            continue;
+                            InjectMethod(methodId, method, assemblyHandle);
                         }
-                        InjectMethod(methodId, method, assembly);
                     }
                 }
 
-                // mark as injected
-                var objType = assembly.MainModule.ImportReference(typeof(System.Object));
-                var flagType = new TypeDefinition("CSharpHotfix", injectedFlag, Mono.Cecil.TypeAttributes.Class | Mono.Cecil.TypeAttributes.Public, objType);
-                assembly.MainModule.Types.Add(flagType);
 
-                // modify assembly
-                assembly.Write(hotfixAssemblyPath, new WriterParameters { WriteSymbols = readSymbols });
+                if (!onlyGenMethodId)
+                {
+                    // mark as injected
+                    assemblyHandle.SetIsInjected();
+
+                    // modify assembly
+                    assemblyHandle.Write();
+                }
             }
             catch (Exception e)
             {
                 succ = false;
-                CSharpHotfixManager.Error("#CS_HOTFIX# InjectAssembly: inject method failed: {0}", e);
+                CSharpHotfixManager.Exception("InjectAssembly: inject method failed: {0}", e);
             }
             finally
             {
-                // clear symbol reader, incase lock file on windows
-                if (assembly != null && assembly.MainModule.SymbolReader != null)
-                {
-                    assembly.MainModule.SymbolReader.Dispose();
-                }
-                assembly.Dispose();
+                assemblyHandle.DisposeAssembly();
             }
             if (!succ)
                 return false;
 
             // overwrite assembly
-            var copySucc = true;
-            try
+            if (!onlyGenMethodId)
             {
-                System.IO.File.Copy(hotfixAssemblyPath, assemblyPath, true);
-                System.IO.File.Copy(hotfixAssemblyPDBPath, assemblyPDBPath, true);
+                var copySucc = true;
+                try
+                {
+                    System.IO.File.Copy(hotfixAssemblyPath, assemblyPath, true);
+                    System.IO.File.Copy(hotfixAssemblyPDBPath, assemblyPDBPath, true);
+                }
+                catch (Exception e)
+                {
+                    copySucc = false;
+                    CSharpHotfixManager.Exception("InjectAssembly: override assembly failed: {0}", e);
+                }
+                return copySucc;
             }
-            catch (Exception e)
+            else
             {
-                copySucc = false;
-                CSharpHotfixManager.Error("#CS_HOTFIX# InjectAssembly: override assembly failed: {0}", e);
+                return true;
             }
-            return copySucc;
         }
-
         
-        private static void InjectMethod(int methodId, MethodDefinition method, AssemblyDefinition assembly)
+        private static void InjectMethod(int methodId, MethodDefinition method, AssemblyDefinitionHandle assemblyHandle)
         {
-            var hasMethodInfo = assembly.MainModule.ImportReference(typeof(CSharpHotfixManager).GetMethod("HasMethodInfo"));
-            var voidMethodInject = assembly.MainModule.ImportReference(typeof(CSharpHotfixManager).GetMethod("MethodReturnVoidWrapper"));
-            var objMethodInject = assembly.MainModule.ImportReference(typeof(CSharpHotfixManager).GetMethod("MethodReturnObjectWrapper"));
-
+            var assembly = assemblyHandle.GetAssemblyDefinition();
             var body = method.Body;
             var originIL = body.Instructions;
             var ilProcessor = body.GetILProcessor();
@@ -280,13 +360,13 @@ namespace CSharpHotfixTool
             var endPoint = originIL[originIL.Count - 1];
             var ilList = new List<Instruction>();
             ilList.Add(Instruction.Create(OpCodes.Ldc_I4, methodId));
-            ilList.Add(Instruction.Create(OpCodes.Call, hasMethodInfo));
+            ilList.Add(Instruction.Create(OpCodes.Call, assemblyHandle.MR_HasMethodInfo));
             ilList.Add(Instruction.Create(OpCodes.Brfalse, insertPoint));
-            InjectMethodArgument(methodId, method, ilList, assembly);
+            InjectMethodArgument(methodId, method, ilList, assemblyHandle);
             if (method.ReturnType.FullName == "System.Void")
-                ilList.Add(Instruction.Create(OpCodes.Call, voidMethodInject));
+                ilList.Add(Instruction.Create(OpCodes.Call, assemblyHandle.MR_MethodReturnVoidWrapper));
             else
-                ilList.Add(Instruction.Create(OpCodes.Call, objMethodInject));
+                ilList.Add(Instruction.Create(OpCodes.Call, assemblyHandle.MR_MethodReturnObjectWrapper));
             if (method.ReturnType.IsValueType)  // unbox return value
             {
                 var returnType = assembly.MainModule.ImportReference(method.ReturnType);
@@ -298,23 +378,24 @@ namespace CSharpHotfixTool
             for (var i = ilList.Count - 1; i >= 0; --i)
                 ilProcessor.InsertBefore(originIL[0], ilList[i]);
 
-            CSharpHotfixManager.Message("#CS_HOTFIX# InjectMethod: {0}", method.FullName);
+            CSharpHotfixManager.Message("InjectMethod: {0}", method.FullName);
         }
 
-        private static void InjectMethodArgument(int methodId, MethodDefinition method, List<Instruction> ilList, AssemblyDefinition assembly)
+        private static void InjectMethodArgument(int methodId, MethodDefinition method, List<Instruction> ilList, AssemblyDefinitionHandle assemblyHandle)
         {
+            var assembly = assemblyHandle.GetAssemblyDefinition();
             var shift = 2;  // extra: methodId, instance
 
             //object[] arr = new object[argumentCount + shift]
             var argumentCount = method.Parameters.Count;
             ilList.Add(Instruction.Create(OpCodes.Ldc_I4, argumentCount + shift));  
-            ilList.Add(Instruction.Create(OpCodes.Newarr, assembly.MainModule.ImportReference(typeof(object))));
+            ilList.Add(Instruction.Create(OpCodes.Newarr, assemblyHandle.TR_SystemObject));
 
             // methodId
             ilList.Add(Instruction.Create(OpCodes.Dup));
             ilList.Add(Instruction.Create(OpCodes.Ldc_I4, 0));
             ilList.Add(Instruction.Create(OpCodes.Ldc_I4, methodId));
-            ilList.Add(Instruction.Create(OpCodes.Box, assembly.MainModule.ImportReference(typeof(System.Int32))));
+            ilList.Add(Instruction.Create(OpCodes.Box, assemblyHandle.TR_SystemInt));
             ilList.Add(Instruction.Create(OpCodes.Stelem_Ref));
 
             // instance

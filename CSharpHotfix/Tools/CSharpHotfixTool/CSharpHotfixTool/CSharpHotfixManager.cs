@@ -18,6 +18,93 @@ namespace CSharpHotfixTool
     public class CSharpHotfixManager 
     {
         
+        private static string appRootPath;
+        public static string GetAppRootPath()
+        {
+            // now we need manully set it
+            return appRootPath;
+        }
+
+        public static void SetAppRootPath(string path)
+        {
+            appRootPath = path;
+        }
+
+        private static string assemblyDir;
+        public static string GetAssemblyPath(string assemblyName)
+        {
+            if (assemblyDir == null)
+            {
+                assemblyDir = GetAppRootPath();
+                assemblyDir = assemblyDir + "Library/ScriptAssemblies/";
+            }
+            var assemblyPath = assemblyDir + assemblyName + ".dll";
+            return assemblyPath;
+        }
+
+
+        /// <summary>
+        /// types to be injected
+        /// </summary>
+        private static Dictionary<string, List<string>> typesToInject;
+        public static List<string> GetTypesToInject(string assemblyName)
+        {
+            if (typesToInject == null)
+                return null;
+
+            List<string> result;
+            if (typesToInject.TryGetValue(assemblyName, out result))
+            {
+                return result;
+            }
+            return null;
+        }
+        
+        public static IEnumerable<string> GetAssembliesToInject()
+        {
+            if (typesToInject == null)
+                return null;
+
+            return typesToInject.Keys.ToList();
+        }
+
+        public static void SetTypesToInject(string injectTypes)
+        {
+            typesToInject = new Dictionary<string, List<string>>();
+            var strLst = injectTypes.Split('|');
+            foreach (var str in strLst)
+            {
+                if (string.IsNullOrEmpty(str))
+                    continue;
+
+                var typeStrLst = str.Split(';');
+                if (typeStrLst.Length <= 1)
+                    continue;
+
+                typesToInject.Add(typeStrLst[0], typeStrLst.ToList().GetRange(1, typeStrLst.Length - 1));
+            }
+        }
+
+
+        /// <summary>
+        /// dependencies search path of assemblies which to be injected
+        /// </summary>
+        private static List<string> injectSearchPaths = new List<string>();
+
+        public static IEnumerable<string> GetInjectSearchPaths()
+        {
+            return injectSearchPaths;
+        }
+
+        public static void SetInjectSearchPaths(string paths)
+        {
+            injectSearchPaths = paths.Split(';').ToList();
+        }
+        
+        
+        /// <summary>
+        /// assemblies needed when hotfix
+        /// </summary>
         private static Assembly[] assemblies;
         public static Assembly[] GetAssemblies()
         {
@@ -38,64 +125,11 @@ namespace CSharpHotfixTool
                 Assembly.LoadFile(assemblyPath);
             }
         }
-        
-        private static string appRootPath;
-        public static string GetAppRootPath()
-        {
-            // now we need manully set it
-            return appRootPath;
-        }
-
-        public static void SetAppRootPath(string path)
-        {
-            appRootPath = path;
-        }
-
-        
-        private static string assemblyDir;
-        public static string GetAssemblyPath(string assemblyName)
-        {
-            if (assemblyDir == null)
-            {
-                assemblyDir = GetAppRootPath();
-                assemblyDir = assemblyDir + "Library/ScriptAssemblies/";
-            }
-            var assemblyPath = assemblyDir + assemblyName + ".dll";
-            return assemblyPath;
-        }
 
 
-        private static Dictionary<string, List<string>> typesToInject;
-        public static List<string> GetTypesToInject(string assemblyName)
-        {
-            if (typesToInject == null)
-                return null;
-
-            List<string> result;
-            if (typesToInject.TryGetValue(assemblyName, out result))
-            {
-                return result;
-            }
-            return null;
-        }
-        
-        public static IEnumerable<string> GetAssembliesToInject()
-        {
-            return typesToInject.Keys.ToList();
-        }
-
-        public static void SetTypesToInject(string injectTypes)
-        {
-            typesToInject = new Dictionary<string, List<string>>();
-            var strLst = injectTypes.Split('|');
-            foreach (var str in strLst)
-            {
-                var typeLst = str.Split(';');
-                typesToInject.Add(typeLst[0], typeLst.ToList().GetRange(1, typeLst.Length - 1));
-            }
-        }
-        
-
+        /// <summary>
+        /// definitions
+        /// </summary>
         private static HashSet<string> macroDefinitions;
         
         public static HashSet<string> GetMacroDefinitions() 
@@ -182,6 +216,17 @@ namespace CSharpHotfixTool
                 var bytes = new UTF8Encoding(true).GetBytes(string.Format(message, args) + "\n");
                 fileStream.Write(bytes, 0, bytes.Length);
             }
+        }
+
+        public static void Exception(string message, Exception e)
+        {
+            CSharpHotfixManager.Error("Exception: " + string.Format(message, e.ToString()));
+            CSharpHotfixManager.Error("Exception End");
+        }
+
+        public static void Exception(Exception e)
+        {
+            CSharpHotfixManager.Exception("{0}", e);
         }
 
 #endregion log
@@ -465,10 +510,10 @@ namespace CSharpHotfixTool
         {
             var list = methodIdDict.ToList();
             list.Sort((a, b) => a.Value.CompareTo(b.Value));
-            CSharpHotfixManager.Message("#CS_HOTFIX# PrintAllMethodId: {0}", list.Count);
+            CSharpHotfixManager.Message("PrintAllMethodId: {0}", list.Count);
             foreach (var kv in list)
             {
-                CSharpHotfixManager.Message("#CS_HOTFIX# MethodId: {0} \tSignature: {1}", kv.Value, kv.Key);
+                CSharpHotfixManager.Message("MethodId: {0} \tSignature: {1}", kv.Value, kv.Key);
             }
         }
         
