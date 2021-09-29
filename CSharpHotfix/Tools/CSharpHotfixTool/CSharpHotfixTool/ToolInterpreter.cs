@@ -246,6 +246,8 @@ namespace CSharpHotfixTool
             var classDeclarationRewriter = new ClassDeclarationRewriter(classCollector.HotfixClasses);
             RewriteSyntaxTree(treeLst, classDeclarationRewriter);
 
+            // trans all assignment to simple format
+            RewriteSyntaxTree(treeLst, new AssignmentExprRewriter()); 
 
             // rewrite hotfix class member getter
             CSharpCompilation compilation = null;

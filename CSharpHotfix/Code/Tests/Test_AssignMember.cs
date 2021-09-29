@@ -14,7 +14,7 @@ namespace CSharpHotfixTest {
             count = 1;
 
             // AddAssignmentExpression
-            count += 2;
+            count += 1;
 
             // SubtractAssignmentExpression
             count -= 3;

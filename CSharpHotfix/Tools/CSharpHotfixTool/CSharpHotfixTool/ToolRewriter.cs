@@ -332,7 +332,86 @@ namespace CSharpHotfixTool
             return newNode;
         }
     }
+    
 
+    /// <summary>
+    /// make all non-simple assignment like '+=' '*=' '<<=' to simple format
+    /// </summary>
+    public class AssignmentExprRewriter : CSharpSyntaxRewriter
+    {
+        public override SyntaxNode VisitAssignmentExpression(AssignmentExpressionSyntax node)
+        {
+            var isSimpleAssignment = node.IsKind(SyntaxKind.SimpleAssignmentExpression);
+            if (isSimpleAssignment)
+                return node;
+
+            SyntaxToken opToken = SyntaxFactory.Token(SyntaxKind.None);
+            SyntaxKind exprKind = SyntaxKind.None;
+            var assignOpKind = node.OperatorToken.Kind();
+            switch (assignOpKind)
+            {
+                // +=
+                case SyntaxKind.PlusEqualsToken:
+                    opToken = SyntaxFactory.Token(SyntaxKind.PlusToken);
+                    exprKind = SyntaxKind.AddExpression;
+                    break;
+                // -=
+                case SyntaxKind.MinusEqualsToken:
+                    opToken = SyntaxFactory.Token(SyntaxKind.MinusToken);
+                    exprKind = SyntaxKind.SubtractExpression;
+                    break;
+                // *=
+                case SyntaxKind.AsteriskEqualsToken:
+                    opToken = SyntaxFactory.Token(SyntaxKind.AsteriskToken);
+                    exprKind = SyntaxKind.MultiplyExpression;
+                    break;
+                // /=
+                case SyntaxKind.SlashEqualsToken:
+                    opToken = SyntaxFactory.Token(SyntaxKind.SlashEqualsToken);
+                    exprKind = SyntaxKind.DivideExpression;
+                    break;
+                // &=
+                case SyntaxKind.AmpersandEqualsToken:
+                    opToken = SyntaxFactory.Token(SyntaxKind.AmpersandToken);
+                    exprKind = SyntaxKind.BitwiseAndExpression;
+                    break;
+                // |=
+                case SyntaxKind.BarEqualsToken:
+                    opToken = SyntaxFactory.Token(SyntaxKind.BarToken);
+                    exprKind = SyntaxKind.BitwiseOrExpression;
+                    break;
+                // ^=
+                case SyntaxKind.CaretEqualsToken:
+                    opToken = SyntaxFactory.Token(SyntaxKind.CaretToken);
+                    exprKind = SyntaxKind.ExclusiveOrExpression;
+                    break;
+                // <<=
+                case SyntaxKind.LessThanLessThanEqualsToken:
+                    opToken = SyntaxFactory.Token(SyntaxKind.LessThanLessThanToken);
+                    exprKind = SyntaxKind.LeftShiftExpression;
+                    break;
+                // >>=
+                case SyntaxKind.GreaterThanGreaterThanEqualsToken:
+                    opToken = SyntaxFactory.Token(SyntaxKind.GreaterThanGreaterThanToken);
+                    exprKind = SyntaxKind.RightShiftExpression;
+                    break;
+                default: 
+                    if (assignOpKind != SyntaxKind.EqualsToken)
+                    {
+                        ToolManager.Error("AssignmentExprRewriter: unsupported token: {0}", assignOpKind);
+                    }
+                    break;
+            }
+            if (exprKind == SyntaxKind.None)
+                return node;
+
+            var leftNode = node.Left.WithoutTrivia();
+            var rightNode = SyntaxFactory.ParenthesizedExpression(SyntaxFactory.BinaryExpression(exprKind, node.Left.WithoutTrivia(), opToken, node.Right) as ExpressionSyntax);
+            var newNode = SyntaxFactory.AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, leftNode, SyntaxFactory.Token(SyntaxKind.EqualsToken), rightNode).WithTriviaFrom(node);
+            return newNode;
+        }
+    }
+    
 
     /// <summary>
     /// use reflection to rewrite hotfix class getter
@@ -411,7 +490,7 @@ namespace CSharpHotfixTool
 
     
     /// <summary>
-    /// use reflection to rewrite hotfix class setter
+    /// use reflection to rewrite hotfix class setter, need used after AssignmentExprRewriter
     /// </summary>
     public class SetMemberRewriter : CSharpSyntaxRewriter
     {
@@ -444,9 +523,6 @@ namespace CSharpHotfixTool
             // name symbol is accessable, no need rewrite it
             if (nameSymbol.Symbol != null)
                 return node;
-
-            // check is simple assignment
-            var isSimpleAssignment = node.IsKind(SyntaxKind.SimpleAssignmentExpression);
 
             // CSharpHotfix.CSharpHotfixManager.ReflectionSet
             var setExpr = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
