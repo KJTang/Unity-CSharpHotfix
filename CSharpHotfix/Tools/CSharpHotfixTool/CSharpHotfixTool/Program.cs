@@ -18,7 +18,7 @@ namespace CSharpHotfixTool
         {
             if (args.Length <= 2)
             {
-                CSharpHotfixManager.Error("CSharpHotfixTool: args length invalid");
+                ToolManager.Error("CSharpHotfixTool: args length invalid");
                 return;
             }
 
@@ -27,9 +27,9 @@ namespace CSharpHotfixTool
 
             // projPath
             var projPath = args[1];
-            CSharpHotfixManager.SetAppRootPath(projPath);
-            CSharpHotfixManager.OpenLogFile();
-            CSharpHotfixManager.Message("CSharpHotfixTool: ProjPath: " + projPath);
+            ToolManager.SetAppRootPath(projPath);
+            ToolManager.OpenLogFile();
+            ToolManager.Message("CSharpHotfixTool: ProjPath: " + projPath);
 
             // init arguments
             RunInProtectMode(() =>
@@ -40,44 +40,44 @@ namespace CSharpHotfixTool
                     {
                         // inject types
                         var injectTypes = args[2];
-                        CSharpHotfixManager.SetTypesToInject(injectTypes);
-                        CSharpHotfixManager.Message("Set Inject Types Done");
+                        ToolManager.SetTypesToInject(injectTypes);
+                        ToolManager.Message("Set Inject Types Done");
                             
                         // search paths
                         var searchPaths = args[3];
-                        CSharpHotfixManager.SetInjectSearchPaths(searchPaths);
-                        CSharpHotfixManager.Message("Set Inject Search Paths Done");
+                        ToolManager.SetInjectSearchPaths(searchPaths);
+                        ToolManager.Message("Set Inject Search Paths Done");
                         break;
                     }
                     case "--hotfix":
                     {
                         // assemblies
                         var assembies = args[2];
-                        CSharpHotfixManager.LoadAssemblies(assembies);
-                        CSharpHotfixManager.Message("Load Assemblies Done");
+                        ToolManager.LoadAssemblies(assembies);
+                        ToolManager.Message("Load Assemblies Done");
 
                         // definitions
                         var definitions = args[3];
-                        CSharpHotfixManager.SetMacroDefinitions(definitions);
-                        CSharpHotfixManager.Message("Macro Deinitions: " + definitions);
+                        ToolManager.SetMacroDefinitions(definitions);
+                        ToolManager.Message("Macro Deinitions: " + definitions);
                         break;
                     }
                     case "--gen_method_id":
                     {
                         // inject types
                         var injectTypes = args[2];
-                        CSharpHotfixManager.SetTypesToInject(injectTypes);
-                        CSharpHotfixManager.Message("Set GenMethodId Types Done");
+                        ToolManager.SetTypesToInject(injectTypes);
+                        ToolManager.Message("Set GenMethodId Types Done");
                             
                         // search paths
                         var searchPaths = args[3];
-                        CSharpHotfixManager.SetInjectSearchPaths(searchPaths);
-                        CSharpHotfixManager.Message("Set GenMethodId Search Paths Done");
+                        ToolManager.SetInjectSearchPaths(searchPaths);
+                        ToolManager.Message("Set GenMethodId Search Paths Done");
                         break;
                     }
                     default:
                     {
-                        CSharpHotfixManager.Error("invalid tool mode: {0}", mode);
+                        ToolManager.Error("invalid tool mode: {0}", mode);
                         break;
                     }
                 }
@@ -90,28 +90,28 @@ namespace CSharpHotfixTool
                 {
                     case "--inject":
                         {
-                            CSharpHotfixInjector.TryInject();
+                            ToolInjector.TryInject();
                             break;
                         }
                     case "--hotfix":
                         {
-                            CSharpHotfixInterpreter.TryHotfix();
+                            ToolInterpreter.TryHotfix();
                             break;
                         }
                     case "--gen_method_id":
                         {
-                            CSharpHotfixInjector.GenMethodId();
+                            ToolInjector.GenMethodId();
                             break;
                         }
                     default:
                         {
-                            CSharpHotfixManager.Error("invalid tool mode: {0}", mode);
+                            ToolManager.Error("invalid tool mode: {0}", mode);
                             break;
                         }
                 }
             });
 
-            CSharpHotfixManager.CloseLogFile();
+            ToolManager.CloseLogFile();
         }
 
         static void RunInProtectMode(System.Action func)
@@ -122,7 +122,7 @@ namespace CSharpHotfixTool
             }
             catch (Exception e)
             {
-                CSharpHotfixManager.Exception(e);
+                ToolManager.Exception(e);
             }
             finally
             {

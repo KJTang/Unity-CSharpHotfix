@@ -3,15 +3,14 @@ using System.Collections.Generic;
 using System;
 using System.Reflection;
 using System.Linq;
+using System.IO;
+using System.Diagnostics;
 using UnityEngine;
-
 
 namespace CSharpHotfix
 {
     public class CSharpHotfixCfg 
     {
-        private static bool UseIFixConfig = true;
-        
         /// <summary>
         /// return types need to be hotfixed
         /// </summary>
@@ -19,12 +18,7 @@ namespace CSharpHotfix
         {
             get
             {
-                //if (UseIFixConfig)
-                //{ 
-                //    var propInfo = typeof(IFixCfg).GetProperty("ToProcess", BindingFlags.NonPublic | BindingFlags.Static);    
-                //    return propInfo.GetValue(null) as IEnumerable<Type>;
-                //}
-
+                // currently inject all types, you can change to types you need
                 return (from type in Assembly.Load("Assembly-CSharp").GetTypes()
                         where !type.Name.Contains("<")
                         select type);
@@ -39,8 +33,8 @@ namespace CSharpHotfix
         public static string GetMonoPath()
         {
             // Replace it to your mono which support higher version than .net framework 4.7
-            //var monoPath = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "Data/MonoBleedingEdge/bin/mono.exe");
-            var monoPath = "C:/Program Files/Unity/2019.4.29f1/Editor/Data/MonoBleedingEdge/bin/mono.exe";
+            var monoPath = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "Data/MonoBleedingEdge/bin/mono.exe");
+            //var monoPath = "C:/Program Files/Unity/2019.4.29f1/Editor/Data/MonoBleedingEdge/bin/mono.exe";
             return monoPath;
         }
 

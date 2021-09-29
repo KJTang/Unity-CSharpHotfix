@@ -15,7 +15,7 @@ using Mono.Cecil;
 
 namespace CSharpHotfixTool
 {
-    public class CSharpHotfixManager 
+    public class ToolManager 
     {
         
         private static string appRootPath;
@@ -220,13 +220,22 @@ namespace CSharpHotfixTool
 
         public static void Exception(string message, Exception e)
         {
-            CSharpHotfixManager.Error("Exception: " + string.Format(message, e.ToString()));
-            CSharpHotfixManager.Error("Exception End");
+            ToolManager.Error("Exception: " + string.Format(message, e.ToString()));
+            ToolManager.Error("Exception End");
         }
 
         public static void Exception(Exception e)
         {
-            CSharpHotfixManager.Exception("{0}", e);
+            ToolManager.Exception("{0}", e);
+        }
+
+        public static void Assert(bool cond, string message)
+        {
+            if (cond == true)
+                return;
+
+            ToolManager.Error("Assert Failed: {0}", message);
+            throw new Exception("assert failed");
         }
 
 #endregion log
@@ -417,7 +426,7 @@ namespace CSharpHotfixTool
         {
             // fix class name
             if (IsHotfixClass(signature))
-                signature = signature.Replace(CSharpHotfixRewriter.ClassNamePostfix, "");
+                signature = signature.Replace(ToolRewriter.ClassNamePostfix, "");
 
             // fix static
             var oldStaticStr = "NonStatic";
@@ -433,9 +442,9 @@ namespace CSharpHotfixTool
 
             // fix method name
             if (staticState == 1)
-                signature = signature.Replace(CSharpHotfixRewriter.StaticMethodNamePostfix, "");
+                signature = signature.Replace(ToolRewriter.StaticMethodNamePostfix, "");
             else if (staticState == 2)
-                signature = signature.Replace(CSharpHotfixRewriter.MethodNamePostfix, "");
+                signature = signature.Replace(ToolRewriter.MethodNamePostfix, "");
 
             // fix parameter list
             if (staticState == 2)
@@ -457,15 +466,15 @@ namespace CSharpHotfixTool
 
         public static bool IsHotfixClass(string signature)
         {
-            return signature.Contains(CSharpHotfixRewriter.ClassNamePostfix);
+            return signature.Contains(ToolRewriter.ClassNamePostfix);
         }
 
         public static int GetHotfixMethodStaticState(string signature)
         {
             var state = 0;  // non hotfix
-            if (signature.Contains(CSharpHotfixRewriter.StaticMethodNamePostfix))
+            if (signature.Contains(ToolRewriter.StaticMethodNamePostfix))
                 state = 1;  // static
-            else if (signature.Contains(CSharpHotfixRewriter.MethodNamePostfix))
+            else if (signature.Contains(ToolRewriter.MethodNamePostfix))
                 state = 2;  // non static
             return state;
         }
@@ -510,10 +519,10 @@ namespace CSharpHotfixTool
         {
             var list = methodIdDict.ToList();
             list.Sort((a, b) => a.Value.CompareTo(b.Value));
-            CSharpHotfixManager.Message("PrintAllMethodId: {0}", list.Count);
+            ToolManager.Message("PrintAllMethodId: {0}", list.Count);
             foreach (var kv in list)
             {
-                CSharpHotfixManager.Message("MethodId: {0} \tSignature: {1}", kv.Value, kv.Key);
+                ToolManager.Message("MethodId: {0} \tSignature: {1}", kv.Value, kv.Key);
             }
         }
         
@@ -522,7 +531,7 @@ namespace CSharpHotfixTool
         {
             if (methodIdFilePath == null)
             {
-                methodIdFilePath = CSharpHotfixManager.GetAppRootPath() + "CSharpHotfix/methodId.txt";
+                methodIdFilePath = ToolManager.GetAppRootPath() + "CSharpHotfix/methodId.txt";
             }
             return methodIdFilePath;
         }
@@ -585,306 +594,28 @@ namespace CSharpHotfixTool
 
 #endregion
         
-        
-#region reflection helper
-        public static object ReflectionGet(string typeName, object instance, string memberName)
-        {
-            var reflectionData = GetReflectionData(typeName);
-            Debug.Assert(reflectionData != null, "cannot get reflection data for typeName: " + typeName);
-
-            // try field
-            FieldInfo field;
-            if (reflectionData.fields.TryGetValue(memberName, out field))
-            {
-                return field.GetValue(instance);
-            }
-
-            // try property
-            PropertyInfo prop;
-            if (reflectionData.props.TryGetValue(memberName, out prop))
-            {
-                return prop.GetValue(instance, null);
-            }
-
-            // try delegate
-            MethodInfoWrap methodWrap;
-            if (reflectionData.methods.TryGetValue(memberName, out methodWrap))
-            {
-                // TODO: fix overload
-                var method = methodWrap.Single();
-                return Delegate.CreateDelegate(reflectionData.type, instance, method);
-            }
-
-            Debug.Assert(false, "not found member in typeName: " + typeName + " \t" + memberName);
-            return null;
-        }
-
-        public static void ReflectionSet(string typeName, object instance, string memberName, object value)
-        {
-            var reflectionData = GetReflectionData(typeName);
-            Debug.Assert(reflectionData != null, "cannot get reflection data for typeName: " + typeName);
-
-            // try field
-            FieldInfo field;
-            if (reflectionData.fields.TryGetValue(memberName, out field))
-            {
-                field.SetValue(instance, value);
-                return;
-            }
-
-            // try property
-            PropertyInfo prop;
-            if (reflectionData.props.TryGetValue(memberName, out prop))
-            {
-                prop.SetValue(instance, value, null);
-                return;
-            }
-
-            Debug.Assert(false, "not found member in type: " + typeName + " \t" + memberName);
-        }
-
-        public static void ReflectionReturnVoidInvoke(string typeName, object instance, string memberName, params object[] parameters)
-        {
-            var reflectionData = GetReflectionData(typeName);
-            Debug.Assert(reflectionData != null, "cannot get reflection data for typeName: " + typeName);
-
-            // try method
-            MethodInfoWrap methodWrap;
-            if (reflectionData.methods.TryGetValue(memberName, out methodWrap))
-            {
-                methodWrap.Invoke(instance, parameters);
-                return;
-            }
-
-            Debug.Assert(false, "not found member in type: " + typeName + " \t" + memberName);
-        }
-        
-
-        public static object ReflectionReturnObjectInvoke(string typeName, object instance, string memberName, params object[] parameters)
-        {
-            var reflectionData = GetReflectionData(typeName);
-            Debug.Assert(reflectionData != null, "cannot get reflection data for typeName: " + typeName);
-
-            // try method
-            MethodInfoWrap methodWrap;
-            if (reflectionData.methods.TryGetValue(memberName, out methodWrap))
-            {
-                return methodWrap.Invoke(instance, parameters);
-            }
-
-            Debug.Assert(false, "not found member in type: " + typeName + " \t" + memberName);
-            return null;
-        }
-
+        //private static 
         public static Type ReflectionGetMemberType(string typeName, string memberName)
         {
-            var reflectionData = GetReflectionData(typeName);
-            Debug.Assert(reflectionData != null, "cannot get reflection data for typeName: " + typeName);
-
-            // try field
-            FieldInfo field;
-            if (reflectionData.fields.TryGetValue(memberName, out field))
+            Type mgrType = null;
+            foreach (var assembly in ToolManager.GetAssemblies())
             {
-                return field.FieldType;
-            }
-
-            // try property
-            PropertyInfo prop;
-            if (reflectionData.props.TryGetValue(memberName, out prop))
-            {
-                return prop.PropertyType;
-            }
-
-            // try delegate
-            MethodInfoWrap methodWrap;
-            if (reflectionData.methods.TryGetValue(memberName, out methodWrap))
-            {
-                return methodWrap.ReturnType;
-            }
-
-           Debug.Assert(false, "not found member in type: " + typeName + " \t" + memberName);
-            return null;
-        }
-
-        /// <summary>
-        /// wrap MethodInfo, to resolve overload methods
-        /// </summary>
-        public class MethodInfoWrap
-        {
-            public string Name
-            {
-                get { return Single().Name; }
-            }
-
-            public Type ReturnType
-            {
-                get { return Single().ReturnType; }
-            }
-
-            public int Count
-            {
-                get { return methodLst.Count; }
-            }
-
-            private List<MethodInfo> methodLst = new List<MethodInfo>();
-
-            public void Add(MethodInfo method)
-            {
-                methodLst.Add(method);
-            }
-
-            public MethodInfo Single()
-            {
-                return methodLst[0];
-            }
-
-            public object Invoke(object instance, object[] parameters)
-            {
-                if (methodLst.Count == 1)
-                {
-                    return methodLst[0].Invoke(instance, parameters);
-                }
-
-                var paramLength = parameters == null ? 0 : parameters.Length;
-                foreach (var method in methodLst)
-                {
-                    var paramInfos = method.GetParameters();
-                    if (paramInfos.Length < paramLength)
-                        continue;
-
-                    var matched = true;
-                    for (var i = 0; i != paramInfos.Length; ++i)
-                    {
-                        var paramInfo = paramInfos[i];
-                        if (i >= paramLength)
-                        {
-                            if (!paramInfo.HasDefaultValue)
-                            {
-                                matched = false;
-                                break;
-                            }
-                            continue;
-                        }
-                        
-                        var paramInst = parameters[i];
-                        if (!paramInfo.ParameterType.IsAssignableFrom(paramInst.GetType()))
-                        {
-                            matched = false;
-                            break;
-                        }
-                    }
-                    if (!matched)
-                        continue;
-
-                    // found method, invoke it
-                    return method.Invoke(instance, parameters);
-                }
-
-                Debug.Assert(false, "invoke method failed");
-                return null;
-            }
-        }
-
-        public class ReflectionData
-        {
-            public Type type;
-            public Dictionary<string, FieldInfo> fields = new Dictionary<string, FieldInfo>();
-            public Dictionary<string, PropertyInfo> props = new Dictionary<string, PropertyInfo>();
-            public Dictionary<string, MethodInfoWrap> methods = new Dictionary<string, MethodInfoWrap>();
-
-            public void Print()
-            {
-                CSharpHotfixManager.Log("ReflectionData: " + type);
-
-                foreach (var kv in methods)
-                {
-                    var methodWrap = kv.Value;
-                    CSharpHotfixManager.Log("method: " + methodWrap.Name);
-                }
-
-                foreach (var kv in fields)
-                {
-                    var field = kv.Value;
-                    CSharpHotfixManager.Log("field: " + field.Name);
-                }
-            
-                foreach (var kv in props)
-                {
-                    var property = kv.Value;
-                    CSharpHotfixManager.Log("property: " + property.Name);
-                }
-            }
-
-        }
-        private static Dictionary<Type, ReflectionData> reflectionDatas = new Dictionary<Type, ReflectionData>();
-
-        public static ReflectionData GetReflectionData(object instance)
-        {
-            var type = instance.GetType();
-            return GetReflectionData(type);
-        }
-
-        public static ReflectionData GetReflectionData(string typeName)
-        {
-            Type targetType = null;
-            foreach (var assembly in CSharpHotfixManager.GetAssemblies())
-            {
-                var type = assembly.GetType(typeName);
+                var type = assembly.GetType("CSharpHotfix.CSharpHotfixManager");
                 if (type != null)
                 {
-                    targetType = type;
+                    mgrType = type;
                     break;
                 }
             }
-            return GetReflectionData(targetType);
-        }
-
-        public static ReflectionData GetReflectionData(Type type)
-        {
-            if (type == null)
+            if (mgrType == null)
                 return null;
 
-            ReflectionData data;
-            if (reflectionDatas.TryGetValue(type, out data) && data != null)
-                return data;
-
-            data = new ReflectionData();
-            reflectionDatas[type] = data;
-            
-            var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-            var methods = type.GetMethods(bindingFlags);
-            foreach (var method in methods)
-            {
-                MethodInfoWrap methodWrap; 
-                if (!data.methods.TryGetValue(method.Name, out methodWrap))
-                {
-                    methodWrap = new MethodInfoWrap();
-                    data.methods.Add(method.Name, methodWrap);
-                }
-                methodWrap.Add(method);
-            }
-
-            var fields = type.GetFields(bindingFlags);
-            foreach (var field in fields)
-            {
-                data.fields.Add(field.Name, field);
-            }
-            
-            var properties = type.GetProperties(bindingFlags);
-            foreach (var property in properties)
-            {
-                data.props.Add(property.Name, property);
-            }
-
-            return data;
+            var method = mgrType.GetMethod("ReflectionGetMemberType");
+            var parameters = new object[2] { typeName, memberName };
+            return method.Invoke(null, parameters) as Type;
         }
 
-        public static void ClearReflectionData()
-        {
-            reflectionDatas.Clear();
-        }
-
-#endregion
+        
 
     }
 

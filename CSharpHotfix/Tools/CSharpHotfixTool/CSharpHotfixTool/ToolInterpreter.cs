@@ -11,21 +11,21 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace CSharpHotfixTool
 {
-    public class CSharpHotfixInterpreter 
+    public class ToolInterpreter 
     {
         private static string hotfixDirPath; 
         public static string GetHotfixDirPath()
         {
             if (hotfixDirPath == null)
             {
-                hotfixDirPath = CSharpHotfixManager.GetAppRootPath() + "CSharpHotfix/Code";
+                hotfixDirPath = ToolManager.GetAppRootPath() + "CSharpHotfix/Code";
             }
             return hotfixDirPath;
         }
 
         private static IEnumerable<Assembly> GetReferencableAssemblies()
         {
-            var assemblies = CSharpHotfixManager.GetAssemblies().Where(assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location));
+            var assemblies = ToolManager.GetAssemblies().Where(assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location));
             return assemblies;
         }
 
@@ -37,6 +37,10 @@ namespace CSharpHotfixTool
             {
                 references.Add(MetadataReference.CreateFromFile(assembly.Location));
             }
+
+            // add current 
+            references.Add(MetadataReference.CreateFromFile(typeof(ToolManager).Assembly.Location));
+
             return references;
         }
         
@@ -48,7 +52,7 @@ namespace CSharpHotfixTool
         {
             if (hotfixAssemblyDir == null)
             {
-                hotfixAssemblyDir = CSharpHotfixManager.GetAppRootPath() + "Library/ScriptAssemblies/";
+                hotfixAssemblyDir = ToolManager.GetAppRootPath() + "Library/ScriptAssemblies/";
             }
             var hotfixAssemblyPath = hotfixAssemblyDir + hotfixDllName;
             return hotfixAssemblyPath;
@@ -56,13 +60,12 @@ namespace CSharpHotfixTool
 
         public static void TryHotfix()
         {
-            if (!CSharpHotfixManager.IsMethodIdFileExist())
+            if (!ToolManager.IsMethodIdFileExist())
             {
-                CSharpHotfixManager.Error("HotfixMethod: no method id file cache, please re-generate it");
+                ToolManager.Error("HotfixMethod: no method id file cache, please re-generate it");
                 return;
             }
-            CSharpHotfixManager.LoadMethodIdFromFile();
-            CSharpHotfixManager.ClearReflectionData();
+            ToolManager.LoadMethodIdFromFile();
 
             var treeLst = new List<SyntaxTree>();
             var fileLst = new List<string>();
@@ -75,11 +78,11 @@ namespace CSharpHotfixTool
             }
             catch (Exception e)
             {
-                CSharpHotfixManager.Exception(e);
+                ToolManager.Exception(e);
             }
             if (!parseResult)
             {
-                CSharpHotfixManager.Error("HotfixMethod: parse hotfix failed");
+                ToolManager.Error("HotfixMethod: parse hotfix failed");
                 return;
             }
             
@@ -91,11 +94,11 @@ namespace CSharpHotfixTool
             }
             catch (Exception e)
             {
-                CSharpHotfixManager.Exception(e);
+                ToolManager.Exception(e);
             }
             if (!rewriteResult)
             {
-                CSharpHotfixManager.Error("HotfixMethod: rewrite hotfix failed");
+                ToolManager.Error("HotfixMethod: rewrite hotfix failed");
                 return;
             }
 
@@ -107,11 +110,11 @@ namespace CSharpHotfixTool
             }
             catch (Exception e)
             {
-                CSharpHotfixManager.Exception(e);
+                ToolManager.Exception(e);
             }
             if (hotfixStream == null)
             {
-                CSharpHotfixManager.Error("HotfixMethod: compile hotfix failed");
+                ToolManager.Error("HotfixMethod: compile hotfix failed");
                 return;
             }
 
@@ -121,7 +124,7 @@ namespace CSharpHotfixTool
             // get assembly
             //var assembly = Assembly.Load(hotfixStream.ToArray(), null);
 
-            CSharpHotfixManager.Message("hotfix assembly: " + GetHotfixAssemblyPath());
+            ToolManager.Message("hotfix assembly: " + GetHotfixAssemblyPath());
             // save assembly to file (used to debug it)
             using (var fileStream = new FileStream(GetHotfixAssemblyPath(), FileMode.Create, System.IO.FileAccess.Write)) 
             {
@@ -135,7 +138,7 @@ namespace CSharpHotfixTool
 
             // debug: 
             //CSharpHotfixManager.PrintAllMethodInfo();
-            CSharpHotfixManager.Message("HotfixMethod: hotfix finished");
+            ToolManager.Message("HotfixMethod: hotfix finished");
         }
        
         private static bool ParseHotfix(List<SyntaxTree> treeLst, List<string> fileLst)
@@ -152,7 +155,7 @@ namespace CSharpHotfixTool
                 if (fileInfo.Directory.Name == "Tests")
                     continue;
 
-                CSharpHotfixManager.Message("HotfixMethod: load hotfix file: " + fileInfo.FullName);
+                ToolManager.Message("HotfixMethod: load hotfix file: " + fileInfo.FullName);
                 using (var streamReader = fileInfo.OpenText())
                 {
                     var programText = streamReader.ReadToEnd();
@@ -174,7 +177,7 @@ namespace CSharpHotfixTool
                     //if (!CSharpHotfixTestManager.IsTestFileEnabled(fileInfo.Name.Split('.')[0]))
                     //    continue;
 
-                    CSharpHotfixManager.Message("HotfixMethod: load test hotfix file: " + fileInfo.FullName);
+                    ToolManager.Message("HotfixMethod: load test hotfix file: " + fileInfo.FullName);
                     using (var streamReader = fileInfo.OpenText())
                     {
                         var programText = streamReader.ReadToEnd();
@@ -354,22 +357,22 @@ namespace CSharpHotfixTool
                     if (diagnostic.WarningLevel == 0)
                     {
                         hasError = true;
-                        CSharpHotfixManager.Error(log);
+                        ToolManager.Error(log);
                     }
                     else
                     {
-                        CSharpHotfixManager.Warning(log);
+                        ToolManager.Warning(log);
                     }
                 }
                 if (hasError)
                 {
-                    CSharpHotfixManager.Error("Hotfix Method: error occured when load file: {0}", filePath);
+                    ToolManager.Error("Hotfix Method: error occured when load file: {0}", filePath);
                     diagnosticErrorCnt += 1;
                 }
             }
             if (diagnosticErrorCnt > 0)
             {
-                CSharpHotfixManager.Error("Hotfix Method: has {0} error in hotfix files, please fix first", diagnosticErrorCnt);
+                ToolManager.Error("Hotfix Method: has {0} error in hotfix files, please fix first", diagnosticErrorCnt);
                 return null;
             }
             
@@ -387,11 +390,11 @@ namespace CSharpHotfixTool
                     if (diagnostic.WarningLevel == 0)
                     {
                         hasError = true;
-                        CSharpHotfixManager.Error(log);
+                        ToolManager.Error(log);
                     }
                     else
                     {
-                        CSharpHotfixManager.Warning(log);
+                        ToolManager.Warning(log);
                     }
                 }
                 if (hasError)
@@ -405,7 +408,7 @@ namespace CSharpHotfixTool
             }
             catch (Exception e)
             {
-                CSharpHotfixManager.Error("HotfixAssembly: emit dll failed: {0}", e);
+                ToolManager.Error("HotfixAssembly: emit dll failed: {0}", e);
                 if (hotfixDllStream != null)
                     hotfixDllStream.Close();
                 hotfixDllStream = null;

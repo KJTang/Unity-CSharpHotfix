@@ -14,16 +14,6 @@ namespace CSharpHotfix
 {
     public class CSharpHotfixManager 
     {
-        public static bool IsHotfixEnabled
-        {
-            get { return isHotfixEnabled; }
-            set
-            {
-                isHotfixEnabled = value;
-            }
-        }
-        private static bool isHotfixEnabled = false;
-
 
         private static string appRootPath;
         public static string GetAppRootPath()
@@ -360,24 +350,6 @@ namespace CSharpHotfix
                 }
             }	
         }
-        
-        public static bool IsStatic(int methodId)
-        {
-            var signature = GetMethodSignature(methodId);
-            if (string.IsNullOrEmpty(signature))
-                return false;
-            var strLst = signature.Split(';');
-            return strLst[1] == "Static";
-        }
-
-        public static bool IsReturnTypeVoid(int methodId)
-        {
-            var signature = GetMethodSignature(methodId);
-            if (string.IsNullOrEmpty(signature))
-                return false;
-            var strLst = signature.Split(';');
-            return strLst[2] == "System.Void";
-        }
 
 #endregion
         
@@ -466,7 +438,7 @@ namespace CSharpHotfix
             return methodInfo.methodInfo.Invoke(instance, param);
         }
 
-        #endregion
+#endregion
 
 
 #region reflection helper

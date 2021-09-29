@@ -212,13 +212,9 @@ namespace CSharpHotfix.Editor
         
         public static void RevertInject()
         {
-            if (CSharpHotfixManager.IsHotfixEnabled)
-                return;
-
             if (EditorApplication.isCompiling || Application.isPlaying)
             {
                 CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed, compiling or playing, please re-try after process finished");
-                CSharpHotfixManager.IsHotfixEnabled = false;
                 return;
             }
 

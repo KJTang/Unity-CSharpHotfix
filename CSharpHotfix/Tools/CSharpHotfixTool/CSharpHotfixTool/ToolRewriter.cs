@@ -50,8 +50,8 @@ namespace CSharpHotfixTool
 
             var classData = new HotfixClassData();
             classData.className = node.Identifier.Text;
-            classData.fullName = CSharpHotfixRewriter.GetSyntaxNodeFullName(node);
-            classData.isNew = CSharpHotfixRewriter.IsHotfixClassNew(classData.fullName);
+            classData.fullName = ToolRewriter.GetSyntaxNodeFullName(node);
+            classData.isNew = ToolRewriter.IsHotfixClassNew(classData.fullName);
             classData.syntaxNode = node;
             hotfixClasses.Add(classData);
         }
@@ -78,7 +78,7 @@ namespace CSharpHotfixTool
             //);
 
             var methodData = new HotfixMethodData();
-            methodData.methodName = CSharpHotfixRewriter.GetSyntaxNodeFullName(node);
+            methodData.methodName = ToolRewriter.GetSyntaxNodeFullName(node);
             //methodData.isNew = CSharpHotfixRewriter.IsHotfixMethodNew(node);
             methodData.isStatic = node.Modifiers.Any(SyntaxKind.StaticKeyword);
             methodData.syntaxNode = node;
@@ -110,7 +110,7 @@ namespace CSharpHotfixTool
                 return node;
 
             var oldName = node.Identifier.Text;
-            var newName = oldName + CSharpHotfixRewriter.ClassNamePostfix;
+            var newName = oldName + ToolRewriter.ClassNamePostfix;
 
             var oldNameToken = node.Identifier;
             var newNameToken = SyntaxFactory.Identifier(oldNameToken.LeadingTrivia, oldNameToken.Kind(), newName, newName, oldNameToken.TrailingTrivia);
@@ -145,7 +145,7 @@ namespace CSharpHotfixTool
             if (methodData.isStatic)
             {
                 var oldStaticName = node.Identifier.Text;
-                var newStaticName = oldStaticName + CSharpHotfixRewriter.StaticMethodNamePostfix;
+                var newStaticName = oldStaticName + ToolRewriter.StaticMethodNamePostfix;
                 var oldStaticNameToken = node.Identifier;
                 var newStaticNameToken = SyntaxFactory.Identifier(oldStaticNameToken.LeadingTrivia, oldStaticNameToken.Kind(), newStaticName, newStaticName, oldStaticNameToken.TrailingTrivia);
                 return node.WithIdentifier(newStaticNameToken);
@@ -166,8 +166,8 @@ namespace CSharpHotfixTool
             {
                 // already has modifier, use trivia in it
                 var oldFirstToken = modifiers[0];
-                var newFirstToken = SyntaxFactory.Token(CSharpHotfixRewriter.ZeroWhitespaceTrivia, oldFirstToken.Kind(), oldFirstToken.Text, oldFirstToken.ValueText, oldFirstToken.TrailingTrivia);
-                var staticToken = SyntaxFactory.Token(oldFirstToken.LeadingTrivia, SyntaxKind.StaticKeyword, CSharpHotfixRewriter.OneWhitespaceTrivia);
+                var newFirstToken = SyntaxFactory.Token(ToolRewriter.ZeroWhitespaceTrivia, oldFirstToken.Kind(), oldFirstToken.Text, oldFirstToken.ValueText, oldFirstToken.TrailingTrivia);
+                var staticToken = SyntaxFactory.Token(oldFirstToken.LeadingTrivia, SyntaxKind.StaticKeyword, ToolRewriter.OneWhitespaceTrivia);
                 modifiers = modifiers.Replace(oldFirstToken, newFirstToken);
                 modifiers = modifiers.Insert(0, staticToken);
             }
@@ -175,10 +175,10 @@ namespace CSharpHotfixTool
             {
                 // no modifier before, use trivia from first node
                 var oldTypeNode = firstNode as TypeSyntax;
-                var newTypeNode = oldTypeNode.WithLeadingTrivia(CSharpHotfixRewriter.ZeroWhitespaceTrivia);
+                var newTypeNode = oldTypeNode.WithLeadingTrivia(ToolRewriter.ZeroWhitespaceTrivia);
                 newReturnType = newTypeNode;
 
-                var staticToken = SyntaxFactory.Token(oldTypeNode.GetLeadingTrivia(), SyntaxKind.StaticKeyword, CSharpHotfixRewriter.OneWhitespaceTrivia);
+                var staticToken = SyntaxFactory.Token(oldTypeNode.GetLeadingTrivia(), SyntaxKind.StaticKeyword, ToolRewriter.OneWhitespaceTrivia);
                 modifiers = modifiers.Insert(0, staticToken);
             }
             else
@@ -191,10 +191,10 @@ namespace CSharpHotfixTool
             var parameterList = node.ParameterList;
             var paramType = SyntaxFactory.IdentifierName((node.Parent as ClassDeclarationSyntax).Identifier.Text);
             var paramName = SyntaxFactory.Identifier(
-                CSharpHotfixRewriter.OneWhitespaceTrivia, 
+                ToolRewriter.OneWhitespaceTrivia, 
                 SyntaxKind.Parameter, 
-                CSharpHotfixRewriter.InstanceParamName, 
-                CSharpHotfixRewriter.InstanceParamName, 
+                ToolRewriter.InstanceParamName, 
+                ToolRewriter.InstanceParamName, 
                 SyntaxFactory.TriviaList()
             );
             var paramSyntax = SyntaxFactory.Parameter(new SyntaxList<AttributeListSyntax>(), new SyntaxTokenList(), paramType, paramName, null);
@@ -221,7 +221,7 @@ namespace CSharpHotfixTool
 
             // rewrite method name
             var oldName = node.Identifier.Text;
-            var newName = oldName + CSharpHotfixRewriter.MethodNamePostfix;
+            var newName = oldName + ToolRewriter.MethodNamePostfix;
             var oldNameToken = node.Identifier;
             var newNameToken = SyntaxFactory.Identifier(oldNameToken.LeadingTrivia, oldNameToken.Kind(), newName, newName, oldNameToken.TrailingTrivia);
 
@@ -254,7 +254,7 @@ namespace CSharpHotfixTool
 
             var className = methodName.Substring(0, pos);
             Type classType = null;
-            foreach (var assembly in CSharpHotfixManager.GetAssemblies())
+            foreach (var assembly in ToolManager.GetAssemblies())
             {
                 var type = assembly.GetType(className);
                 if (type != null)
@@ -323,8 +323,8 @@ namespace CSharpHotfixTool
             var newThisToken = SyntaxFactory.Identifier(
                 oldThisToken.LeadingTrivia, 
                 SyntaxKind.Parameter, 
-                CSharpHotfixRewriter.InstanceParamName, 
-                CSharpHotfixRewriter.InstanceParamName, 
+                ToolRewriter.InstanceParamName, 
+                ToolRewriter.InstanceParamName, 
                 oldThisToken.TrailingTrivia
             );
 
@@ -401,8 +401,8 @@ namespace CSharpHotfixTool
             );
 
             // cast 
-            var memberType = CSharpHotfixManager.ReflectionGetMemberType(expressionSymbol.Symbol.ToString(), nameNode.Identifier.Text);
-            var typeNode = CSharpHotfixRewriter.TypeStringToSyntaxNode(memberType.ToString());
+            var memberType = ToolManager.ReflectionGetMemberType(expressionSymbol.Symbol.ToString(), nameNode.Identifier.Text);
+            var typeNode = ToolRewriter.TypeStringToSyntaxNode(memberType.ToString());
             var castExpr = SyntaxFactory.CastExpression(typeNode, SyntaxFactory.InvocationExpression(getExpr, getArgs));
             castExpr = castExpr.WithTriviaFrom(node);
             return castExpr;
@@ -508,7 +508,7 @@ namespace CSharpHotfixTool
 
 
             // CSharpHotfix.CSharpHotfixManager.ReflectionInvokeXXX
-            var memberType = CSharpHotfixManager.ReflectionGetMemberType(exprLeft.Symbol.ToString(), exprNode.Name.Identifier.Text);
+            var memberType = ToolManager.ReflectionGetMemberType(exprLeft.Symbol.ToString(), exprNode.Name.Identifier.Text);
             var returnVoid = memberType.FullName == "System.Void"; 
             MemberAccessExpressionSyntax invokeExpr;
             if (returnVoid)
@@ -553,7 +553,7 @@ namespace CSharpHotfixTool
             }
             
             // cast 
-            var typeNode = CSharpHotfixRewriter.TypeStringToSyntaxNode(memberType.ToString());
+            var typeNode = ToolRewriter.TypeStringToSyntaxNode(memberType.ToString());
             var castExpr = SyntaxFactory.CastExpression(typeNode, SyntaxFactory.InvocationExpression(invokeExpr, invokeArgs));
             castExpr = castExpr.WithTriviaFrom(node);
             return castExpr;
@@ -569,7 +569,7 @@ namespace CSharpHotfixTool
 
         public UnityMacroRewriter() 
         {
-            macroDefinitions = CSharpHotfixManager.GetMacroDefinitions();
+            macroDefinitions = ToolManager.GetMacroDefinitions();
         }
 
         public override SyntaxNode Visit(SyntaxNode node)
@@ -675,8 +675,8 @@ namespace CSharpHotfixTool
 
         public override SyntaxNode VisitClassDeclaration(ClassDeclarationSyntax node)
         {
-            var fullName = CSharpHotfixRewriter.GetSyntaxNodeFullName(node);
-            var isNew = CSharpHotfixRewriter.IsHotfixClassNew(fullName);
+            var fullName = ToolRewriter.GetSyntaxNodeFullName(node);
+            var isNew = ToolRewriter.IsHotfixClassNew(fullName);
             if (isNew)
                 MarkRemove(node);
             return node;
@@ -685,7 +685,7 @@ namespace CSharpHotfixTool
 #endregion
 
 
-    public class CSharpHotfixRewriter
+    public class ToolRewriter
     {
         public static readonly SyntaxTriviaList ZeroWhitespaceTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, ""));
         public static readonly SyntaxTriviaList OneWhitespaceTrivia = SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " "));
@@ -738,7 +738,7 @@ namespace CSharpHotfixTool
         /// <returns></returns>
         public static bool IsHotfixClassNew(string className)
         {
-            foreach (var assembly in CSharpHotfixManager.GetAssemblies())
+            foreach (var assembly in ToolManager.GetAssemblies())
             {
                 var type = assembly.GetType(className);
                 if (type != null)
@@ -755,8 +755,8 @@ namespace CSharpHotfixTool
         public static bool IsHotfixMethodNew(MethodDeclarationSyntax node)
         {
             Type classType = null;
-            var className = CSharpHotfixRewriter.GetSyntaxNodeFullName(node.Parent);
-            foreach (var assembly in CSharpHotfixManager.GetAssemblies())
+            var className = ToolRewriter.GetSyntaxNodeFullName(node.Parent);
+            foreach (var assembly in ToolManager.GetAssemblies())
             {
                 var type = assembly.GetType(className);
                 if (type != null)
