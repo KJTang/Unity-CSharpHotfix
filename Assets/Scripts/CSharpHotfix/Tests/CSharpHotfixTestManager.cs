@@ -21,6 +21,7 @@ namespace CSharpHotfix {
             "Test_AccessPriviateMember",
             "Test_UnityMacro",
             "Test_AssignMember",
+            "Test_PostIncrement",
         };
 
         public static bool EnableTest = true;

@@ -487,7 +487,7 @@ namespace CSharpHotfixTool
             return castExpr;
         }
     }
-
+    
     
     /// <summary>
     /// use reflection to rewrite hotfix class setter, need used after AssignmentExprRewriter
@@ -550,6 +550,120 @@ namespace CSharpHotfixTool
 
     
     /// <summary>
+    /// use reflection to rewrite ++/--
+    /// </summary>
+    public class ValueIncrementRewriter : CSharpSyntaxRewriter
+    {
+        private SemanticModel semanticModel;
+        private HashSet<SyntaxKind> kinds = new HashSet<SyntaxKind>()
+        {
+            SyntaxKind.PreIncrementExpression, 
+            SyntaxKind.PreDecrementExpression, 
+            SyntaxKind.PostIncrementExpression, 
+            SyntaxKind.PostDecrementExpression, 
+        };
+
+        public ValueIncrementRewriter(SemanticModel semanticModel) 
+        {
+            this.semanticModel = semanticModel;
+        }
+
+        public override SyntaxNode VisitPostfixUnaryExpression(PostfixUnaryExpressionSyntax node)
+        {
+            return VisitNode(node);
+        }
+
+
+        public override SyntaxNode VisitPrefixUnaryExpression(PrefixUnaryExpressionSyntax node)
+        {
+            return VisitNode(node);
+        }
+
+        private SyntaxNode VisitNode(SyntaxNode node)
+        {
+            if (semanticModel == null)
+                return node;
+
+            if (!kinds.Contains(node.Kind()))
+                return node;
+
+            SyntaxNode exprNode;
+            SyntaxToken opToken;
+            if (node is PrefixUnaryExpressionSyntax)
+            {
+                exprNode = (node as PrefixUnaryExpressionSyntax).Operand;
+                opToken = (node as PrefixUnaryExpressionSyntax).OperatorToken;
+            }
+            else if (node is PostfixUnaryExpressionSyntax)
+            {
+                exprNode = (node as PostfixUnaryExpressionSyntax).Operand;
+                opToken = (node as PostfixUnaryExpressionSyntax).OperatorToken;
+            }
+            else
+            {
+                return node;
+            }
+
+            // currently only support expr like '__INST__.field++'
+            if (!exprNode.IsKind(SyntaxKind.SimpleMemberAccessExpression))
+                return node;
+
+            var memberNameNode = (exprNode as MemberAccessExpressionSyntax).Name;
+            var memberExprNode = (exprNode as MemberAccessExpressionSyntax).Expression;
+
+            var memberNameSymbol = semanticModel.GetSymbolInfo(memberNameNode);
+            var memberExprSymbol = semanticModel.GetSymbolInfo(memberExprNode);
+
+            Console.WriteLine("Test2: " + memberExprSymbol.Symbol + " name: " + memberNameSymbol.Symbol + " token: " + opToken.IsKind(SyntaxKind.PlusPlusToken));
+
+            // if expression no symbol, invalid
+            if (memberExprSymbol.Symbol == null)
+            {
+                return node;
+            }
+
+            // name symbol is accessable, no need rewrite it
+            if (memberNameSymbol.Symbol != null)
+                return node;
+            
+
+            // CSharpHotfix.CSharpHotfixManager.ReflectionIncrement
+            var incExpr = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
+                SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
+                    SyntaxFactory.IdentifierName("CSharpHotfix"), 
+                    SyntaxFactory.IdentifierName("CSharpHotfixManager")
+                ), 
+                SyntaxFactory.IdentifierName("ReflectionIncrement")
+            );
+
+            var isInc = opToken.IsKind(SyntaxKind.PlusPlusToken);
+            var isPre = node is PrefixUnaryExpressionSyntax || node.Parent is ArgumentSyntax;
+            var incArgs = SyntaxFactory.ArgumentList(new SeparatedSyntaxList<ArgumentSyntax>()
+                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(memberExprSymbol.Symbol.ToString()))))
+                .Add(memberExprSymbol.Symbol.Kind == SymbolKind.NamedType ? 
+                    SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)) : 
+                    SyntaxFactory.Argument(SyntaxFactory.IdentifierName(memberExprSymbol.Symbol.Name)
+                ))
+                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(memberNameNode.Identifier.Text))))
+                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(isInc ? SyntaxKind.TrueLiteralExpression : SyntaxKind.FalseLiteralExpression)))
+                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(isPre ? SyntaxKind.TrueLiteralExpression : SyntaxKind.FalseLiteralExpression)))
+            );
+
+            // new node
+            var invokeNode = SyntaxFactory.InvocationExpression(incExpr, incArgs);
+            if (node.Parent is ExpressionStatementSyntax)
+                return invokeNode.WithTriviaFrom(node);
+
+            var memberType = ToolManager.ReflectionGetMemberType(memberExprSymbol.Symbol.ToString(), memberNameNode.Identifier.Text);
+            var typeNode = ToolRewriter.TypeStringToSyntaxNode(memberType.ToString());
+            var castExpr = SyntaxFactory.CastExpression(typeNode, invokeNode);
+            castExpr = castExpr.WithTriviaFrom(node);
+            return castExpr;
+        }
+    }
+
+    
+    /// <summary>
     /// use reflection to rewrite hotfix class method invocations
     /// </summary>
     public class InvokeMemberRewriter : CSharpSyntaxRewriter
@@ -573,6 +687,7 @@ namespace CSharpHotfixTool
 
             var exprLeft = semanticModel.GetSymbolInfo(exprNode.Expression);
             var exprRight = semanticModel.GetSymbolInfo(exprNode.Name);
+            Console.WriteLine("Invoke: " + exprNode + " left: " + exprLeft + " right: " + exprRight);
 
             // maybe need throw error, expression node should have symbol always
             if (exprLeft.Symbol == null)

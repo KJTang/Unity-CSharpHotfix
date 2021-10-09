@@ -249,8 +249,30 @@ namespace CSharpHotfixTool
             // trans all assignment to simple format
             RewriteSyntaxTree(treeLst, new AssignmentExprRewriter()); 
 
-            // rewrite hotfix class member getter
             CSharpCompilation compilation = null;
+
+            // rewrite ++/--
+            compilation = CSharpCompilation.Create(hotfixDllName)
+                .AddReferences(GetMetadataReferences())
+                .AddSyntaxTrees(treeLst)
+                .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+            ;
+            for (var i = 0; i != treeLst.Count; ++i)
+            {
+                var tree = treeLst[i];
+                var semanticModel = compilation.GetSemanticModel(tree, true);
+
+                var oldNode = tree.GetRoot();
+                var valueIncRewriter = new ValueIncrementRewriter(semanticModel);
+                var newNode = valueIncRewriter.Visit(oldNode);
+                if (oldNode != newNode)
+                {
+                    tree = tree.WithRootAndOptions(newNode, tree.Options);
+                    treeLst[i] = tree;
+                }
+            }
+
+            // rewrite hotfix class member getter
             compilation = CSharpCompilation.Create(hotfixDllName)
                 .AddReferences(GetMetadataReferences())
                 .AddSyntaxTrees(treeLst)
@@ -291,7 +313,7 @@ namespace CSharpHotfixTool
                     treeLst[i] = tree;
                 }
             }
-
+            
             // rewrite hotfix class method invocation
             compilation = CSharpCompilation.Create(hotfixDllName)
                 .AddReferences(GetMetadataReferences())

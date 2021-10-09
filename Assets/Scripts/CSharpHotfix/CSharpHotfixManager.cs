@@ -498,6 +498,58 @@ namespace CSharpHotfix
             Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
         }
 
+        public static object ReflectionIncrement(string typeName, object instance, string memberName, bool isInc, bool isPre)
+        {
+            var oldValue = ReflectionGet(typeName, instance, memberName);
+            var type = oldValue.GetType();
+            if (!type.IsPrimitive)
+                return oldValue;
+
+            var newValue = Activator.CreateInstance(type);
+            var addValue = isInc ? 1 : -1;
+            if (type == typeof(System.Int16))
+            {
+                newValue = (System.Int16)oldValue + addValue;
+            }
+            else if (type == typeof(System.UInt16))
+            {
+                newValue = (System.UInt16)oldValue + addValue;
+            }
+            else if (type == typeof(System.Int32))
+            {
+                newValue = (System.Int32)oldValue + addValue;
+            }
+            else if (type == typeof(System.UInt32))
+            {
+                newValue = (System.UInt32)oldValue + addValue;
+            }
+            else if (type == typeof(System.Int64))
+            {
+                newValue = (System.Int64)oldValue + (System.Int64)addValue;
+            }
+            else if (type == typeof(System.UInt64))
+            {
+                newValue = (System.UInt64)oldValue + (System.UInt64)addValue;
+            }
+            else if (type == typeof(float))
+            {
+                newValue = (float)oldValue + addValue;
+            }
+            else if (type == typeof(double))
+            {
+                newValue = (double)oldValue + addValue;
+            }
+            else
+            {
+                Assert.IsTrue(false, "ReflectionIncrement: unsupport type: " + type.Name);
+            }
+
+
+            ReflectionSet(typeName, instance, memberName, newValue);
+            UnityEngine.Debug.LogErrorFormat("#TEST# inc: {0}.{1} {2} isPre: {3} \tvalue: {4}/{5} final: {6} {7}", typeName, memberName, isInc ? "++" : "--", isPre, newValue, oldValue, (isPre ? newValue : oldValue), type.Name);
+            return isPre ? newValue : oldValue;
+        }
+
         public static void ReflectionReturnVoidInvoke(string typeName, object instance, string memberName, params object[] parameters)
         {
             var reflectionData = GetReflectionData(typeName);
