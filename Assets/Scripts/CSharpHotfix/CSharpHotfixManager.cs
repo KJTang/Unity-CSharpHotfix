@@ -546,7 +546,6 @@ namespace CSharpHotfix
 
 
             ReflectionSet(typeName, instance, memberName, newValue);
-            UnityEngine.Debug.LogErrorFormat("#TEST# inc: {0}.{1} {2} isPre: {3} \tvalue: {4}/{5} final: {6} {7}", typeName, memberName, isInc ? "++" : "--", isPre, newValue, oldValue, (isPre ? newValue : oldValue), type.Name);
             return isPre ? newValue : oldValue;
         }
 

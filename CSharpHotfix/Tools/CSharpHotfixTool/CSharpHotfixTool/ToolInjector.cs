@@ -374,6 +374,31 @@ namespace CSharpHotfixTool
             {
                 var returnType = assembly.MainModule.ImportReference(method.ReturnType);
                 ilList.Add(Instruction.Create(OpCodes.Unbox, returnType));
+
+                var typeName = returnType.FullName;
+                var op = OpCodes.Ldind_U1;
+                if (typeName == "System.Boolean")
+                    op = OpCodes.Ldind_U1;
+                else if (typeName == "System.Int16")
+                    op = OpCodes.Ldind_I2;
+                else if (typeName == "System.UInt16")
+                    op = OpCodes.Ldind_U2;
+                else if (typeName == "System.Int32")
+                    op = OpCodes.Ldind_I4;
+                else if (typeName == "System.UInt32")
+                    op = OpCodes.Ldind_U4;
+                else if (typeName == "System.Int64")
+                    op = OpCodes.Ldind_I8;
+                else if (typeName == "System.UInt64")
+                    op = OpCodes.Ldind_I8;
+                else if (typeName == "System.Single")
+                    op = OpCodes.Ldind_R4;
+                else if (typeName == "System.Double")
+                    op = OpCodes.Ldind_R8;
+                else
+                    ToolManager.Assert(false, "unsupported return type: " + typeName
+                        + " " + typeof(float).FullName + " " + typeof(double).FullName);
+                ilList.Add(Instruction.Create(op));
             }
             ilList.Add(Instruction.Create(OpCodes.Br, endPoint));
 

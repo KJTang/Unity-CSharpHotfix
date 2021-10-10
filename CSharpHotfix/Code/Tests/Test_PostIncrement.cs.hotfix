@@ -31,14 +31,10 @@ namespace CSharpHotfixTest
                 return "invalid 4";
 
             CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_PostIncrement",__INST__,"count",0);
-            var t1 = __INST__.Foo((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionIncrement("CSharpHotfixTest.Test_PostIncrement",__INST__,"count",true,true));
-            Debug.LogError("t1: " + t1 + " \t" + (System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_PostIncrement",__INST__,"count"));
             if (__INST__.Foo((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionIncrement("CSharpHotfixTest.Test_PostIncrement",__INST__,"count",true,true)) != 1)
                 return "invalid 5";
             
             CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_PostIncrement",__INST__,"count",0);
-            var t2 = __INST__.Foo((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionIncrement("CSharpHotfixTest.Test_PostIncrement",__INST__,"count",true,true));
-            Debug.LogError("t2: " + t2 + " \t" + (System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_PostIncrement",__INST__,"count"));
             if (__INST__.Foo((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionIncrement("CSharpHotfixTest.Test_PostIncrement",__INST__,"count",true,true)) != 1)
                 return "invalid 6";
 
@@ -48,7 +44,6 @@ namespace CSharpHotfixTest
 
         static public int Foo__HOTFIX_MTD(Test_PostIncrement __INST__,int i)
         {
-            Debug.LogError("Foo: " + i + " \t" + (i != 1));
             return i;
         }
     }

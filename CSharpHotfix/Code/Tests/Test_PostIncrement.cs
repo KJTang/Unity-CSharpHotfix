@@ -31,14 +31,10 @@ namespace CSharpHotfixTest
                 return "invalid 4";
 
             count = 0;
-            var t1 = Foo(count++);
-            Debug.LogError("t1: " + t1 + " \t" + this.count);
             if (Foo(count++) != 1)
                 return "invalid 5";
             
             count = 0;
-            var t2 = Foo(count++);
-            Debug.LogError("t2: " + t2 + " \t" + this.count);
             if (Foo(++count) != 1)
                 return "invalid 6";
 
@@ -48,7 +44,6 @@ namespace CSharpHotfixTest
 
         public int Foo(int i)
         {
-            Debug.LogError("Foo: " + i + " \t" + (i != 1));
             return i;
         }
     }
