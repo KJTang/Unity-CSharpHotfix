@@ -614,8 +614,6 @@ namespace CSharpHotfixTool
             var memberNameSymbol = semanticModel.GetSymbolInfo(memberNameNode);
             var memberExprSymbol = semanticModel.GetSymbolInfo(memberExprNode);
 
-            Console.WriteLine("Test2: " + memberExprSymbol.Symbol + " name: " + memberNameSymbol.Symbol + " token: " + opToken.IsKind(SyntaxKind.PlusPlusToken));
-
             // if expression no symbol, invalid
             if (memberExprSymbol.Symbol == null)
             {
