@@ -687,7 +687,6 @@ namespace CSharpHotfixTool
 
             var exprLeft = semanticModel.GetSymbolInfo(exprNode.Expression);
             var exprRight = semanticModel.GetSymbolInfo(exprNode.Name);
-            Console.WriteLine("Invoke: " + exprNode + " left: " + exprLeft + " right: " + exprRight);
 
             // maybe need throw error, expression node should have symbol always
             if (exprLeft.Symbol == null)
