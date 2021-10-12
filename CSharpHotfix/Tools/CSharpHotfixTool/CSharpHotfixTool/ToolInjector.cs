@@ -467,6 +467,10 @@ namespace CSharpHotfixTool
             {
                 ilList.Add(Instruction.Create(OpCodes.Box, assembly.MainModule.ImportReference(paramType)));
             }
+            else if (param.IsOut)
+            {
+                ilList.Add(Instruction.Create(OpCodes.Ldind_Ref));
+            }
         }
 
     }

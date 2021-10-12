@@ -15,6 +15,7 @@ namespace CSharpHotfix {
             "Test_InvokeMethod",
             "Test_InvokePrivateMethod",
             "Test_InvokeOverloadMethod",
+            "Test_InvokeMehtodWithOutParam",
             "Test_ThisExpression",
             "Test_ThisExpressionImplicit",
             "Test_AccessMember",
