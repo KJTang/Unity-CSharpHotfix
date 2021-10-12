@@ -480,7 +480,10 @@ namespace CSharpHotfixTool
             );
 
             // cast 
-            var memberType = ToolManager.ReflectionGetMemberType(expressionSymbol.Symbol.ToString(), nameNode.Identifier.Text);
+            var memberType = ToolManager.ReflectionGetMemberType(semanticModel.GetTypeInfo(expressionNode).Type.ToDisplayString(), nameNode.Identifier.Text);
+            if (memberType == null)
+                return node;
+
             var typeNode = ToolRewriter.TypeStringToSyntaxNode(memberType.ToString());
             var castExpr = SyntaxFactory.CastExpression(typeNode, SyntaxFactory.InvocationExpression(getExpr, getArgs));
             castExpr = castExpr.WithTriviaFrom(node);
@@ -652,7 +655,10 @@ namespace CSharpHotfixTool
             if (node.Parent is ExpressionStatementSyntax)
                 return invokeNode.WithTriviaFrom(node);
 
-            var memberType = ToolManager.ReflectionGetMemberType(memberExprSymbol.Symbol.ToString(), memberNameNode.Identifier.Text);
+            var memberType = ToolManager.ReflectionGetMemberType(semanticModel.GetTypeInfo(memberExprNode).Type.ToDisplayString(), memberNameNode.Identifier.Text);
+            if (memberType == null)
+                return node;
+
             var typeNode = ToolRewriter.TypeStringToSyntaxNode(memberType.ToString());
             var castExpr = SyntaxFactory.CastExpression(typeNode, invokeNode);
             castExpr = castExpr.WithTriviaFrom(node);
@@ -696,7 +702,10 @@ namespace CSharpHotfixTool
 
 
             // CSharpHotfix.CSharpHotfixManager.ReflectionInvokeXXX
-            var memberType = ToolManager.ReflectionGetMemberType(exprLeft.Symbol.ToString(), exprNode.Name.Identifier.Text);
+            var memberType = ToolManager.ReflectionGetMemberType(semanticModel.GetTypeInfo(exprNode.Expression).Type.ToDisplayString(), exprNode.Name.Identifier.Text);
+            if (memberType == null)
+                return node;
+
             var returnVoid = memberType.FullName == "System.Void"; 
             MemberAccessExpressionSyntax invokeExpr;
             if (returnVoid)
@@ -1026,6 +1035,7 @@ namespace CSharpHotfixTool
 
             // translate
             typeString = typeString.Trim();
+            typeString = typeString.Replace('+', '.');
             if (typeString.Contains("`"))
             {
                 typeString = leftPattern.Replace(typeString, "<");
@@ -1044,7 +1054,34 @@ namespace CSharpHotfixTool
 
                 // exp. 'System.Int32' of 'System.Collections.Generic.List<System.Int32>'
                 var genericArgStr = typeString.Substring(leftPos + 1, rightPos - leftPos - 1);
-                var genericArgLst = genericArgStr.Split(',');
+                var genericArgLst = new List<string>();
+                var strBegin = 0;
+                var parenLevel = 0;
+                for (var i = 0; i != genericArgStr.Length; ++i)
+                {
+                    var cur = genericArgStr[i];
+                    switch (cur)
+                    {
+                        case '<':
+                            parenLevel += 1;
+                            break;
+                        case '>': 
+                            parenLevel -= 1;
+                            break;
+                        case ',':
+                            if (parenLevel == 0)
+                            {
+                                var subStr = genericArgStr.Substring(strBegin, i - strBegin);
+                                genericArgLst.Add(subStr);
+                                strBegin = i + 1;
+                            }
+                            break;
+                        default: 
+                            break;
+                    }
+                }
+                var lastSubStr = genericArgStr.Substring(strBegin, genericArgStr.Length - strBegin);
+                genericArgLst.Add(lastSubStr);
 
                 // build generic node
                 var argSyntax = new SeparatedSyntaxList<TypeSyntax>();

@@ -612,7 +612,19 @@ namespace CSharpHotfixTool
 
             var method = mgrType.GetMethod("ReflectionGetMemberType");
             var parameters = new object[2] { typeName, memberName };
-            return method.Invoke(null, parameters) as Type;
+
+            Type memberType = null;
+            try
+            {
+                memberType = method.Invoke(null, parameters) as Type;
+            }
+            catch (Exception e) 
+            { 
+                //throw new Exception(string.Format("ReflectionGetMemberType: failed: {0}.{1} {2}", typeName, memberName, e));
+                ToolManager.Exception(string.Format("ReflectionGetMemberType: failed: {0}.{1} {2}", typeName, memberName, e), e);
+                return null;
+            }
+            return memberType;
         }
 
         

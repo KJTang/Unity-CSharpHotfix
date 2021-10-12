@@ -394,6 +394,7 @@ namespace CSharpHotfix.Editor
                     while (!line.StartsWith("Exception End"))
                     {
                         exceptionInfo.Append(line);
+                        exceptionInfo.Append('\n');
                         line = hotfixProc.StandardOutput.ReadLine();
                     }
                     succ = false;
