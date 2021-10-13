@@ -1,0 +1,25 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace CSharpHotfixTest {
+
+    public class Test_InnerType__HOTFIX_CLS
+    {
+
+
+
+        static public string Func__HOTFIX_MTD(Test_InnerType __INST__)
+        {
+            Test_InnerType.TestStruct s1 = new CSharpHotfixTest.Test_InnerType.TestStruct();
+            s1.x = 1;
+            s1.y = 2;
+
+            if (s1.x != (int)CSharpHotfixTest.Test_InnerType.ETYPE.ONE)
+                return "invalid";
+
+            return "hotfixed";
+        }
+
+    }
+}

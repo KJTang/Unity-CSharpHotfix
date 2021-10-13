@@ -8,7 +8,7 @@ namespace CSharpHotfix {
 
     public class CSharpHotfixTestManager
     {
-        private static readonly HashSet<string> EnabledHotfixTests = new HashSet<string>()
+        public static readonly HashSet<string> EnabledHotfixTests = new HashSet<string>()
         {
             "Test_HotfixMethod",
             "Test_HotfixStaticMethod",
@@ -23,6 +23,7 @@ namespace CSharpHotfix {
             "Test_UnityMacro",
             "Test_AssignMember",
             "Test_PostIncrement",
+            "Test_InnerType",
         };
 
         public static bool EnableTest = true;

@@ -210,6 +210,8 @@ namespace CSharpHotfixTool
         {
             // first remove code not supported yet
             RewriteSyntaxTree(treeLst, new NotSupportNewClassRewriter());
+            RewriteSyntaxTree(treeLst, new NotSupportNewStructRewriter());
+            RewriteSyntaxTree(treeLst, new NotSupportNewEnumRewriter());
             RewriteSyntaxTree(treeLst, new NotSupportPropertyRewriter());
             RewriteSyntaxTree(treeLst, new NotSupportFieldRewriter());
 

@@ -244,7 +244,9 @@ namespace CSharpHotfixTool
         private HashSet<string> methodSet = new HashSet<string>();
         private HashSet<string> fieldSet = new HashSet<string>();
         private HashSet<string> propertySet = new HashSet<string>();
-        private string methodName;
+        private HashSet<string> nestedTypeSet = new HashSet<string>();
+
+        private string typeFullName;
 
         public ImplicitThisRewriter(string methodName) 
         {
@@ -263,6 +265,7 @@ namespace CSharpHotfixTool
                     break;
                 }
             }
+            this.typeFullName = classType.FullName;
             //Assert.IsNotNull(classType, "invalid class name: " + className);
 
             var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
@@ -284,7 +287,13 @@ namespace CSharpHotfixTool
                 propertySet.Add(property.Name);
             }
 
-            this.methodName = methodName;
+            var nestedTypes = classType.GetNestedTypes(bindingFlags);
+            foreach (var type in nestedTypes)
+            {
+                nestedTypeSet.Add(type.Name);
+            }
+
+
         }
 
         public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
@@ -296,17 +305,27 @@ namespace CSharpHotfixTool
                 return node;
 
             var identifierName = node.Identifier.Text;
-            if (!methodSet.Contains(identifierName) && !fieldSet.Contains(identifierName) && !propertySet.Contains(identifierName))
-                return node;
+            if (methodSet.Contains(identifierName) || fieldSet.Contains(identifierName) || propertySet.Contains(identifierName))
+            {
+                var memberAccessNode = SyntaxFactory.MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    SyntaxFactory.ThisExpression(),
+                    SyntaxFactory.Token(SyntaxKind.DotToken),
+                    SyntaxFactory.IdentifierName(identifierName)
+                ).WithTriviaFrom(node);
+                return memberAccessNode;
+            }
+            else if (nestedTypeSet.Contains(identifierName))
+            {
+                var qualifiedNameNode = SyntaxFactory.QualifiedName(
+                    SyntaxFactory.IdentifierName(this.typeFullName), 
+                    SyntaxFactory.Token(SyntaxKind.DotToken),
+                    SyntaxFactory.IdentifierName(identifierName)
+                ).WithTriviaFrom(node);
+                return qualifiedNameNode;
+            }
 
-            var memberAccessNode = SyntaxFactory.MemberAccessExpression(
-                SyntaxKind.SimpleMemberAccessExpression,
-                SyntaxFactory.ThisExpression(),
-                SyntaxFactory.Token(SyntaxKind.DotToken),
-                SyntaxFactory.IdentifierName(node.Identifier.Text)
-            ).WithTriviaFrom(node);
-
-            return memberAccessNode;
+            return node;
         }
     }
 
@@ -460,6 +479,8 @@ namespace CSharpHotfixTool
             var isLeftValue = node.Parent is AssignmentExpressionSyntax;
             if (isLeftValue)
                 return node;
+            
+            var typeName = ToolRewriter.GetSyntaxNodeTypeName(semanticModel, expressionNode);
 
             // CSharpHotfix.CSharpHotfixManager.ReflectionGet
             var getExpr = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
@@ -471,7 +492,7 @@ namespace CSharpHotfixTool
             );
 
             var getArgs = SyntaxFactory.ArgumentList(new SeparatedSyntaxList<ArgumentSyntax>()
-                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(expressionSymbol.Symbol.ToString()))))
+                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(typeName))))
                 .Add(expressionSymbol.Symbol.Kind == SymbolKind.NamedType ? 
                     SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)) : 
                     SyntaxFactory.Argument(SyntaxFactory.IdentifierName(expressionSymbol.Symbol.Name)
@@ -480,7 +501,7 @@ namespace CSharpHotfixTool
             );
 
             // cast 
-            var memberType = ToolManager.ReflectionGetMemberType(semanticModel.GetTypeInfo(expressionNode).Type.ToDisplayString(), nameNode.Identifier.Text);
+            var memberType = ToolManager.ReflectionGetMemberType(typeName, nameNode.Identifier.Text);
             if (memberType == null)
                 return node;
 
@@ -526,6 +547,8 @@ namespace CSharpHotfixTool
             // name symbol is accessable, no need rewrite it
             if (nameSymbol.Symbol != null)
                 return node;
+            
+            var typeName = ToolRewriter.GetSyntaxNodeTypeName(semanticModel, expressionNode);
 
             // CSharpHotfix.CSharpHotfixManager.ReflectionSet
             var setExpr = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
@@ -537,7 +560,7 @@ namespace CSharpHotfixTool
             );
 
             var setArgs = SyntaxFactory.ArgumentList(new SeparatedSyntaxList<ArgumentSyntax>()
-                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(expressionSymbol.Symbol.ToString()))))
+                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(typeName))))
                 .Add(expressionSymbol.Symbol.Kind == SymbolKind.NamedType ? 
                     SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)) : 
                     SyntaxFactory.Argument(SyntaxFactory.IdentifierName(expressionSymbol.Symbol.Name)
@@ -627,6 +650,7 @@ namespace CSharpHotfixTool
             if (memberNameSymbol.Symbol != null)
                 return node;
             
+            var typeName = ToolRewriter.GetSyntaxNodeTypeName(semanticModel, memberExprNode);
 
             // CSharpHotfix.CSharpHotfixManager.ReflectionIncrement
             var incExpr = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
@@ -640,7 +664,7 @@ namespace CSharpHotfixTool
             var isInc = opToken.IsKind(SyntaxKind.PlusPlusToken);
             var isPre = node is PrefixUnaryExpressionSyntax || node.Parent is ArgumentSyntax;
             var incArgs = SyntaxFactory.ArgumentList(new SeparatedSyntaxList<ArgumentSyntax>()
-                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(memberExprSymbol.Symbol.ToString()))))
+                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(typeName))))
                 .Add(memberExprSymbol.Symbol.Kind == SymbolKind.NamedType ? 
                     SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)) : 
                     SyntaxFactory.Argument(SyntaxFactory.IdentifierName(memberExprSymbol.Symbol.Name)
@@ -654,8 +678,8 @@ namespace CSharpHotfixTool
             var invokeNode = SyntaxFactory.InvocationExpression(incExpr, incArgs);
             if (node.Parent is ExpressionStatementSyntax)
                 return invokeNode.WithTriviaFrom(node);
-
-            var memberType = ToolManager.ReflectionGetMemberType(semanticModel.GetTypeInfo(memberExprNode).Type.ToDisplayString(), memberNameNode.Identifier.Text);
+            
+            var memberType = ToolManager.ReflectionGetMemberType(typeName, memberNameNode.Identifier.Text);
             if (memberType == null)
                 return node;
 
@@ -702,7 +726,8 @@ namespace CSharpHotfixTool
 
 
             // CSharpHotfix.CSharpHotfixManager.ReflectionInvokeXXX
-            var memberType = ToolManager.ReflectionGetMemberType(semanticModel.GetTypeInfo(exprNode.Expression).Type.ToDisplayString(), exprNode.Name.Identifier.Text);
+            var typeName = ToolRewriter.GetSyntaxNodeTypeName(semanticModel, exprNode.Expression);
+            var memberType = ToolManager.ReflectionGetMemberType(typeName, exprNode.Name.Identifier.Text);
             if (memberType == null)
                 return node;
 
@@ -730,7 +755,7 @@ namespace CSharpHotfixTool
             }
 
             var newArgs = new SeparatedSyntaxList<ArgumentSyntax>()
-                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(exprLeft.Symbol.ToString()))))
+                .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(typeName))))
                 .Add(exprLeft.Symbol.Kind == SymbolKind.NamedType ?
                     SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)) :
                     SyntaxFactory.Argument(SyntaxFactory.IdentifierName(exprLeft.Symbol.Name))
@@ -876,6 +901,36 @@ namespace CSharpHotfixTool
             var isNew = ToolRewriter.IsHotfixClassNew(fullName);
             if (isNew)
                 MarkRemove(node);
+            return node;
+        }
+    }
+    
+    
+    /// <summary>
+    /// currently don't support hotfix new struct, we'll remove it
+    /// </summary>
+    public class NotSupportNewStructRewriter : CSharpSyntaxRemover
+    {
+        public NotSupportNewStructRewriter() {}
+
+        public override SyntaxNode VisitStructDeclaration(StructDeclarationSyntax node)
+        {
+            MarkRemove(node);
+            return node;
+        }
+    }
+    
+    
+    /// <summary>
+    /// currently don't support hotfix new enum, we'll remove it
+    /// </summary>
+    public class NotSupportNewEnumRewriter : CSharpSyntaxRemover
+    {
+        public NotSupportNewEnumRewriter() {}
+
+        public override SyntaxNode VisitEnumDeclaration(EnumDeclarationSyntax node)
+        {
+            MarkRemove(node);
             return node;
         }
     }
@@ -1123,6 +1178,16 @@ namespace CSharpHotfixTool
             }
 
             return syntaxNode;
+        }
+
+
+
+        public static string GetSyntaxNodeTypeName(SemanticModel model, SyntaxNode node)
+        {
+            var typeInfo = model.GetTypeInfo(node);
+            var typeName = typeInfo.Type.ToDisplayString();
+            typeName = typeName.Replace(ToolRewriter.ClassNamePostfix, "");
+            return typeName;
         }
     }
 }
