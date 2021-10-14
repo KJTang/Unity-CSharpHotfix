@@ -174,8 +174,8 @@ namespace CSharpHotfixTool
                     if (fileInfo.Directory.Name != "Tests")
                         continue;
 
-                    //if (!CSharpHotfixTestManager.IsTestFileEnabled(fileInfo.Name.Split('.')[0]))
-                    //    continue;
+                    if (!ToolManager.IsTestFileEnabled(fileInfo.Name.Split('.')[0]))
+                        continue;
 
                     ToolManager.Message("HotfixMethod: load test hotfix file: " + fileInfo.FullName);
                     using (var streamReader = fileInfo.OpenText())

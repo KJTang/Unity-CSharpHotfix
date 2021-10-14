@@ -594,7 +594,8 @@ namespace CSharpHotfixTool
 
 #endregion
         
-        //private static 
+
+        // reflection to CSharpHotfix
         public static Type ReflectionGetMemberType(string typeName, string memberName)
         {
             Type mgrType = null;
@@ -628,6 +629,35 @@ namespace CSharpHotfixTool
         }
 
         
+        public static bool IsTestFileEnabled(string testName)
+        {
+            Type testMgrType = null;
+            foreach (var assembly in ToolManager.GetAssemblies())
+            {
+                var type = assembly.GetType("CSharpHotfix.CSharpHotfixTestManager");
+                if (type != null)
+                {
+                    testMgrType = type;
+                    break;
+                }
+            }
+            if (testMgrType == null)
+                return false;
+
+            
+            var method = testMgrType.GetMethod("IsTestFileEnabled");
+            var parameters = new object[1] { testName };
+
+            bool enabled = false;
+            try
+            {
+                enabled = (Boolean)method.Invoke(null, parameters);
+            }
+            catch (Exception e) 
+            { 
+            }
+            return enabled;
+        }
 
     }
 

@@ -23,7 +23,7 @@ namespace CSharpHotfixTest {
             return "invalid";
         }
 
-        static public void Foo__HOTFIX_MTD(Test_InvokeMehtodWithOutParam __INST__,int len, out List<object> lst)
+        static public void Foo__HOTFIX_MTD(Test_InvokeMehtodWithOutParam __INST__,int len,out List<object> lst)
         {
             lst = new List<object>(len);
             for (var i = 0; i != len; ++i)

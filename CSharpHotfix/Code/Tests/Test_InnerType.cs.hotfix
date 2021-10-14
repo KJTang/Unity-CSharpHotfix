@@ -9,11 +9,18 @@ namespace CSharpHotfixTest {
 
 
 
+        static public void TestFunc__HOTFIX_MTD(Test_InnerType __INST__,CSharpHotfixTest.Test_InnerType.TestStruct s)
+        {
+            s.x = 3;
+        }
+
         static public string Func__HOTFIX_MTD(Test_InnerType __INST__)
         {
-            Test_InnerType.TestStruct s1 = new CSharpHotfixTest.Test_InnerType.TestStruct();
+            CSharpHotfixTest.Test_InnerType.TestStruct s1 = new CSharpHotfixTest.Test_InnerType.TestStruct();
             s1.x = 1;
             s1.y = 2;
+
+            __INST__.TestFunc(s1);
 
             if (s1.x != (int)CSharpHotfixTest.Test_InnerType.ETYPE.ONE)
                 return "invalid";

@@ -151,6 +151,13 @@ namespace CSharpHotfixTool
                 return node.WithIdentifier(newStaticNameToken);
             }
             
+            var className = "";
+            var pos = methodData.methodName.LastIndexOf('.');
+            if (pos >= 0)
+            {
+                className = methodData.methodName.Substring(0, pos);
+            }
+            
             // first child node
             SyntaxNode firstNode = null;
             foreach (var child in node.ChildNodes())
@@ -188,6 +195,7 @@ namespace CSharpHotfixTool
             }
 
             // rewrite parameters
+            var nestedTypeRewriter = new NestedTypeRewriter(className);
             var parameterList = node.ParameterList;
             var paramType = SyntaxFactory.IdentifierName((node.Parent as ClassDeclarationSyntax).Identifier.Text);
             var paramName = SyntaxFactory.Identifier(
@@ -198,7 +206,15 @@ namespace CSharpHotfixTool
                 SyntaxFactory.TriviaList()
             );
             var paramSyntax = SyntaxFactory.Parameter(new SyntaxList<AttributeListSyntax>(), new SyntaxTokenList(), paramType, paramName, null);
-            var parameters = parameterList.Parameters.Insert(0, paramSyntax);
+            var paramLst = new List<ParameterSyntax>();
+            paramLst.Add(paramSyntax);
+            for (var i = 0; i != parameterList.Parameters.Count; ++i)
+            {
+                var param = parameterList.Parameters[i];
+                param = nestedTypeRewriter.Visit(param) as ParameterSyntax;
+                paramLst.Add(param);
+            }
+            var parameters = (new SeparatedSyntaxList<ParameterSyntax>()).AddRange(paramLst);
             parameterList = parameterList.WithParameters(parameters);
 
             // rewrite return type
@@ -212,7 +228,7 @@ namespace CSharpHotfixTool
             }
 
             // rewrite implicit 'this'
-            var implicitThisRewriter = new ImplicitThisRewriter(methodData.methodName);
+            var implicitThisRewriter = new ImplicitThisRewriter(className);
             node = implicitThisRewriter.Visit(node) as MethodDeclarationSyntax;
 
             // rewrite 'this'
@@ -241,63 +257,26 @@ namespace CSharpHotfixTool
     /// </summary>
     public class ImplicitThisRewriter : CSharpSyntaxRewriter
     {
-        private HashSet<string> methodSet = new HashSet<string>();
-        private HashSet<string> fieldSet = new HashSet<string>();
-        private HashSet<string> propertySet = new HashSet<string>();
-        private HashSet<string> nestedTypeSet = new HashSet<string>();
-
         private string typeFullName;
+        private ToolRewriter.ClassTypeCache typeCache;
 
-        public ImplicitThisRewriter(string methodName) 
+        public ImplicitThisRewriter(string className) 
         {
-            var pos = methodName.LastIndexOf('.');
-            if (pos < 0)
+            if (string.IsNullOrEmpty(className))
                 return;
 
-            var className = methodName.Substring(0, pos);
-            Type classType = null;
-            foreach (var assembly in ToolManager.GetAssemblies())
-            {
-                var type = assembly.GetType(className);
-                if (type != null)
-                {
-                    classType = type;
-                    break;
-                }
-            }
-            this.typeFullName = classType.FullName;
+            var classType = ToolRewriter.GetClassTypeByName(className);
             //Assert.IsNotNull(classType, "invalid class name: " + className);
 
-            var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-            var methods = classType.GetMethods(bindingFlags);
-            foreach (var method in methods)
-            {
-                methodSet.Add(method.Name);
-            }
-
-            var fields = classType.GetFields(bindingFlags);
-            foreach (var field in fields)
-            {
-                fieldSet.Add(field.Name);
-            }
-            
-            var properties = classType.GetProperties(bindingFlags);
-            foreach (var property in properties)
-            {
-                propertySet.Add(property.Name);
-            }
-
-            var nestedTypes = classType.GetNestedTypes(bindingFlags);
-            foreach (var type in nestedTypes)
-            {
-                nestedTypeSet.Add(type.Name);
-            }
-
-
+            this.typeFullName = classType.FullName;
+            this.typeCache = ToolRewriter.TryGetClassTypeCache(classType);
         }
 
         public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
         {
+            if (this.typeCache == null)
+                return node;
+
             var brothers = node.Parent.ChildNodes();
             var enumerator = brothers.GetEnumerator();
             enumerator.MoveNext();
@@ -305,7 +284,7 @@ namespace CSharpHotfixTool
                 return node;
 
             var identifierName = node.Identifier.Text;
-            if (methodSet.Contains(identifierName) || fieldSet.Contains(identifierName) || propertySet.Contains(identifierName))
+            if (typeCache.methodSet.Contains(identifierName) || typeCache.fieldSet.Contains(identifierName) || typeCache.propertySet.Contains(identifierName))
             {
                 var memberAccessNode = SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
@@ -315,19 +294,68 @@ namespace CSharpHotfixTool
                 ).WithTriviaFrom(node);
                 return memberAccessNode;
             }
-            else if (nestedTypeSet.Contains(identifierName))
+            else if (typeCache.nestedTypeSet.Contains(identifierName))
             {
-                var qualifiedNameNode = SyntaxFactory.QualifiedName(
-                    SyntaxFactory.IdentifierName(this.typeFullName), 
-                    SyntaxFactory.Token(SyntaxKind.DotToken),
-                    SyntaxFactory.IdentifierName(identifierName)
-                ).WithTriviaFrom(node);
+                var nestedTypeRewriter = new NestedTypeRewriter(this.typeFullName);
+                var qualifiedNameNode = nestedTypeRewriter.Visit(node);
                 return qualifiedNameNode;
             }
 
             return node;
         }
     }
+
+
+    public class NestedTypeRewriter : CSharpSyntaxRewriter
+    {
+        private string typeFullName;
+        private ToolRewriter.ClassTypeCache typeCache;
+
+        public NestedTypeRewriter(string className) 
+        {
+            if (string.IsNullOrEmpty(className))
+                return;
+
+            var classType = ToolRewriter.GetClassTypeByName(className);
+            //Assert.IsNotNull(classType, "invalid class name: " + className);
+
+            this.typeFullName = classType.FullName;
+            this.typeCache = ToolRewriter.TryGetClassTypeCache(classType);
+        }
+
+        
+        public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
+        {
+            if (this.typeCache == null)
+                return node;
+
+            var brothers = node.Parent.ChildNodes();
+            var enumerator = brothers.GetEnumerator();
+            enumerator.MoveNext();
+            if (node != enumerator.Current)     // must be the first node
+                return node;
+
+            var identifierName = node.Identifier.Text;
+            if (!typeCache.nestedTypeSet.Contains(identifierName))
+                return node;
+
+            var nameLst = new List<string>(this.typeFullName.Split('.'));
+            nameLst.Add(identifierName);
+            NameSyntax nameNode = SyntaxFactory.IdentifierName(nameLst[0]);
+            for (var i = 1; i <= nameLst.Count - 1; ++i)
+            {
+                nameNode = SyntaxFactory.QualifiedName(
+                    nameNode, 
+                    SyntaxFactory.Token(SyntaxKind.DotToken),
+                    SyntaxFactory.IdentifierName(nameLst[i])
+                );
+            }
+
+            nameNode = nameNode.WithTriviaFrom(node);
+            return nameNode;
+        }
+    }
+
 
     /// <summary>
     /// 'this' -> '__INST__'
@@ -708,6 +736,9 @@ namespace CSharpHotfixTool
             if (semanticModel == null)
                 return node;
 
+            if (node.ToString().StartsWith("CSharpHotfix"))
+                return node;
+
             // if no expr node, we cannot get enough info to invoke it
             var exprNode = node.Expression as MemberAccessExpressionSyntax;
             if (exprNode == null)
@@ -723,7 +754,6 @@ namespace CSharpHotfixTool
             // name symbol is accessable, no need rewrite it
             if (exprRight.Symbol != null)
                 return node;
-
 
             // CSharpHotfix.CSharpHotfixManager.ReflectionInvokeXXX
             var typeName = ToolRewriter.GetSyntaxNodeTypeName(semanticModel, exprNode.Expression);
@@ -1189,5 +1219,71 @@ namespace CSharpHotfixTool
             typeName = typeName.Replace(ToolRewriter.ClassNamePostfix, "");
             return typeName;
         }
+
+#region type cache
+        public static Type GetClassTypeByName(string className)
+        {
+            Type classType = null;
+            foreach (var assembly in ToolManager.GetAssemblies())
+            {
+                var type = assembly.GetType(className);
+                if (type != null)
+                {
+                    classType = type;
+                    break;
+                }
+            }
+            return classType;
+        }
+
+        public class ClassTypeCache
+        {
+            public HashSet<string> methodSet = new HashSet<string>();
+            public HashSet<string> fieldSet = new HashSet<string>();
+            public HashSet<string> propertySet = new HashSet<string>();
+            public HashSet<string> nestedTypeSet = new HashSet<string>();
+        }
+
+        private static Dictionary<Type, ClassTypeCache> typeCache = new Dictionary<Type, ClassTypeCache>();
+        public static ClassTypeCache TryGetClassTypeCache(Type type)
+        {
+            ClassTypeCache cache = null;
+            if (typeCache.TryGetValue(type, out cache))
+            { 
+                return cache;
+            }
+            cache = new ClassTypeCache();
+
+            var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            var methods = type.GetMethods(bindingFlags);
+            foreach (var method in methods)
+            {
+                cache.methodSet.Add(method.Name);
+            }
+
+            var fields = type.GetFields(bindingFlags);
+            foreach (var field in fields)
+            {
+                cache.fieldSet.Add(field.Name);
+            }
+            
+            var properties = type.GetProperties(bindingFlags);
+            foreach (var property in properties)
+            {
+                cache.propertySet.Add(property.Name);
+            }
+
+            var nestedTypes = type.GetNestedTypes(bindingFlags);
+            foreach (var nestedType in nestedTypes)
+            {
+                cache.nestedTypeSet.Add(nestedType.Name);
+            }
+
+            typeCache.Add(type, cache);
+            return cache;
+
+        }
+
+#endregion
     }
 }

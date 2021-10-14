@@ -18,11 +18,18 @@ namespace CSharpHotfixTest {
             public int y;
         }
 
+        public void TestFunc(TestStruct s)
+        {
+            s.x = 3;
+        }
+
         public string Func()
         {
-            Test_InnerType.TestStruct s1 = new TestStruct();
+            TestStruct s1 = new TestStruct();
             s1.x = 1;
             s1.y = 2;
+
+            TestFunc(s1);
 
             if (s1.x != (int)ETYPE.ONE)
                 return "invalid";
