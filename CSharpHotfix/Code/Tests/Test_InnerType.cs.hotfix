@@ -22,7 +22,10 @@ namespace CSharpHotfixTest {
 
             __INST__.TestFunc(s1);
 
-            if (s1.x != (int)CSharpHotfixTest.Test_InnerType.ETYPE.ONE)
+            var dict = new Dictionary<int, CSharpHotfixTest.Test_InnerType.TestStruct>();
+            dict.Add(1, s1);
+
+            if (s1.x != (int)CSharpHotfixTest.Test_InnerType.ETYPE.ONE || dict.Count != 1)
                 return "invalid";
 
             return "hotfixed";

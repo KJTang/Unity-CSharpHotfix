@@ -235,6 +235,9 @@ namespace CSharpHotfixTool
             var thisRewriter = new ThisExpressionRewriter();
             node = thisRewriter.Visit(node) as MethodDeclarationSyntax;
 
+            // rewrite all inner types
+            node = nestedTypeRewriter.Visit(node) as MethodDeclarationSyntax;
+
             // rewrite method name
             var oldName = node.Identifier.Text;
             var newName = oldName + ToolRewriter.MethodNamePostfix;
@@ -329,11 +332,22 @@ namespace CSharpHotfixTool
             if (this.typeCache == null)
                 return node;
 
+            var canProcess = true;
+
+            // check QualifiedName: must be the first node
             var brothers = node.Parent.ChildNodes();
             var enumerator = brothers.GetEnumerator();
             enumerator.MoveNext();
-            if (node != enumerator.Current)     // must be the first node
+            if (node != enumerator.Current) 
+                canProcess = false;
+
+            // check ArgumentList: always true
+            if (node.Parent is TypeArgumentListSyntax)
+                canProcess = true;
+
+            if (!canProcess)
                 return node;
+
 
             var identifierName = node.Identifier.Text;
             if (!typeCache.nestedTypeSet.Contains(identifierName))

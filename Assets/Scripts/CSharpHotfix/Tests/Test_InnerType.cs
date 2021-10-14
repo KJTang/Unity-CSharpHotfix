@@ -31,7 +31,10 @@ namespace CSharpHotfixTest {
 
             TestFunc(s1);
 
-            if (s1.x != (int)ETYPE.ONE)
+            var dict = new Dictionary<int, TestStruct>();
+            dict.Add(1, s1);
+
+            if (s1.x != (int)ETYPE.ONE || dict.Count != 1)
                 return "invalid";
 
             return "hello";
