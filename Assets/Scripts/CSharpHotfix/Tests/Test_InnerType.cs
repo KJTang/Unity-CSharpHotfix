@@ -17,19 +17,20 @@ namespace CSharpHotfixTest {
             public int x;
             public int y;
         }
-
-        public void TestFunc(TestStruct s)
+        
+        public TestStruct TestFunc(TestStruct s)
         {
-            s.x = 3;
+            s.x = 1;
+            return s;
         }
 
         public string Func()
         {
             TestStruct s1 = new TestStruct();
-            s1.x = 1;
-            s1.y = 2;
+            s1.x = 0;
+            s1.y = 0;
 
-            TestFunc(s1);
+            s1 = TestFunc(s1);
 
             var dict = new Dictionary<int, TestStruct>();
             dict.Add(1, s1);

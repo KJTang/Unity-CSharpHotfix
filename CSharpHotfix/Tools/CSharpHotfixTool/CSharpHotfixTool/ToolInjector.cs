@@ -373,10 +373,8 @@ namespace CSharpHotfixTool
             if (method.ReturnType.IsValueType)  // unbox return value
             {
                 var returnType = assembly.MainModule.ImportReference(method.ReturnType);
-                ilList.Add(Instruction.Create(OpCodes.Unbox, returnType));
-
                 var typeName = returnType.FullName;
-                var op = OpCodes.Ldind_U1;
+                OpCode op;
                 if (typeName == "System.Boolean")
                     op = OpCodes.Ldind_U1;
                 else if (typeName == "System.Int16")
@@ -396,9 +394,19 @@ namespace CSharpHotfixTool
                 else if (typeName == "System.Double")
                     op = OpCodes.Ldind_R8;
                 else
-                    ToolManager.Assert(false, "unsupported return type: " + typeName
-                        + " " + typeof(float).FullName + " " + typeof(double).FullName);
-                ilList.Add(Instruction.Create(op));
+                    op = OpCodes.Nop;
+
+                // primitive types
+                if (op != OpCodes.Nop)
+                {
+                    ilList.Add(Instruction.Create(OpCodes.Unbox, returnType));
+                    ilList.Add(Instruction.Create(op));
+                }
+                // other types like custom struct
+                else
+                {
+                    ilList.Add(Instruction.Create(OpCodes.Unbox_Any, returnType));
+                }
             }
             ilList.Add(Instruction.Create(OpCodes.Br, endPoint));
 

@@ -334,7 +334,12 @@ namespace CSharpHotfixTool
             }
             methodSignatureBuilder.Append(";");
 
-            return methodSignatureBuilder.ToString();
+            
+            // replace nested type token, which mono use '/', .net use '+'
+            var signature = methodSignatureBuilder.ToString();
+            signature = signature.Replace('/', '+');
+
+            return signature;
         }
 
 

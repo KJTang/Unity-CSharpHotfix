@@ -8,19 +8,20 @@ namespace CSharpHotfixTest {
     {
 
 
-
-        static public void TestFunc__HOTFIX_MTD(Test_InnerType __INST__,CSharpHotfixTest.Test_InnerType.TestStruct s)
+        
+        static public CSharpHotfixTest.Test_InnerType.TestStruct TestFunc__HOTFIX_MTD(Test_InnerType __INST__,CSharpHotfixTest.Test_InnerType.TestStruct s)
         {
-            s.x = 3;
+            s.x = 1;
+            return s;
         }
 
         static public string Func__HOTFIX_MTD(Test_InnerType __INST__)
         {
             CSharpHotfixTest.Test_InnerType.TestStruct s1 = new CSharpHotfixTest.Test_InnerType.TestStruct();
-            s1.x = 1;
-            s1.y = 2;
+            s1.x = 0;
+            s1.y = 0;
 
-            __INST__.TestFunc(s1);
+            s1 = __INST__.TestFunc(s1);
 
             var dict = new Dictionary<int, CSharpHotfixTest.Test_InnerType.TestStruct>();
             dict.Add(1, s1);
