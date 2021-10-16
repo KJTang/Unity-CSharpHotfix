@@ -24,6 +24,7 @@ namespace CSharpHotfix {
             "Test_AssignMember",
             "Test_PostIncrement",
             "Test_InnerType",
+            "Test_VarTypeInference",
         };
 
         public static bool EnableTest = true;

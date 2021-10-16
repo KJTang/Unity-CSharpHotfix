@@ -275,15 +275,43 @@ namespace CSharpHotfixTool
             this.typeCache = ToolRewriter.TryGetClassTypeCache(classType);
         }
 
+        private bool NeedCheck(IdentifierNameSyntax node)
+        {
+            var needCheck = true;
+
+            // check QualifiedName: must be the first node
+            if (node.Parent is QualifiedNameSyntax)
+            {
+                var brothers = node.Parent.ChildNodes();
+                var enumerator = brothers.GetEnumerator();
+                enumerator.MoveNext();
+                if (node != enumerator.Current)
+                    needCheck = false;
+            }
+
+            // check MemberAccessExpressionSyntax: must be the first node
+            if (node.Parent is MemberAccessExpressionSyntax)
+            {
+                if (node.Parent.Parent is MemberAccessExpressionSyntax)
+                    needCheck = false;
+                else if ((node.Parent as MemberAccessExpressionSyntax).Expression is ThisExpressionSyntax)
+                    needCheck = false;
+            }
+
+            // others
+            else
+            {
+                //needCheck = false;
+            }
+
+            return needCheck;
+        }
+
         public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
         {
             if (this.typeCache == null)
                 return node;
-
-            var brothers = node.Parent.ChildNodes();
-            var enumerator = brothers.GetEnumerator();
-            enumerator.MoveNext();
-            if (node != enumerator.Current)     // must be the first node
+            if (!NeedCheck(node))
                 return node;
 
             var identifierName = node.Identifier.Text;
@@ -326,28 +354,47 @@ namespace CSharpHotfixTool
             this.typeCache = ToolRewriter.TryGetClassTypeCache(classType);
         }
 
-        
+        private bool NeedCheck(IdentifierNameSyntax node)
+        {
+            var needCheck = true;
+
+            // check QualifiedName: must be the first node
+            if (node.Parent is QualifiedNameSyntax)
+            {
+                var brothers = node.Parent.ChildNodes();
+                var enumerator = brothers.GetEnumerator();
+                enumerator.MoveNext();
+                if (node != enumerator.Current)
+                    needCheck = false;
+            }
+
+            // check ArgumentList: always true
+            else if (node.Parent is TypeArgumentListSyntax)
+            {
+                needCheck = true;
+            }
+
+            // check MemberAcess: always true
+            else if (node.Parent is MemberAccessExpressionSyntax)
+            {
+                needCheck = true;
+            }
+
+            // others
+            else
+            {
+                //needCheck = false;
+            }
+
+            return needCheck;
+        }
+
         public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
         {
             if (this.typeCache == null)
                 return node;
-
-            var canProcess = true;
-
-            // check QualifiedName: must be the first node
-            var brothers = node.Parent.ChildNodes();
-            var enumerator = brothers.GetEnumerator();
-            enumerator.MoveNext();
-            if (node != enumerator.Current) 
-                canProcess = false;
-
-            // check ArgumentList: always true
-            if (node.Parent is TypeArgumentListSyntax)
-                canProcess = true;
-
-            if (!canProcess)
+            if (!NeedCheck(node))
                 return node;
-
 
             var identifierName = node.Identifier.Text;
             if (!typeCache.nestedTypeSet.Contains(identifierName))
@@ -500,11 +547,10 @@ namespace CSharpHotfixTool
             // if expression no symbol, recursive check it
             if (expressionSymbol.Symbol == null)
             {
-                var newExprNode = base.Visit(expressionNode);
+                var newExprNode = base.Visit(expressionNode) as ExpressionSyntax;
                 if (newExprNode != expressionNode)
                 {
-                    newExprNode = SyntaxFactory.ParenthesizedExpression(newExprNode as ExpressionSyntax);
-                    node = node.WithExpression(newExprNode as ExpressionSyntax);
+                    node = node.WithExpression(SyntaxFactory.ParenthesizedExpression(newExprNode.WithoutTrivia())).WithTriviaFrom(newExprNode);
                 }
                 return node;
             }
@@ -523,6 +569,9 @@ namespace CSharpHotfixTool
                 return node;
             
             var typeName = ToolRewriter.GetSyntaxNodeTypeName(semanticModel, expressionNode);
+            // TODO: before all Reflection Process finished, some 'var' cannot be inferenced
+            if (typeName == "var")
+                return node;
 
             // CSharpHotfix.CSharpHotfixManager.ReflectionGet
             var getExpr = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
@@ -550,11 +599,16 @@ namespace CSharpHotfixTool
             var typeNode = ToolRewriter.TypeStringToSyntaxNode(memberType.ToString());
             var castExpr = SyntaxFactory.CastExpression(typeNode, SyntaxFactory.InvocationExpression(getExpr, getArgs));
             castExpr = castExpr.WithTriviaFrom(node);
-            return castExpr;
+            if (!(node.Parent is ElementAccessExpressionSyntax))
+                return castExpr;
+
+            // [] expr
+            var parenExpr = SyntaxFactory.ParenthesizedExpression(castExpr.WithoutTrivia()).WithTriviaFrom(castExpr);
+            return parenExpr;
         }
     }
-    
-    
+
+
     /// <summary>
     /// use reflection to rewrite hotfix class setter, need used after AssignmentExprRewriter
     /// </summary>
