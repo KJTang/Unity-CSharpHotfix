@@ -206,14 +206,14 @@ namespace CSharpHotfix
                 signature = signature.Replace(ClassNamePostfix, "");
 
             // fix static
-            var oldStaticStr = "NonStatic";
+            var oldStaticStr = ";NonStatic;";
             if (!signature.Contains(oldStaticStr))
-                oldStaticStr = "Static";
+                oldStaticStr = ";Static;";
 
             var staticState = GetHotfixMethodStaticState(signature);
             var newStaticStr = oldStaticStr;
             if (staticState > 0)
-                newStaticStr = staticState == 1 ? "Static" : "NonStatic";
+                newStaticStr = staticState == 1 ? ";Static;" : ";NonStatic;";
             if (oldStaticStr != newStaticStr)
                 signature = signature.Replace(oldStaticStr, newStaticStr);
 
