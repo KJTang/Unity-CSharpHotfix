@@ -337,6 +337,27 @@ namespace CSharpHotfixTool
                 }
             }
 
+            // rewrite all 'var' 
+            compilation = CSharpCompilation.Create(hotfixDllName)
+                .AddReferences(GetMetadataReferences())
+                .AddSyntaxTrees(treeLst)
+                .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+            ;
+            for (var i = 0; i != treeLst.Count; ++i)
+            {
+                var tree = treeLst[i];
+                var semanticModel = compilation.GetSemanticModel(tree, true);
+
+                var oldNode = tree.GetRoot();
+                var varTokenRewriter = new VarTokenRewriter(semanticModel);
+                var newNode = varTokenRewriter.Visit(oldNode);
+                if (oldNode != newNode)
+                {
+                    tree = tree.WithRootAndOptions(newNode, tree.Options);
+                    treeLst[i] = tree;
+                }
+            }
+
             // debug: output processed syntax tree, used to examine them
             for (var i = 0; i != treeLst.Count; ++i)
             {

@@ -522,6 +522,38 @@ namespace CSharpHotfixTool
     
 
     /// <summary>
+    /// 'var' to explicit type name
+    /// </summary>
+    public class VarTokenRewriter : CSharpSyntaxRewriter
+    {
+        
+        private SemanticModel semanticModel;
+
+        public VarTokenRewriter(SemanticModel semanticModel) 
+        {
+            this.semanticModel = semanticModel;
+        }
+
+        public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
+        {
+            if (semanticModel == null)
+                return node;
+
+            if (node.Identifier.Text != "var")
+                return node;
+
+            var typeName = ToolRewriter.GetSyntaxNodeTypeName(semanticModel, node);
+            // failed: shouldn't be 'var' at now
+            if (typeName == "var")
+                return node;
+
+            var typeNode = ToolRewriter.TypeStringToSyntaxNode(typeName);
+            return typeNode.WithTriviaFrom(node);
+        }
+
+    }
+
+    /// <summary>
     /// use reflection to rewrite hotfix class getter
     /// </summary>
     public class GetMemberRewriter : CSharpSyntaxRewriter
@@ -1285,6 +1317,8 @@ namespace CSharpHotfixTool
             var typeInfo = model.GetTypeInfo(node);
             var typeName = typeInfo.Type.ToDisplayString();
             typeName = typeName.Replace(ToolRewriter.ClassNamePostfix, "");
+            if (typeName == "?")
+                typeName = "var";
             return typeName;
         }
 

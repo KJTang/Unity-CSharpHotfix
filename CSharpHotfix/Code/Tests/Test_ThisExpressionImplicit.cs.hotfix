@@ -10,7 +10,7 @@ namespace CSharpHotfixTest {
 
         static public string Func__HOTFIX_MTD(Test_ThisExpressionImplicit __INST__)
         {
-            var j = __INST__.i;          // assignment
+            int j = __INST__.i;          // assignment
             if (__INST__.i == 1) { }     // if statement
 
             __INST__.InvokeFunc(__INST__.i);      // invocation

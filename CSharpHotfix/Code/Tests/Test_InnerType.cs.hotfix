@@ -23,7 +23,7 @@ namespace CSharpHotfixTest {
 
             s1 = __INST__.TestFunc(s1);
 
-            var dict = new Dictionary<int, CSharpHotfixTest.Test_InnerType.TestStruct>();
+            System.Collections.Generic.Dictionary<int,CSharpHotfixTest.Test_InnerType.TestStruct> dict = new Dictionary<int, CSharpHotfixTest.Test_InnerType.TestStruct>();
             dict.Add(1, s1);
 
             if (s1.x != (int)CSharpHotfixTest.Test_InnerType.ETYPE.ONE || dict.Count != 1)
