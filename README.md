@@ -4,9 +4,6 @@ A tool support modify c# code when Unity is playing.
 
 
 ## How to Use
-### Enable Tool
-Unity Toolbar -> CSharpHotfix -> Enable: 
-![enable tool](Document/enable_tool.png)
 
 ### Hello World
 create a new game object:   
@@ -32,9 +29,14 @@ public class HelloWorld : MonoBehaviour
 run game, you will see "Hello World" in the console:  
 ![output hotfix](Document/output.png)  
 
+### Inject Dll
+we need inject dll to mark method can hotfix, to do this, in non-play mode, click:  
+Unity Toolbar -> CSharpHotfix -> Inject  
+![inject](Document/inject.png)
+
 
 ### Create Hotfix 
-no need stop game, copy "HelloWorld.cs" to path: 
+when playing game, copy "HelloWorld.cs" to path: 
 ```YOUR_PROJECT/CSharpHotfix/Code/HelloWorld.cs```
 
 and modify it: 
@@ -64,17 +66,13 @@ and you will see "Hello World (hotfixed)" in the console:
 ![output hotfix](Document/output_hotfix.png)  
 
 ## How to Use in Other Project
-Copy ```Plugin``` and ```CSharpHotfix``` folder to your Unity project.  
+Copy ```YOUR_PROJECT/Assets/Scripts/CSharpHotfix``` and ```YOUR_PROJECT/CSharpHotfix``` folder to your Unity project.  
+* ```YOUR_PROJECT/Assets/Scripts/CSharpHotfix```: stores test cases, editor entry, config files.  
+* ```YOUR_PROJECT/CSharpHotfix```: stores hotfix tool exe, code files to hotfix.
 
 
 ## Limitations
 There're many limitations when use this tool: 
-
-### Unity Version
-this tool depends on [Roslyn](https://github.com/dotnet/roslyn) which required .NET framework 4.x or newer.  
-but Unity old version like Unity 5.6 only have .NET framework 3.5, which is not supported.  
-we only test it on Unity 2019, but 2018 is supported in theory.  
-so please use Unity version after 2018.  
 
 ### Cannot Debug
 as we will modify the .dll files when enable tool, you can't debug after then.  
@@ -125,20 +123,7 @@ and ```Func``` need return ```"hello"``` in origin code, return ```"hotfixed"```
 
 ## Known issues
 
-### Error when use "Create and Add" when AddComponent
-![issue 01](Document/issue_01.png)  
-
-after adding/removeing/editing a C# script, we'll triggered a compilation, and after that, modify the ```Assembly-CSharp.dll``` file.  
-but "Create and Add" will directly use script before our modifications, it caused an error which cannot use the new created script.  
-so if using this tool, please manually create script, and then add it to game object.
-
-
-### Dll Error
-sometimes unknown operation may cause dll error (like "Create and Add" error claimed before), to fix it, you should do:  
-1. disable CSharpHotfix tool
-2. restart Unity
-3. Unity Toolbar -> CSharpHotfix -> Force Recompile  
-   
+### None right now
 
 ## License
 WTF

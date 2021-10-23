@@ -1566,14 +1566,14 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Unity\\CSharpTest\\CSharpHotfix\\Tools\\CSharpHotfixTool\\CSharpHotfixTool\\CSharpHotfixTool.csproj",
+      "projectUniqueName": "D:\\Code\\Unity-CSharpHotfix\\CSharpHotfix\\Tools\\CSharpHotfixTool\\CSharpHotfixTool\\CSharpHotfixTool.csproj",
       "projectName": "CSharpHotfixTool",
-      "projectPath": "D:\\Unity\\CSharpTest\\CSharpHotfix\\Tools\\CSharpHotfixTool\\CSharpHotfixTool\\CSharpHotfixTool.csproj",
+      "projectPath": "D:\\Code\\Unity-CSharpHotfix\\CSharpHotfix\\Tools\\CSharpHotfixTool\\CSharpHotfixTool\\CSharpHotfixTool.csproj",
       "packagesPath": "C:\\Users\\kaijietang\\.nuget\\packages\\",
-      "outputPath": "D:\\Unity\\CSharpTest\\CSharpHotfix\\Tools\\CSharpHotfixTool\\CSharpHotfixTool\\obj\\",
+      "outputPath": "D:\\Code\\Unity-CSharpHotfix\\CSharpHotfix\\Tools\\CSharpHotfixTool\\CSharpHotfixTool\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "D:\\Unity\\CSharpTest\\CSharpHotfix\\Tools\\CSharpHotfixTool\\NuGet.Config",
+        "D:\\Code\\Unity-CSharpHotfix\\CSharpHotfix\\Tools\\CSharpHotfixTool\\NuGet.Config",
         "C:\\Users\\kaijietang\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -1618,7 +1618,7 @@
             "version": "[2.0.3, )"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\5.0.300\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\5.0.401\\RuntimeIdentifierGraph.json"
       }
     },
     "runtimes": {
