@@ -1,0 +1,30 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace CSharpHotfixTest {
+
+    public class Test_AccessPriviateMember__HOTFIX_CLS
+    {
+
+
+        static public string Func__HOTFIX_MTD(Test_AccessPriviateMember __INST__)
+        {
+            CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest",true);
+
+            //if (fieldTest < 0 || CSharpHotfixTest.Test_AccessPriviateMember.fieldStaticTest < 0)
+            //    PropTest = false;
+
+            if (!((System.Collections.Generic.List<System.Int32>)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"listTest")).Contains(1))
+                CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest",false);
+            
+            if (((System.Collections.Generic.Dictionary<System.String,System.Collections.Generic.List<System.Int32>>)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"dictTest")).ContainsKey("invalid"))
+                CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest",false);
+
+            if ((System.Boolean)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AccessPriviateMember",__INST__,"PropTest"))
+                return "hotfixed";
+            else
+                return "error";
+        }
+    }
+}

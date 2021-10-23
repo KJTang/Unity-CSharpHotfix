@@ -1,0 +1,32 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace CSharpHotfixTest
+{
+
+    public class Test_VarTypeInference__HOTFIX_CLS
+    {
+
+
+        static public string Func__HOTFIX_MTD(Test_VarTypeInference __INST__)
+        {
+            ((System.Collections.Generic.Dictionary<System.Int32,System.String>)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_VarTypeInference",__INST__,"dict")).Add(1, "one");
+            ((System.Collections.Generic.Dictionary<System.Int32,System.String>)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_VarTypeInference",__INST__,"dict")).Add(2, "two");
+            ((System.Collections.Generic.Dictionary<System.Int32,System.String>)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_VarTypeInference",__INST__,"dict")).Add(3, "three");
+
+            string result1 = "";
+            foreach (System.Collections.Generic.KeyValuePair<int,string> kv in (System.Collections.Generic.Dictionary<System.Int32,System.String>)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_VarTypeInference",__INST__,"dict"))
+            {
+                if (kv.Key == 2)
+                    result1 = kv.Value;
+            }
+
+            string result2 = ((System.Collections.Generic.Dictionary<System.Int32,System.String>)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_VarTypeInference",__INST__,"dict"))[2];
+
+            if (result1 != "two" || result2 != "two")
+                return "invalid";
+            return "hotfixed";
+        }
+    }
+}

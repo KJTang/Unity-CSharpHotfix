@@ -20,8 +20,8 @@ namespace CSharpHotfixTest {
         {
             PropTest = true;
 
-            if (fieldTest < 0 || CSharpHotfixTest.Test_AccessPriviateMember.fieldStaticTest < 0)
-                PropTest = false;
+            //if (fieldTest < 0 || CSharpHotfixTest.Test_AccessPriviateMember.fieldStaticTest < 0)
+            //    PropTest = false;
 
             if (!listTest.Contains(1))
                 PropTest = false;
@@ -30,9 +30,9 @@ namespace CSharpHotfixTest {
                 PropTest = false;
 
             if (PropTest)
-                return "hello";
+                return "hotfixed";
             else
-                return "hello";
+                return "error";
         }
     }
 }

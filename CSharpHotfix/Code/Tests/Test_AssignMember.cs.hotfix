@@ -1,0 +1,33 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace CSharpHotfixTest {
+
+    public class Test_AssignMember__HOTFIX_CLS
+    {
+
+
+        static public string Func__HOTFIX_MTD(Test_AssignMember __INST__)
+        {
+            // SimpleAssignmentExpression
+            CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AssignMember",__INST__,"count",1);
+
+            // AddAssignmentExpression
+            CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AssignMember",__INST__,"count",((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AssignMember",__INST__,"count")+1));
+
+            // SubtractAssignmentExpression
+            CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AssignMember",__INST__,"count",((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AssignMember",__INST__,"count")-3));
+
+            // MultiplyAssignmentExpression
+            CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AssignMember",__INST__,"count",((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AssignMember",__INST__,"count")*-1));
+
+            // LeftShiftAssignmentExpression
+            CSharpHotfix.CSharpHotfixManager.ReflectionSet("CSharpHotfixTest.Test_AssignMember",__INST__,"count",((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AssignMember",__INST__,"count")<<1));
+
+            if ((System.Int32)CSharpHotfix.CSharpHotfixManager.ReflectionGet("CSharpHotfixTest.Test_AssignMember",__INST__,"count") == 2)
+                return "hotfixed";
+            return "invalid";
+        }
+    }
+}

@@ -73,3 +73,9 @@ crashlytics-build.properties
 
 # Mac
 *.DS_Store
+
+
+
+
+# Custom
+CSharpHotfix/log.txt

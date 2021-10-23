@@ -8,9 +8,9 @@ namespace CSharpHotfixTest {
     {
         static public string Func__HOTFIX_MTD(Test_InvokePrivateMethod __INST__)
         {
-            CSharpHotfix.CSharpHotfixManager.ReflectionReturnVoidInvoke("CSharpHotfixTest.Test_InvokePrivateMethod",__INST__,"InvokeFunc");
+            CSharpHotfix.CSharpHotfixManager.ReflectionReturnVoidInvoke("CSharpHotfixTest.Test_InvokePrivateMethod",__INST__,"InvokeFunc",null);
             CSharpHotfix.CSharpHotfixManager.ReflectionReturnObjectInvoke("CSharpHotfixTest.Test_InvokePrivateMethod",__INST__,"InvokeParamFunc",0);
-            if ((System.Boolean)CSharpHotfix.CSharpHotfixManager.ReflectionReturnObjectInvoke("CSharpHotfixTest.Test_InvokePrivateMethod",__INST__,"InvokeReturnValueFunc"))
+            if ((System.Boolean)CSharpHotfix.CSharpHotfixManager.ReflectionReturnObjectInvoke("CSharpHotfixTest.Test_InvokePrivateMethod",__INST__,"InvokeReturnValueFunc",null))
                 return "hotfixed";
             return "";
         }

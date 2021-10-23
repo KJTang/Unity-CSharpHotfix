@@ -4,10 +4,10 @@ using System.Reflection;
 using System.Linq;
 using System.IO;
 using System;
+using System.Text;
+using System.Diagnostics;
 using UnityEngine;
 using UnityEditor;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
 
 namespace CSharpHotfix.Editor
 {
@@ -15,68 +15,122 @@ namespace CSharpHotfix.Editor
     public static class CSharpHotfixEditor 
     {
 
-        private const string kEnableBtnName = "CSharpHotfix/Enable";
-
         static CSharpHotfixEditor() 
         {
-            var enabled = EditorPrefs.GetBool(kEnableBtnName, false);
-            CSharpHotfixManager.IsHotfixEnabled = enabled;
-
-            // called once after all inspector initilized    
-            //EditorApplication.delayCall += () => {
-            //    EnableHotfix(CSharpHotfixManager.IsHotfixEnabled);
-            //};
         }
-         
-        [MenuItem(kEnableBtnName, false, 1)]
-        private static void EnableHotifxMenuCheckMark() 
+
+
+        [InitializeOnLoadMethod]
+        private static void OnInitialized()
         {
-            var enabled = !CSharpHotfixManager.IsHotfixEnabled;
-            EnableHotfix(enabled);
         }
 
-        [MenuItem(kEnableBtnName, true, 1)]
-        public static bool EnableHotifxMenuValidate()
+
+        [MenuItem("CSharpHotfix/Inject", false, 1)]
+        public static void InjectMenu()
         {
             if (EditorApplication.isCompiling || Application.isPlaying)
-                return false;
-            return true;
-        }
-
-        private static void EnableHotfix(bool enabled)
-        {
-            var changed = enabled != CSharpHotfixManager.IsHotfixEnabled;
-            Menu.SetChecked(kEnableBtnName, enabled);
-            EditorPrefs.SetBool(kEnableBtnName, enabled);
-            CSharpHotfixManager.IsHotfixEnabled = enabled;
-
-            if (changed)
             {
-                if (enabled)
+                CSharpHotfixManager.Error("#CS_HOTFIX# Inject: cannot inject during playing or compiling");
+                return;
+            }
+
+            // types to inject
+            var sb = new StringBuilder();
+            foreach (var assemblyName in CSharpHotfixCfg.InjectAssemblies)
+            {
+                var typeList = CSharpHotfixCfg.ToProcess.Where(type => type is Type)
+                    .Select(type => type)
+                    .Where(type => 
+                        type.Assembly.GetName().Name == assemblyName && 
+                        (string.IsNullOrEmpty(type.Namespace) || !CSharpHotfixCfg.InjectFilterNamespace.Contains(type.Namespace.Split('.')[0])))
+                    .ToList();
+
+                // format: "assemblyA;typeA;typeB;typeC|assemblyB;typeD;typeE;"
+                sb.Append(assemblyName);
+                sb.Append(";");
+
+                foreach (var type in typeList)
                 {
-                    CSharpHotfixInjector.TryInject();
+                    sb.Append(type.FullName);
+                    sb.Append(";");
                 }
-                else
-                {
-                    ForceRecomiple();
-                }
+
+                sb.Append("|");
+            }
+            var injectTypesStr = sb.ToString();
+
+            // search paths
+            sb.Length = 0;
+            foreach (var path in
+                (from asm in AppDomain.CurrentDomain.GetAssemblies()
+                    select System.IO.Path.GetDirectoryName(asm.ManifestModule.FullyQualifiedName)).Distinct())
+            {
+                sb.Append(path);
+                sb.Append(";");
+            }
+            var searchPathStr = sb.ToString();
+
+            // execute cmd
+            var arguments = new List<string>();
+            arguments.Add(injectTypesStr);
+            arguments.Add(searchPathStr);
+            var succ = ExecuteCommand(InjectMode.INJECT, arguments);
+            if (!succ)
+            {
+                UnityEngine.Debug.LogError("Inject finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
+                return;
             }
         }
-
+        
         [MenuItem("CSharpHotfix/Hotfix", false, 2)]
         public static void TryHotfix()
         {
-            CSharpHotfixInterpreter.ReloadHotfixFiles();
+            if (EditorApplication.isCompiling)
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# Hotfix: cannot hotfix during compiling");
+                return;
+            }
+
+            // assemblies
+            var assemblies = CSharpHotfixManager.GetAssemblies();
+            var sb = new StringBuilder();
+            foreach (var assembly in assemblies)
+            {
+                if (assembly.IsDynamic)
+                    continue;
+                sb.Append(assembly.Location);
+                sb.Append(";");
+            }
+            var assembliesStr = sb.ToString();
+
+            // defines
+            var definitions = CSharpHotfixManager.GetMacroDefinitions();
+            sb.Length = 0;
+            foreach (var define in definitions)
+            {
+                sb.Append(define);
+                sb.Append(";");
+            }
+            var definitionsStr = sb.ToString();
+
+            // execute cmd
+            var arguments = new List<string>();
+            arguments.Add(assembliesStr);
+            arguments.Add(definitionsStr);
+            var succ = ExecuteCommand(InjectMode.HOTFIX, arguments);
+
+            if (!succ)
+            {
+                UnityEngine.Debug.LogError("Hotfix finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
+                return;
+            }
+
+            HotfixFromAssembly();
         }
         
-
-        [MenuItem("CSharpHotfix/Force Recompile", false, 3)]
+        [MenuItem("CSharpHotfix/Force Recompile", false, 21)]
         public static void ForceRecompileMenu()
-        {
-            ForceRecomiple();
-        }
-
-        private static void ForceRecomiple()
         {
             var assetsPath = Application.dataPath;
             var assetsUri = new System.Uri(assetsPath);
@@ -86,7 +140,7 @@ namespace CSharpHotfix.Editor
                 if (file.EndsWith("CSharpHotfixManager.cs"))
                 {
                     // delete old assemblies
-                    CSharpHotfixInjector.RevertInject();
+                    RevertInject();
 
                     // reimport to force compile
 			        var relativeUri = assetsUri.MakeRelativeUri(new System.Uri(file));
@@ -97,19 +151,267 @@ namespace CSharpHotfix.Editor
                 }
             }
         }
-
-        [InitializeOnLoadMethod]
-        private static void OnInitialized()
+        
+        [MenuItem("CSharpHotfix/Gen Method Id", false, 22)]
+        public static void GenMethodIdMenu()
         {
-            var enabled = EditorPrefs.GetBool(kEnableBtnName, false);
-            CSharpHotfixManager.IsHotfixEnabled = false;
-
-            CSharpHotfixManager.Message("#CS_HOTFIX# CSharpHotfixEditor.OnInitialized: is hotfix enabled: " + enabled);
-            if (!enabled)
+            if (EditorApplication.isCompiling || Application.isPlaying)
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# Inject: cannot gen method id during playing or compiling");
                 return;
+            }
 
-            EnableHotfix(true);
+            // types to inject
+            var sb = new StringBuilder();
+            foreach (var assemblyName in CSharpHotfixCfg.InjectAssemblies)
+            {
+                var typeList = CSharpHotfixCfg.ToProcess.Where(type => type is Type)
+                    .Select(type => type)
+                    .Where(type => 
+                        type.Assembly.GetName().Name == assemblyName && 
+                        (string.IsNullOrEmpty(type.Namespace) || !CSharpHotfixCfg.InjectFilterNamespace.Contains(type.Namespace.Split('.')[0])))
+                    .ToList();
+
+                // format: "assemblyA;typeA;typeB;typeC|assemblyB;typeD;typeE;"
+                sb.Append(assemblyName);
+                sb.Append(";");
+
+                foreach (var type in typeList)
+                {
+                    sb.Append(type.FullName);
+                    sb.Append(";");
+                }
+
+                sb.Append("|");
+            }
+            var injectTypesStr = sb.ToString();
+
+            // search paths
+            sb.Length = 0;
+            foreach (var path in
+                (from asm in AppDomain.CurrentDomain.GetAssemblies()
+                    select System.IO.Path.GetDirectoryName(asm.ManifestModule.FullyQualifiedName)).Distinct())
+            {
+                sb.Append(path);
+                sb.Append(";");
+            }
+            var searchPathStr = sb.ToString();
+
+            // execute cmd
+            var arguments = new List<string>();
+            arguments.Add(injectTypesStr);
+            arguments.Add(searchPathStr);
+            var succ = ExecuteCommand(InjectMode.GEN_METHOD_ID, arguments);
+            if (!succ)
+            {
+                UnityEngine.Debug.LogError("Inject finsihed: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
+                return;
+            }
         }
+
+        
+        public static void RevertInject()
+        {
+            if (EditorApplication.isCompiling || Application.isPlaying)
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed, compiling or playing, please re-try after process finished");
+                return;
+            }
+
+            foreach (var assemblyName in CSharpHotfixCfg.InjectAssemblies)
+            {
+                var assemblyPath = CSharpHotfixManager.GetAssemblyPath(assemblyName);
+                CSharpHotfixManager.Message("#CS_HOTFIX# RevertAssembly: assemblyName: {0} \t{1}", assemblyName, assemblyPath);
+
+                // dll
+                try
+                {
+                    if (System.IO.File.Exists(assemblyPath))
+                        System.IO.File.Delete(assemblyPath);
+                }
+                catch (Exception e)
+                {
+                    CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed: {0}", e);
+                }
+                
+                // pdb
+                try
+                {
+                    var assemblyPDBPath = assemblyPath.Replace(".dll", ".pdb");
+                    if (System.IO.File.Exists(assemblyPDBPath))
+                        System.IO.File.Delete(assemblyPDBPath);
+                }
+                catch (Exception e)
+                {
+                    CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed: {0}", e);
+                }
+
+                // hotfix dll
+                try
+                {
+                    var hotfixPath = assemblyPath.Replace(".dll", ".hotfix.dll");
+                    if (System.IO.File.Exists(hotfixPath))
+                        System.IO.File.Delete(hotfixPath);
+                }
+                catch (Exception e)
+                {
+                    CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed: {0}", e);
+                }
+                
+                // hotfix pdb
+                try
+                {
+                    var hotfixPDBPath = assemblyPath.Replace(".pdb", ".hotfix.pdb");
+                    if (System.IO.File.Exists(hotfixPDBPath))
+                        System.IO.File.Delete(hotfixPDBPath);
+                }
+                catch (Exception e)
+                {
+                    CSharpHotfixManager.Error("#CS_HOTFIX# RevertInject: rervert failed: {0}", e);
+                }
+            }
+        }
+        
+        public static void HotfixFromAssembly()
+        {
+            if (!CSharpHotfixManager.IsMethodIdFileExist())
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# HotfixMethod: no method id file cache, please re-generate it");
+                return;
+            }
+            CSharpHotfixManager.LoadMethodIdFromFile();
+            CSharpHotfixManager.ClearReflectionData();
+
+            // load assembly from file
+            var hotfixStream = new MemoryStream();
+            using (var fileStream = new FileStream(CSharpHotfixManager.GetHotfixAssemblyPath(), FileMode.Open, System.IO.FileAccess.Read)) 
+            {
+                byte[] bytes = new byte[fileStream.Length];
+                fileStream.Read(bytes, 0, (int)fileStream.Length);
+                hotfixStream.Write(bytes, 0, bytes.Length);
+            }
+
+            // save methodinfo
+            CSharpHotfixManager.ClearMethodInfo();
+            var hotfixAssembly = Assembly.Load(hotfixStream.GetBuffer(), null);
+            var bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            var typeLst = hotfixAssembly.GetTypes();
+            foreach (var type in typeLst)
+            {
+                var methodLst = type.GetMethods(bindingFlags);
+                foreach (var methodInfo in methodLst)
+                {
+                    var signature = CSharpHotfixManager.GetMethodSignature(methodInfo);
+                    var fixedSignature = CSharpHotfixManager.FixHotfixMethodSignature(signature);
+                    var methodId = CSharpHotfixManager.GetMethodId(fixedSignature);
+                    if (methodId <= 0) 
+                        continue;
+
+                    var state = CSharpHotfixManager.GetHotfixMethodStaticState(signature);
+                    CSharpHotfixManager.SetMethodInfo(methodId, methodInfo, state == 2);
+                    CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: {0} \t{1}", methodId, fixedSignature);
+                }
+            }
+
+            // close stream
+            hotfixStream.Close();
+            
+            // debug: 
+            //CSharpHotfixManager.PrintAllMethodInfo();
+            CSharpHotfixManager.Message("#CS_HOTFIX# HotfixMethod: hotfix finished");
+        }
+        
+        public enum InjectMode
+        {
+            INJECT = 1, 
+            HOTFIX = 2, 
+            GEN_METHOD_ID = 3, 
+        }
+
+        private static bool ExecuteCommand(InjectMode injectMode, List<string> arguments)
+        {
+            var monoPath = CSharpHotfixCfg.GetMonoPath();
+            if (!File.Exists(monoPath))
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# ExecuteCommand: can not find mono: {0}", monoPath);
+                return false;
+            }
+
+            var toolPath = CSharpHotfixManager.GetAppRootPath() + "CSharpHotfix/Tools/CSharpHotfixTool/CSharpHotfixTool/bin/Debug/net472/CSharpHotfixTool.exe";
+            if (!File.Exists(toolPath))
+            {
+                CSharpHotfixManager.Error("#CS_HOTFIX# ExecuteCommand: can not find hotfix tool: {0}", toolPath);
+                return false;
+            }
+
+            var hotfixProc = new Process();
+            hotfixProc.StartInfo.FileName = monoPath;
+            hotfixProc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            hotfixProc.StartInfo.RedirectStandardOutput = true;
+            hotfixProc.StartInfo.UseShellExecute = false;
+            hotfixProc.StartInfo.CreateNoWindow = true;
+
+            // arguments
+            var projPath = CSharpHotfixManager.GetAppRootPath();
+            var mode = "";
+            switch (injectMode)
+            {
+                case InjectMode.INJECT:
+                    mode = "--inject";
+                    break;
+                case InjectMode.HOTFIX:
+                    mode = "--hotfix";
+                    break;
+                case InjectMode.GEN_METHOD_ID:
+                    mode = "--gen_method_id";
+                    break;
+            }
+
+            var argSb = new StringBuilder();
+            argSb.Append("--debug ");
+            argSb.Append("\"" + toolPath + "\" ");
+            argSb.Append("\"" + mode + "\" ");
+            argSb.Append("\"" + projPath + "\" ");
+            foreach (var arg in arguments)
+            {
+                argSb.Append("\"" + arg + "\" ");
+            }
+            hotfixProc.StartInfo.Arguments = argSb.ToString();
+            
+            //UnityEngine.Debug.LogError(hotfixProc.StartInfo.FileName);
+            //UnityEngine.Debug.LogError(hotfixProc.StartInfo.Arguments);
+            hotfixProc.Start();
+
+            // get output
+            var succ = true;
+            StringBuilder exceptionInfo = new StringBuilder();
+            while (!hotfixProc.StandardOutput.EndOfStream)
+            {
+                var line = hotfixProc.StandardOutput.ReadLine();
+                if (line.StartsWith("Exception:"))
+                {
+                    exceptionInfo.Length = 0;
+                    while (!line.StartsWith("Exception End"))
+                    {
+                        exceptionInfo.Append(line);
+                        exceptionInfo.Append('\n');
+                        line = hotfixProc.StandardOutput.ReadLine();
+                    }
+                    succ = false;
+                    line = exceptionInfo.ToString();
+                }
+                UnityEngine.Debug.Log("#CS_HOTFIX# CSharpHotfixTool: " + line);
+            }
+            hotfixProc.WaitForExit();
+
+            if (!succ)
+            {
+                UnityEngine.Debug.LogError("#CS_HOTFIX# ExecuteCommand: " + (!succ ? "<color=red>failed</color>" : "<color=green>succ</color>"));
+                return false;
+            }
+            return true;
+        }
+        
 
     }
 

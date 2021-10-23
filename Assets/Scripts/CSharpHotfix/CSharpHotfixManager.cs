@@ -1,5 +1,4 @@
 ﻿// #define CSHOTFIX_ENABLE_LOG
-
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -10,27 +9,40 @@ using System.IO;
 using System;
 using UnityEngine;
 using UnityEngine.Assertions;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace CSharpHotfix
 {
     public class CSharpHotfixManager 
     {
-        public static bool IsHotfixEnabled
-        {
-            get { return isHotfixEnabled; }
-            set
-            {
-                isHotfixEnabled = value;
-            }
-        }
-        private static bool isHotfixEnabled = false;
 
+        private static string appRootPath;
+        public static string GetAppRootPath()
+        {
+            if (string.IsNullOrEmpty(appRootPath))
+            {
+                var path = Application.dataPath;
+                var pos = path.IndexOf("Assets");
+                if (pos >= 0)
+                {
+                    path = path.Remove(pos);
+                }
+                appRootPath = path;
+            }
+            return appRootPath;
+        }
         
+        private static string assemblyDir;
+        public static string GetAssemblyPath(string assemblyName)
+        {
+            if (assemblyDir == null)
+            {
+                assemblyDir = GetAppRootPath();
+                assemblyDir = assemblyDir + "Library/ScriptAssemblies/";
+            }
+            var assemblyPath = assemblyDir + assemblyName + ".dll";
+            return assemblyPath;
+        }
+
         private static Assembly[] assemblies;
         public static Assembly[] GetAssemblies()
         {
@@ -39,6 +51,61 @@ namespace CSharpHotfix
                 assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
             }
             return assemblies;
+        }
+
+        private static HashSet<string> macroDefinitions;
+        
+        public static HashSet<string> GetMacroDefinitions() 
+        {
+            if (macroDefinitions == null)
+            {
+                var definitions = new HashSet<string>();
+
+                #if UNITY_EDITOR
+                    var defineSymbols = UnityEditor.PlayerSettings.GetScriptingDefineSymbolsForGroup(UnityEditor.BuildTargetGroup.Standalone);
+                    var symbolLst = defineSymbols.Split(';');
+                    foreach (var symbol in symbolLst)
+                        if (!string.IsNullOrEmpty(symbol))
+                            definitions.Add(symbol);
+                #endif
+
+
+                // platform
+                #if UNITY_EDITOR
+                    definitions.Add("UNITY_EDITOR");
+                #elif UNITY_IOS
+                    definitions.Add("UNITY_IOS");
+                #elif UNITY_ANDROID
+                    definitions.Add("UNITY_ANDROID");
+                #elif UNITY_STANDALONE
+                    definitions.Add("UNITY_STANDALONE");
+
+                // TODO: add other definitions here
+
+                #endif
+
+                macroDefinitions = definitions;
+
+                //Debug.LogError("def cnt: " + macroDefinitions.Count);
+                //foreach (var def in macroDefinitions)
+                //{
+                //    Debug.LogError("def: " + def);
+                //}
+            }
+            return macroDefinitions;
+        }
+
+        
+        private static string hotfixAssemblyDir;
+        private static string hotfixDllName = "CSHotfix_Assembly.dll";
+        public static string GetHotfixAssemblyPath()
+        {
+            if (hotfixAssemblyDir == null)
+            {
+                hotfixAssemblyDir = GetAppRootPath() + "Library/ScriptAssemblies/";
+            }
+            var hotfixAssemblyPath = hotfixAssemblyDir + hotfixDllName;
+            return hotfixAssemblyPath;
         }
 
 #region log
@@ -118,157 +185,43 @@ namespace CSharpHotfix
 
             return methodSignatureBuilder.ToString();
         }
+                
+        // same as CSharpHotfixRewriter.cs in CSharpHotfixTool Project
+        // if need change, modify them in both files
+        public static readonly string InstanceParamName = "__INST__";
+        public static readonly string ClassNamePostfix = "__HOTFIX_CLS";
+        public static readonly string MethodNamePostfix = "__HOTFIX_MTD";
+        public static readonly string StaticMethodNamePostfix = "__HOTFIX_MTD_S";
+
 
         /// <summary>
-        /// get method signature for Mono.Cecil.MethodDefinition
+        /// fix hotfixed method signature to non-hotfixed method signature, to make them can match
         /// </summary>
-        /// <param name="method"></param>
+        /// <param name="signature"></param>
         /// <returns></returns>
-        public static string GetMethodSignature(MethodDefinition method)
-        {
-            methodSignatureBuilder.Length = 0;
-
-            // fullname
-            var methodName = method.Name;
-            var namespaceName = method.DeclaringType.FullName;
-            methodName = namespaceName + "." + methodName;
-            methodSignatureBuilder.Append(methodName);
-            methodSignatureBuilder.Append(";");
-
-            // static
-            var isStatic = method.IsStatic ? "Static" : "NonStatic";
-            methodSignatureBuilder.Append(isStatic);
-            methodSignatureBuilder.Append(";");
-
-            // return type
-            var returnType = method.ReturnType.FullName;
-            methodSignatureBuilder.Append(returnType);
-            methodSignatureBuilder.Append(";");
-
-            // generic
-            var genericArgs = method.GenericParameters;
-            methodSignatureBuilder.Append(genericArgs.Count.ToString());
-            methodSignatureBuilder.Append(";");
-
-            // parameters
-            var parameters = method.Parameters;
-            foreach (var param in parameters)
-            {
-                methodSignatureBuilder.Append(param.ParameterType.FullName);
-                methodSignatureBuilder.Append(",");
-            }
-            methodSignatureBuilder.Append(";");
-
-            return methodSignatureBuilder.ToString();
-        }
-
-        /// <summary>
-        /// get method signature for Roslyn symbol
-        /// </summary>
-        /// <param name="method"></param>
-        /// <returns></returns>
-        public static string GetMethodSignature(IMethodSymbol method)
-        {
-            methodSignatureBuilder.Length = 0;
-
-            // fullname
-            var methodName = GetSymbolFullName(method);
-            methodSignatureBuilder.Append(methodName);
-            methodSignatureBuilder.Append(";");
-
-            // static
-            var isStatic = method.IsStatic ? "Static" : "NonStatic";
-            methodSignatureBuilder.Append(isStatic);
-            methodSignatureBuilder.Append(";");
-
-            // return type
-            var returnType = GetSymbolFullName(method.ReturnType);
-            methodSignatureBuilder.Append(returnType);
-            methodSignatureBuilder.Append(";");
-
-            // generic
-            var genericArgs = method.TypeParameters;
-            methodSignatureBuilder.Append(genericArgs.Length.ToString());
-            methodSignatureBuilder.Append(";");
-
-            // parameters
-            var parameters = method.Parameters;
-            foreach (var param in parameters)
-            {
-                methodSignatureBuilder.Append(GetSymbolFullName(param.Type));
-                methodSignatureBuilder.Append(",");
-            }
-            methodSignatureBuilder.Append(";");
-
-            return methodSignatureBuilder.ToString();
-        }
-
-        private static string GetSymbolFullName(ISymbol symbol)
-        {
-            var symbolName = symbol.Name;
-            var parent = symbol.ContainingSymbol;
-            while (parent != null)
-            {
-                if (parent is INamespaceSymbol && (parent as INamespaceSymbol).IsGlobalNamespace)
-                    break;
-                symbolName = parent.Name + "." + symbolName;
-                parent = parent.ContainingSymbol;
-            }
-            return symbolName;
-        }
-
-
-        //public static string GetMethodSignature(MethodDeclarationSyntax method)
-        //{
-        //    methodSignatureBuilder.Length = 0;
-
-        //    // fullname
-        //    var methodName = method.Identifier.Text;
-        //    var node = method.Parent;
-        //    while (node != null)
-        //    {
-        //        var classNode = node as ClassDeclarationSyntax;
-        //        var namespaceNode = node as NamespaceDeclarationSyntax;
-        //        if (classNode != null)
-        //        {
-        //            methodName = classNode.Identifier.Text + "." + methodName;
-        //        }
-        //        else if (namespaceNode != null)
-        //        {
-        //            methodName = namespaceNode.Name.ToString() + "." + methodName;
-        //        }
-        //    }
-        //    methodSignatureBuilder.Append(methodName);
-        //    methodSignatureBuilder.Append(";");
-
-        //    // TODO: 
-        //    return methodSignatureBuilder.ToString();
-        //}
-        
-
         public static string FixHotfixMethodSignature(string signature)
         {
             // fix class name
             if (IsHotfixClass(signature))
-                signature = signature.Replace(CSharpHotfixRewriter.ClassNamePostfix, "");
+                signature = signature.Replace(ClassNamePostfix, "");
 
             // fix static
-            var oldStaticStr = "NonStatic";
+            var oldStaticStr = ";NonStatic;";
             if (!signature.Contains(oldStaticStr))
-                oldStaticStr = "Static";
+                oldStaticStr = ";Static;";
 
             var staticState = GetHotfixMethodStaticState(signature);
             var newStaticStr = oldStaticStr;
             if (staticState > 0)
-                newStaticStr = staticState == 1 ? "Static" : "NonStatic";
+                newStaticStr = staticState == 1 ? ";Static;" : ";NonStatic;";
             if (oldStaticStr != newStaticStr)
                 signature = signature.Replace(oldStaticStr, newStaticStr);
 
             // fix method name
             if (staticState == 1)
-                signature = signature.Replace(CSharpHotfixRewriter.StaticMethodNamePostfix, "");
+                signature = signature.Replace(StaticMethodNamePostfix, "");
             else if (staticState == 2)
-                signature = signature.Replace(CSharpHotfixRewriter.MethodNamePostfix, "");
+                signature = signature.Replace(MethodNamePostfix, "");
 
             // fix parameter list
             if (staticState == 2)
@@ -290,15 +243,15 @@ namespace CSharpHotfix
 
         public static bool IsHotfixClass(string signature)
         {
-            return signature.Contains(CSharpHotfixRewriter.ClassNamePostfix);
+            return signature.Contains(ClassNamePostfix);
         }
 
         public static int GetHotfixMethodStaticState(string signature)
         {
             var state = 0;  // non hotfix
-            if (signature.Contains(CSharpHotfixRewriter.StaticMethodNamePostfix))
+            if (signature.Contains(StaticMethodNamePostfix))
                 state = 1;  // static
-            else if (signature.Contains(CSharpHotfixRewriter.MethodNamePostfix))
+            else if (signature.Contains(MethodNamePostfix))
                 state = 2;  // non static
             return state;
         }
@@ -351,17 +304,11 @@ namespace CSharpHotfix
         }
 
         private static string methodIdFilePath;
-        private static string GetMethodIdFilePath()
+        public static string GetMethodIdFilePath()
         {
             if (methodIdFilePath == null)
             {
-                methodIdFilePath = Application.dataPath;
-                var pos = methodIdFilePath.IndexOf("Assets");
-                if (pos >= 0)
-                {
-                    methodIdFilePath = methodIdFilePath.Remove(pos);
-                }
-                methodIdFilePath = methodIdFilePath + "CSharpHotfix/methodId.txt";
+                methodIdFilePath = CSharpHotfixManager.GetAppRootPath() + "CSharpHotfix/methodId.txt";
             }
             return methodIdFilePath;
         }
@@ -402,24 +349,6 @@ namespace CSharpHotfix
                     methodIdReverseDict.Add(methodId, signature);
                 }
             }	
-        }
-        
-        public static bool IsStatic(int methodId)
-        {
-            var signature = GetMethodSignature(methodId);
-            if (string.IsNullOrEmpty(signature))
-                return false;
-            var strLst = signature.Split(';');
-            return strLst[1] == "Static";
-        }
-
-        public static bool IsReturnTypeVoid(int methodId)
-        {
-            var signature = GetMethodSignature(methodId);
-            if (string.IsNullOrEmpty(signature))
-                return false;
-            var strLst = signature.Split(';');
-            return strLst[2] == "System.Void";
         }
 
 #endregion
@@ -509,7 +438,7 @@ namespace CSharpHotfix
             return methodInfo.methodInfo.Invoke(instance, param);
         }
 
-        #endregion
+#endregion
 
 
 #region reflection helper
@@ -529,13 +458,15 @@ namespace CSharpHotfix
             PropertyInfo prop;
             if (reflectionData.props.TryGetValue(memberName, out prop))
             {
-                return prop.GetValue(instance);
+                return prop.GetValue(instance, null);
             }
 
             // try delegate
-            MethodInfo method;
-            if (reflectionData.methods.TryGetValue(memberName, out method))
+            MethodInfoWrap methodWrap;
+            if (reflectionData.methods.TryGetValue(memberName, out methodWrap))
             {
+                // TODO: fix overload
+                var method = methodWrap.Single();
                 return Delegate.CreateDelegate(reflectionData.type, instance, method);
             }
 
@@ -560,11 +491,62 @@ namespace CSharpHotfix
             PropertyInfo prop;
             if (reflectionData.props.TryGetValue(memberName, out prop))
             {
-                prop.SetValue(instance, value);
+                prop.SetValue(instance, value, null);
                 return;
             }
 
             Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
+        }
+
+        public static object ReflectionIncrement(string typeName, object instance, string memberName, bool isInc, bool isPre)
+        {
+            var oldValue = ReflectionGet(typeName, instance, memberName);
+            var type = oldValue.GetType();
+            if (!type.IsPrimitive)
+                return oldValue;
+
+            var newValue = Activator.CreateInstance(type);
+            var addValue = isInc ? 1 : -1;
+            if (type == typeof(System.Int16))
+            {
+                newValue = (System.Int16)oldValue + addValue;
+            }
+            else if (type == typeof(System.UInt16))
+            {
+                newValue = (System.UInt16)oldValue + addValue;
+            }
+            else if (type == typeof(System.Int32))
+            {
+                newValue = (System.Int32)oldValue + addValue;
+            }
+            else if (type == typeof(System.UInt32))
+            {
+                newValue = (System.UInt32)oldValue + addValue;
+            }
+            else if (type == typeof(System.Int64))
+            {
+                newValue = (System.Int64)oldValue + (System.Int64)addValue;
+            }
+            else if (type == typeof(System.UInt64))
+            {
+                newValue = (System.UInt64)oldValue + (System.UInt64)addValue;
+            }
+            else if (type == typeof(float))
+            {
+                newValue = (float)oldValue + addValue;
+            }
+            else if (type == typeof(double))
+            {
+                newValue = (double)oldValue + addValue;
+            }
+            else
+            {
+                Assert.IsTrue(false, "ReflectionIncrement: unsupport type: " + type.Name);
+            }
+
+
+            ReflectionSet(typeName, instance, memberName, newValue);
+            return isPre ? newValue : oldValue;
         }
 
         public static void ReflectionReturnVoidInvoke(string typeName, object instance, string memberName, params object[] parameters)
@@ -573,10 +555,10 @@ namespace CSharpHotfix
             Assert.IsNotNull(reflectionData, "cannot get reflection data for typeName: " + typeName);
 
             // try method
-            MethodInfo method;
-            if (reflectionData.methods.TryGetValue(memberName, out method))
+            MethodInfoWrap methodWrap;
+            if (reflectionData.methods.TryGetValue(memberName, out methodWrap))
             {
-                method.Invoke(instance, parameters);
+                methodWrap.Invoke(instance, parameters);
                 return;
             }
 
@@ -590,10 +572,10 @@ namespace CSharpHotfix
             Assert.IsNotNull(reflectionData, "cannot get reflection data for typeName: " + typeName);
 
             // try method
-            MethodInfo method;
-            if (reflectionData.methods.TryGetValue(memberName, out method))
+            MethodInfoWrap methodWrap;
+            if (reflectionData.methods.TryGetValue(memberName, out methodWrap))
             {
-                return method.Invoke(instance, parameters);
+                return methodWrap.Invoke(instance, parameters);
             }
 
             Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
@@ -620,14 +602,93 @@ namespace CSharpHotfix
             }
 
             // try delegate
-            MethodInfo method;
-            if (reflectionData.methods.TryGetValue(memberName, out method))
+            MethodInfoWrap methodWrap;
+            if (reflectionData.methods.TryGetValue(memberName, out methodWrap))
             {
-                return method.ReturnType;
+                return methodWrap.ReturnType;
             }
 
             Assert.IsTrue(false, "not found member in type: " + typeName + " \t" + memberName);
             return null;
+        }
+
+        /// <summary>
+        /// wrap MethodInfo, to resolve overload methods
+        /// </summary>
+        public class MethodInfoWrap
+        {
+            public string Name
+            {
+                get { return Single().Name; }
+            }
+
+            public Type ReturnType
+            {
+                get { return Single().ReturnType; }
+            }
+
+            public int Count
+            {
+                get { return methodLst.Count; }
+            }
+
+            private List<MethodInfo> methodLst = new List<MethodInfo>();
+
+            public void Add(MethodInfo method)
+            {
+                methodLst.Add(method);
+            }
+
+            public MethodInfo Single()
+            {
+                return methodLst[0];
+            }
+
+            public object Invoke(object instance, object[] parameters)
+            {
+                if (methodLst.Count == 1)
+                {
+                    return methodLst[0].Invoke(instance, parameters);
+                }
+
+                var paramLength = parameters == null ? 0 : parameters.Length;
+                foreach (var method in methodLst)
+                {
+                    var paramInfos = method.GetParameters();
+                    if (paramInfos.Length < paramLength)
+                        continue;
+
+                    var matched = true;
+                    for (var i = 0; i != paramInfos.Length; ++i)
+                    {
+                        var paramInfo = paramInfos[i];
+                        if (i >= paramLength)
+                        {
+                            if (!paramInfo.HasDefaultValue)
+                            {
+                                matched = false;
+                                break;
+                            }
+                            continue;
+                        }
+                        
+                        var paramInst = parameters[i];
+                        if (!paramInfo.ParameterType.IsAssignableFrom(paramInst.GetType()))
+                        {
+                            matched = false;
+                            break;
+                        }
+                    }
+                    if (!matched)
+                        continue;
+
+                    // found method, invoke it
+                    return method.Invoke(instance, parameters);
+                }
+
+                Assert.IsTrue(false, "invoke method failed");
+                return null;
+            }
         }
 
         public class ReflectionData
@@ -635,7 +696,7 @@ namespace CSharpHotfix
             public Type type;
             public Dictionary<string, FieldInfo> fields = new Dictionary<string, FieldInfo>();
             public Dictionary<string, PropertyInfo> props = new Dictionary<string, PropertyInfo>();
-            public Dictionary<string, MethodInfo> methods = new Dictionary<string, MethodInfo>();
+            public Dictionary<string, MethodInfoWrap> methods = new Dictionary<string, MethodInfoWrap>();
 
             public void Print()
             {
@@ -643,8 +704,8 @@ namespace CSharpHotfix
 
                 foreach (var kv in methods)
                 {
-                    var method = kv.Value;
-                    UnityEngine.Debug.Log("method: " + method.Name);
+                    var methodWrap = kv.Value;
+                    UnityEngine.Debug.Log("method: " + methodWrap.Name);
                 }
 
                 foreach (var kv in fields)
@@ -700,7 +761,13 @@ namespace CSharpHotfix
             var methods = type.GetMethods(bindingFlags);
             foreach (var method in methods)
             {
-                data.methods.Add(method.Name, method);
+                MethodInfoWrap methodWrap; 
+                if (!data.methods.TryGetValue(method.Name, out methodWrap))
+                {
+                    methodWrap = new MethodInfoWrap();
+                    data.methods.Add(method.Name, methodWrap);
+                }
+                methodWrap.Add(method);
             }
 
             var fields = type.GetFields(bindingFlags);
