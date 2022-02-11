@@ -328,8 +328,12 @@ namespace CSharpHotfix.Editor
             GEN_METHOD_ID = 3, 
         }
 
-        private static bool ExecuteCommand(InjectMode injectMode, List<string> arguments)
+        private static bool ExecuteCommand(InjectMode injectMode, List<string> arguments, bool debug = false)
         {
+            // if debug == true, will directly start CSharpHotfixTool.exe by .NET not Mono
+            // then we can use visual studio to debug CSharpHotfixTool.exe 
+            //debug = true;
+
             var monoPath = CSharpHotfixCfg.GetMonoPath();
             if (!File.Exists(monoPath))
             {
@@ -345,7 +349,10 @@ namespace CSharpHotfix.Editor
             }
 
             var hotfixProc = new Process();
-            hotfixProc.StartInfo.FileName = monoPath;
+            if (!debug)
+                hotfixProc.StartInfo.FileName = monoPath;
+            else
+                hotfixProc.StartInfo.FileName = toolPath;
             hotfixProc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
             hotfixProc.StartInfo.RedirectStandardOutput = true;
             hotfixProc.StartInfo.UseShellExecute = false;
@@ -368,8 +375,11 @@ namespace CSharpHotfix.Editor
             }
 
             var argSb = new StringBuilder();
-            argSb.Append("--debug ");
-            argSb.Append("\"" + toolPath + "\" ");
+            if (!debug)
+            {
+                argSb.Append("--debug ");
+                argSb.Append("\"" + toolPath + "\" ");
+            }
             argSb.Append("\"" + mode + "\" ");
             argSb.Append("\"" + projPath + "\" ");
             foreach (var arg in arguments)

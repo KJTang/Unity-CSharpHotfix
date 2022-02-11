@@ -290,12 +290,16 @@ namespace CSharpHotfixTool
             }
 
             // check MemberAccessExpressionSyntax: must be the first node
-            if (node.Parent is MemberAccessExpressionSyntax)
+            else if (node.Parent is MemberAccessExpressionSyntax)
             {
                 if (node.Parent.Parent is MemberAccessExpressionSyntax)
                     needCheck = false;
                 else if ((node.Parent as MemberAccessExpressionSyntax).Expression is ThisExpressionSyntax)
                     needCheck = false;
+
+                // TODO: try fix Test_AccessMemberFromAnotherInstance
+                //else if ((node.Parent as MemberAccessExpressionSyntax).Name == node)
+                //    needCheck = false;
             }
 
             // others
@@ -605,6 +609,11 @@ namespace CSharpHotfixTool
             if (typeName == "var")
                 return node;
 
+            // cast 
+            var memberType = ToolManager.ReflectionGetMemberType(typeName, nameNode.Identifier.Text);
+            if (memberType == null)
+                return node;
+
             // CSharpHotfix.CSharpHotfixManager.ReflectionGet
             var getExpr = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
                 SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
@@ -622,11 +631,6 @@ namespace CSharpHotfixTool
                 ))
                 .Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(nameNode.Identifier.Text))))
             );
-
-            // cast 
-            var memberType = ToolManager.ReflectionGetMemberType(typeName, nameNode.Identifier.Text);
-            if (memberType == null)
-                return node;
 
             var typeNode = ToolRewriter.TypeStringToSyntaxNode(memberType.ToString());
             var castExpr = SyntaxFactory.CastExpression(typeNode, SyntaxFactory.InvocationExpression(getExpr, getArgs));

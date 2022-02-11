@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "Z4T8RaUs+RdrugBQb78Btm2dFTqwPY6mFtkbfBY23ZTjL4yOeFSdZ6JPECeV9u5KdR73gxvgwVTUAPAgYhsEfQ==",
+  "dgSpecHash": "Sgm4UeR7VbtKjabRO6HQgRlWQt1Y75rXx/Qf3brMKEmhA2dozxy1Oz4Ulx01fQW2vzx4KWDT642jYouVsvSnTg==",
   "success": true,
-  "projectFilePath": "D:\\Code\\Unity-CSharpHotfix\\CSharpHotfix\\Tools\\CSharpHotfixTool\\CSharpHotfixTool\\CSharpHotfixTool.csproj",
+  "projectFilePath": "D:\\Unity\\CSharpTest\\CSharpHotfix\\Tools\\CSharpHotfixTool\\CSharpHotfixTool\\CSharpHotfixTool.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\kaijietang\\.nuget\\packages\\microsoft.codeanalysis.analyzers\\2.9.8\\microsoft.codeanalysis.analyzers.2.9.8.nupkg.sha512",
     "C:\\Users\\kaijietang\\.nuget\\packages\\microsoft.codeanalysis.common\\3.3.1\\microsoft.codeanalysis.common.3.3.1.nupkg.sha512",

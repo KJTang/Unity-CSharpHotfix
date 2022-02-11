@@ -1,0 +1,41 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace CSharpHotfixTest
+{
+    
+    public class CompareItem__HOTFIX_CLS 
+    {   
+        static public int CompareTo__HOTFIX_MTD(CompareItem __INST__,object obj)
+        {
+            if (ReferenceEquals(obj, __INST__) || !(obj is CompareItem))
+            {
+                return 0;
+            }
+        
+            int srcValue = __INST__.Value;
+            int dstValue = (obj as CompareItem).Value;
+            if (srcValue != dstValue)
+            {
+                return srcValue > dstValue ? -1 : 1;
+            }
+            return 0;
+        }
+    }
+
+
+    public class Test_AccessMemberFromAnotherInstance__HOTFIX_CLS
+    {
+
+        static public string Func__HOTFIX_MTD(Test_AccessMemberFromAnotherInstance __INST__)
+        {
+            CSharpHotfixTest.CompareItem item1 = new CompareItem(1);
+            CSharpHotfixTest.CompareItem item2 = new CompareItem(2);
+            if (item1.CompareTo(item2) >= 0)
+                return "invalid";
+            return "hotfixed";
+        }
+    }
+}
